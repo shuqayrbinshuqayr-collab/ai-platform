@@ -41,3 +41,15 @@
 - [x] Write vitest tests for all routers (6 tests passing)
 - [x] Cross-browser and mobile responsive design
 - [x] Final checkpoint and delivery
+
+## Phase 8: SOAR Vision Alignment (Major Update)
+- [x] Redesign visual identity: dark background + orange accent (#FF6B00) + SOAR logo
+- [x] Update landing page with SOAR brand and welcome screen (Create Plan / Create Image / Create Project)
+- [x] Integrate Google Maps for land location pinning
+- [x] Add AI land analysis report (area, zoning, compliance score)
+- [x] Update data entry form with detailed fields (bathrooms, kitchens, majlis, maid rooms, elevators, garages, balconies, facades)
+- [x] Generate 6 simultaneous blueprint concepts for user to choose from
+- [x] Build Free/Pro subscription system with feature gating
+- [x] Pro features: private project portfolio, more concepts, download formats
+- [x] Add facade selection UI with ready-made options
+- [x] Add DXF/AutoCAD export option (Pro)

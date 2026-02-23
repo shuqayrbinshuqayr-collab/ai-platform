@@ -43,98 +43,42 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ─── SOAR.AI Dark + Orange Theme ─── */
 :root {
-  /* SOAR AI Blueprint Color Palette */
-  --background: oklch(0.11 0.04 240);
+  --background: oklch(0.09 0.008 240);
   --foreground: oklch(0.97 0.01 240);
-  --card: oklch(0.15 0.05 240);
+  --card: oklch(0.12 0.010 240);
   --card-foreground: oklch(0.97 0.01 240);
-  --popover: oklch(0.14 0.04 240);
+  --popover: oklch(0.12 0.010 240);
   --popover-foreground: oklch(0.97 0.01 240);
-  --secondary: oklch(0.20 0.05 240);
+  /* Orange primary */
+  --primary: oklch(0.70 0.19 45);
+  --primary-foreground: oklch(0.10 0.01 240);
+  --secondary: oklch(0.17 0.010 240);
   --secondary-foreground: oklch(0.90 0.02 240);
-  --muted: oklch(0.18 0.04 240);
-  --muted-foreground: oklch(0.65 0.05 240);
-  --accent: oklch(0.55 0.20 200);
-  --accent-foreground: oklch(0.98 0.01 240);
-  --destructive: oklch(0.55 0.22 25);
+  --muted: oklch(0.17 0.010 240);
+  --muted-foreground: oklch(0.55 0.02 240);
+  --accent: oklch(0.70 0.19 45);
+  --accent-foreground: oklch(0.10 0.01 240);
+  --destructive: oklch(0.60 0.22 25);
   --destructive-foreground: oklch(0.98 0.01 240);
-  --border: oklch(0.28 0.06 240);
-  --input: oklch(0.20 0.05 240);
-  --ring: oklch(0.60 0.18 240);
-  --sidebar: oklch(0.13 0.05 240);
+  --border: oklch(0.22 0.010 240);
+  --input: oklch(0.16 0.010 240);
+  --ring: oklch(0.70 0.19 45);
+  --sidebar: oklch(0.11 0.010 240);
   --sidebar-foreground: oklch(0.97 0.01 240);
-  --sidebar-accent: oklch(0.20 0.06 240);
+  --sidebar-primary: oklch(0.70 0.19 45);
+  --sidebar-primary-foreground: oklch(0.10 0.01 240);
+  --sidebar-accent: oklch(0.17 0.010 240);
   --sidebar-accent-foreground: oklch(0.97 0.01 240);
-  --sidebar-border: oklch(0.28 0.06 240);
-  --sidebar-ring: oklch(0.60 0.18 240);
-  --primary: var(--color-blue-400);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.5rem;
-}
-
-.dark {
-  --primary: var(--color-blue-400);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
-  --background: oklch(0.11 0.04 240);
-  --foreground: oklch(0.97 0.01 240);
-  --card: oklch(0.15 0.05 240);
-  --card-foreground: oklch(0.97 0.01 240);
-  --popover: oklch(0.14 0.04 240);
-  --popover-foreground: oklch(0.97 0.01 240);
-  --secondary: oklch(0.20 0.05 240);
-  --secondary-foreground: oklch(0.90 0.02 240);
-  --muted: oklch(0.18 0.04 240);
-  --muted-foreground: oklch(0.65 0.05 240);
-  --accent: oklch(0.55 0.20 200);
-  --accent-foreground: oklch(0.98 0.01 240);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 240);
-  --border: oklch(0.28 0.06 240);
-  --input: oklch(0.20 0.05 240);
-  --ring: oklch(0.60 0.18 240);
-  --sidebar: oklch(0.13 0.05 240);
-  --sidebar-foreground: oklch(0.97 0.01 240);
-  --sidebar-accent: oklch(0.20 0.06 240);
-  --sidebar-accent-foreground: oklch(0.97 0.01 240);
-  --sidebar-border: oklch(0.28 0.06 240);
+  --sidebar-border: oklch(0.22 0.010 240);
+  --sidebar-ring: oklch(0.70 0.19 45);
+  --chart-1: oklch(0.70 0.19 45);
+  --chart-2: oklch(0.65 0.15 200);
+  --chart-3: oklch(0.65 0.18 145);
+  --chart-4: oklch(0.65 0.18 280);
+  --chart-5: oklch(0.65 0.18 60);
+  --radius: 0.625rem;
 }
 
 @layer base {
@@ -144,12 +88,6 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Cairo', 'Inter', sans-serif;
-    background-image:
-      linear-gradient(oklch(0.30 0.08 240 / 0.18) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.30 0.08 240 / 0.18) 1px, transparent 1px),
-      linear-gradient(oklch(0.30 0.08 240 / 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.30 0.08 240 / 0.06) 1px, transparent 1px);
-    background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -165,112 +103,125 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
-
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
+  .flex { min-height: 0; min-width: 0; }
 
   @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
   }
-
   @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem;
-      padding-right: 2rem;
-      max-width: 1280px;
-    }
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
   }
 
-  /* Blueprint card */
+  /* ─── SOAR Cards ─── */
+  .soar-card {
+    background: oklch(0.12 0.010 240);
+    border: 1px solid oklch(0.22 0.010 240);
+    border-radius: var(--radius);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .soar-card:hover {
+    border-color: oklch(0.70 0.19 45 / 0.45);
+    box-shadow: 0 0 20px oklch(0.70 0.19 45 / 0.08);
+  }
+
+  /* Orange glow */
+  .glow-orange {
+    box-shadow: 0 0 20px oklch(0.70 0.19 45 / 0.35), 0 0 40px oklch(0.70 0.19 45 / 0.15);
+  }
+  .glow-orange-sm {
+    box-shadow: 0 0 10px oklch(0.70 0.19 45 / 0.25);
+  }
+
+  /* Keep old blue glow for backward compat */
+  .glow-blue { box-shadow: 0 0 20px oklch(0.60 0.18 240 / 0.3); }
+  .glow-accent { box-shadow: 0 0 20px oklch(0.70 0.19 45 / 0.4); }
+
+  /* Orange gradient text */
+  .text-orange-gradient {
+    background: linear-gradient(135deg, oklch(0.80 0.19 45), oklch(0.65 0.22 35));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Orange divider */
+  .orange-divider {
+    height: 3px;
+    background: linear-gradient(90deg, oklch(0.70 0.19 45), transparent);
+    border-radius: 2px;
+  }
+
+  /* Pro badge */
+  .pro-badge {
+    background: linear-gradient(135deg, oklch(0.70 0.19 45), oklch(0.60 0.22 35));
+    color: oklch(0.10 0.01 240);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    letter-spacing: 0.05em;
+    display: inline-block;
+  }
+
+  /* Concept card for blueprint selection */
+  .concept-card {
+    background: oklch(0.12 0.010 240);
+    border: 2px solid oklch(0.22 0.010 240);
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .concept-card:hover {
+    border-color: oklch(0.70 0.19 45 / 0.5);
+    box-shadow: 0 0 15px oklch(0.70 0.19 45 / 0.15);
+  }
+  .concept-card.selected {
+    border-color: oklch(0.70 0.19 45);
+    box-shadow: 0 0 20px oklch(0.70 0.19 45 / 0.25);
+  }
+
+  /* Status badges */
+  .status-free { background: oklch(0.55 0.02 240 / 0.15); color: oklch(0.70 0.02 240); border: 1px solid oklch(0.40 0.02 240 / 0.3); }
+  .status-pro { background: oklch(0.70 0.19 45 / 0.15); color: oklch(0.80 0.19 45); border: 1px solid oklch(0.70 0.19 45 / 0.4); }
+  .status-draft { background: oklch(0.80 0.15 80 / 0.12); color: oklch(0.80 0.15 80); border: 1px solid oklch(0.80 0.15 80 / 0.25); }
+  .status-processing { background: oklch(0.70 0.19 45 / 0.12); color: oklch(0.80 0.19 45); border: 1px solid oklch(0.70 0.19 45 / 0.3); }
+  .status-completed { background: oklch(0.65 0.18 145 / 0.12); color: oklch(0.75 0.15 145); border: 1px solid oklch(0.65 0.18 145 / 0.3); }
+  .status-archived { background: oklch(0.50 0.05 240 / 0.12); color: oklch(0.60 0.05 240); border: 1px solid oklch(0.50 0.05 240 / 0.3); }
+
+  /* Legacy blueprint card (still used in BlueprintView) */
   .blueprint-card {
-    background: oklch(0.15 0.05 240 / 0.85);
-    border: 1px solid oklch(0.40 0.12 240 / 0.5);
-    backdrop-filter: blur(12px);
+    background: oklch(0.12 0.010 240 / 0.9);
+    border: 1px solid oklch(0.22 0.010 240);
+    backdrop-filter: blur(8px);
     position: relative;
   }
-  .blueprint-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, oklch(0.65 0.22 220 / 0.8), transparent);
-    border-radius: 2px 2px 0 0;
-  }
-
-  /* CAD corner markers */
   .cad-corner { position: relative; }
   .cad-corner::before, .cad-corner::after {
     content: '';
     position: absolute;
-    width: 14px; height: 14px;
-    border-color: oklch(0.60 0.18 240 / 0.8);
+    width: 12px; height: 12px;
+    border-color: oklch(0.70 0.19 45 / 0.5);
     border-style: solid;
   }
   .cad-corner::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
   .cad-corner::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
-  /* Glow effects */
-  .glow-blue { box-shadow: 0 0 20px oklch(0.60 0.18 240 / 0.3), 0 0 40px oklch(0.60 0.18 240 / 0.1); }
-  .glow-accent { box-shadow: 0 0 20px oklch(0.65 0.22 220 / 0.4), 0 0 40px oklch(0.65 0.22 220 / 0.15); }
-  .text-glow { text-shadow: 0 0 20px oklch(0.65 0.22 220 / 0.8); }
-
-  /* Dimension marker font */
   .dimension-marker {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.65rem;
-    color: oklch(0.60 0.18 240);
     letter-spacing: 0.05em;
   }
 
-  /* Scan line animation */
-  @keyframes scanline {
-    0% { transform: translateY(-100%); opacity: 0; }
-    50% { opacity: 0.6; }
-    100% { transform: translateY(100vh); opacity: 0; }
-  }
-  .scanline {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, oklch(0.65 0.22 220 / 0.5), transparent);
-    animation: scanline 10s linear infinite;
-    pointer-events: none;
-    z-index: 9999;
-  }
-
-  @keyframes blueprint-pulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-  .blueprint-pulse { animation: blueprint-pulse 2s ease-in-out infinite; }
-
-  .status-draft { background: oklch(0.80 0.15 80 / 0.15); color: oklch(0.85 0.15 80); border: 1px solid oklch(0.80 0.15 80 / 0.3); }
-  .status-processing { background: oklch(0.60 0.18 240 / 0.15); color: oklch(0.75 0.15 240); border: 1px solid oklch(0.60 0.18 240 / 0.3); }
-  .status-completed { background: oklch(0.65 0.18 145 / 0.15); color: oklch(0.75 0.15 145); border: 1px solid oklch(0.65 0.18 145 / 0.3); }
-  .status-archived { background: oklch(0.50 0.05 240 / 0.15); color: oklch(0.65 0.05 240); border: 1px solid oklch(0.50 0.05 240 / 0.3); }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: oklch(0.12 0.010 240); }
+  ::-webkit-scrollbar-thumb { background: oklch(0.25 0.010 240); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.70 0.19 45 / 0.5); }
 }

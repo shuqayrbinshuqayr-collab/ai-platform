@@ -1,6 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, projects, blueprints, InsertProject, InsertBlueprint, Project, Blueprint } from "../drizzle/schema";
+import { InsertUser, users, projects, blueprints, InsertProject, InsertBlueprint, Project, Blueprint, subscriptions, InsertSubscription, Subscription } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -138,4 +138,30 @@ export async function getAllUsersCount() {
   if (!db) return 0;
   const result = await db.select().from(users);
   return result.length;
+}
+
+// ─── Subscription helpers ───
+
+export async function getOrCreateSubscription(userId: number): Promise<Subscription> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
+  if (existing[0]) return existing[0];
+  // Create default free subscription
+  await db.insert(subscriptions).values({ userId, plan: "free", blueprintsUsed: 0, blueprintsLimit: 3, projectsLimit: 5 });
+  const created = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
+  return created[0]!;
+}
+
+export async function updateSubscription(id: number, data: Partial<InsertSubscription>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subscriptions).set(data).where(eq(subscriptions.id, id));
+}
+
+export async function incrementBlueprintsUsed(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const sub = await getOrCreateSubscription(userId);
+  await db.update(subscriptions).set({ blueprintsUsed: sub.blueprintsUsed + 1 }).where(eq(subscriptions.id, sub.id));
 }

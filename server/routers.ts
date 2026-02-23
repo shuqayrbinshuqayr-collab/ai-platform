@@ -9,7 +9,8 @@ import { transcribeAudio } from "./_core/voiceTranscription";
 import {
   createProject, getProjectsByUser, getProjectById, updateProject, deleteProject,
   createBlueprint, getBlueprintsByProject, getBlueprintsByUser, getBlueprintById,
-  updateUserProfile, getAllProjectsCount, getAllUsersCount
+  updateUserProfile, getAllProjectsCount, getAllUsersCount,
+  getOrCreateSubscription, updateSubscription
 } from "./db";
 
 export const appRouter = router({
@@ -357,6 +358,32 @@ Text: "${input.text}"`,
         draftProjects: projects.filter(p => p.status === "draft").length,
       };
     }),
+  }),
+
+  subscription: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return getOrCreateSubscription(ctx.user.id);
+    }),
+    upgrade: protectedProcedure
+      .input(z.object({ plan: z.enum(["free", "pro"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const sub = await getOrCreateSubscription(ctx.user.id);
+        const limit = input.plan === "pro" ? -1 : 3;
+        const projLimit = input.plan === "pro" ? -1 : 5;
+        await updateSubscription(sub.id, {
+          plan: input.plan,
+          blueprintsLimit: limit,
+          projectsLimit: projLimit,
+          expiresAt: input.plan === "pro" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
+        });
+        if (input.plan === "pro") {
+          await notifyOwner({
+            title: "New Pro Subscription",
+            content: `User ${ctx.user.name} (${ctx.user.email}) upgraded to Pro plan.`,
+          });
+        }
+        return { success: true, plan: input.plan };
+      }),
   }),
 });
 

@@ -12,6 +12,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import BlueprintView from "./pages/BlueprintView";
 import Gallery from "./pages/Gallery";
 import Profile from "./pages/Profile";
+import Pricing from "./pages/Pricing";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/blueprints/:id" component={BlueprintView} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

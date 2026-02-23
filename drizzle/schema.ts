@@ -83,3 +83,18 @@ export const blueprints = mysqlTable("blueprints", {
 
 export type Blueprint = typeof blueprints.$inferSelect;
 export type InsertBlueprint = typeof blueprints.$inferInsert;
+
+export const subscriptions = mysqlTable("subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  plan: mysqlEnum("plan", ["free", "pro"]).default("free").notNull(),
+  blueprintsUsed: int("blueprintsUsed").default(0).notNull(),
+  blueprintsLimit: int("blueprintsLimit").default(3).notNull(), // free=3/month, pro=unlimited(-1)
+  projectsLimit: int("projectsLimit").default(5).notNull(), // free=5, pro=unlimited(-1)
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
