@@ -8,7 +8,7 @@ import { useLocation } from "wouter";
 import {
   Zap, ArrowRight, LayoutGrid, Image, FolderOpen,
   MapPin, Brain, Download, CheckCircle, Crown,
-  Building2, Home as HomeIcon, Store, Star
+  Building2, Home as HomeIcon, Star
 } from "lucide-react";
 
 export default function Home() {
@@ -42,8 +42,7 @@ export default function Home() {
 
   const buildingTypes = [
     { icon: HomeIcon, label: lang === "ar" ? "فيلا سكنية" : "Residential Villa" },
-    { icon: Building2, label: lang === "ar" ? "عمارة سكنية" : "Apartment Building" },
-    { icon: Store, label: lang === "ar" ? "مبنى تجاري" : "Commercial Building" },
+    { icon: Building2, label: lang === "ar" ? "مبنى سكني" : "Residential Building" },
   ];
 
   const stats = [

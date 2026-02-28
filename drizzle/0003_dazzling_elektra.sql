@@ -1,0 +1,1 @@
+ALTER TABLE `projects` MODIFY COLUMN `buildingType` enum('residential','villa') DEFAULT 'residential';

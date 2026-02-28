@@ -63,3 +63,10 @@
 - [ ] Update Pitch Deck: solution, business model, GTM, financials slides
 - [ ] Update Pitch Deck: correct target audience per phase
 - [ ] Re-generate updated Pitch Deck slides
+
+## Phase 10: Building Type Restriction
+- [x] Limit building types to: Residential Building (مبنى سكني) and Residential Villa (فيلا سكنية) only
+- [x] Update NewProject.tsx form to show only these 2 types
+- [x] Update ProjectDetail.tsx blueprint generation to reflect residential types
+- [x] Update AI prompt in routers.ts to focus on residential buildings and villas only
+- [x] Update Gallery.tsx filters to show only residential/villa types

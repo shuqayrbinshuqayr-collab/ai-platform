@@ -60,7 +60,7 @@ export const appRouter = router({
         frontSetback: z.number().optional(),
         backSetback: z.number().optional(),
         sideSetback: z.number().optional(),
-        buildingType: z.enum(["residential", "commercial", "mixed", "industrial", "governmental", "educational", "healthcare"]).optional(),
+        buildingType: z.enum(["residential", "villa"]).optional(),
         numberOfRooms: z.number().optional(),
         numberOfFloors: z.number().optional(),
         parkingSpaces: z.number().optional(),
@@ -92,7 +92,7 @@ export const appRouter = router({
         frontSetback: z.number().optional(),
         backSetback: z.number().optional(),
         sideSetback: z.number().optional(),
-        buildingType: z.enum(["residential", "commercial", "mixed", "industrial", "governmental", "educational", "healthcare"]).optional(),
+        buildingType: z.enum(["residential", "villa"]).optional(),
         numberOfRooms: z.number().optional(),
         numberOfFloors: z.number().optional(),
         parkingSpaces: z.number().optional(),
@@ -141,8 +141,8 @@ export const appRouter = router({
 
         const startTime = Date.now();
 
-        const systemPrompt = `You are an expert architectural consultant AI specializing in generating preliminary architectural blueprints for engineering offices. 
-You analyze land data, regulatory constraints, and user requirements to produce structured architectural concepts.
+        const systemPrompt = `You are an expert architectural consultant AI specializing in generating preliminary architectural blueprints for residential buildings and villas in Saudi Arabia. 
+You analyze land data, regulatory constraints, and user requirements to produce structured architectural concepts for RESIDENTIAL BUILDINGS and RESIDENTIAL VILLAS only.
 Always respond with valid JSON only, no markdown, no extra text.`;
 
         const userPrompt = `Generate a preliminary architectural blueprint based on the following data:
@@ -288,7 +288,7 @@ Respond with this exact JSON structure:
               content: `Extract structured project data from this text and return JSON with these fields (use null for missing values):
 {
   "name": string,
-  "buildingType": "residential"|"commercial"|"mixed"|"industrial"|"governmental"|"educational"|"healthcare"|null,
+  "buildingType": "residential"|"villa"|null,
   "landArea": number|null,
   "landWidth": number|null,
   "landLength": number|null,

@@ -47,7 +47,7 @@ export const projects = mysqlTable("projects", {
   backSetback: float("backSetback"),
   sideSetback: float("sideSetback"),
   // User requirements
-  buildingType: mysqlEnum("buildingType", ["residential", "commercial", "mixed", "industrial", "governmental", "educational", "healthcare"]).default("residential"),
+  buildingType: mysqlEnum("buildingType", ["residential", "villa"]).default("residential"),
   numberOfRooms: int("numberOfRooms"),
   numberOfFloors: int("numberOfFloors"),
   parkingSpaces: int("parkingSpaces"),

@@ -16,7 +16,7 @@ import VoiceInput from "@/components/VoiceInput";
 import { MapView } from "@/components/Map";
 import {
   MapPin, Building2, Ruler, ChevronRight, ChevronLeft,
-  Zap, CheckCircle, Mic, Home as HomeIcon, Store,
+  Zap, CheckCircle, Mic, Home as HomeIcon,
   Plus, Minus, Brain, ArrowRight
 } from "lucide-react";
 
@@ -332,9 +332,8 @@ export default function NewProject() {
                 <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
                 <div className="flex gap-3">
                   {[
-                    { val: "residential", icon: HomeIcon, ar: "سكني", en: "Residential" },
-                    { val: "commercial", icon: Store, ar: "تجاري", en: "Commercial" },
-                    { val: "mixed", icon: Building2, ar: "مختلط", en: "Mixed-Use" },
+                    { val: "residential", icon: Building2, ar: "مبنى سكني", en: "Residential Building" },
+                    { val: "villa", icon: HomeIcon, ar: "فيلا سكنية", en: "Residential Villa" },
                   ].map(({ val, icon: Icon, ar, en }) => (
                     <button
                       key={val}
