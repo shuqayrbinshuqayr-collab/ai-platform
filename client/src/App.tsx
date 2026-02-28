@@ -13,6 +13,7 @@ import BlueprintView from "./pages/BlueprintView";
 import Gallery from "./pages/Gallery";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
+import Roadmap from "./pages/Roadmap";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/roadmap" component={Roadmap} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

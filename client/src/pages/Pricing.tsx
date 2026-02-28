@@ -199,6 +199,69 @@ export default function Pricing() {
           </div>
         </div>
 
+        {/* Coming Phases */}
+        <div className="mb-10">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-black text-white mb-2">
+              {lang === "ar" ? "المراحل القادمة" : "Upcoming Phases"}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {lang === "ar" ? "مشتركو Pro يحصلون على وصول مبكر لكل مرحلة جديدة" : "Pro subscribers get early access to every new phase"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                v: "V2", yearAr: "2026 — Q1", yearEn: "2026 — Q1",
+                titleAr: "الحزمة الهندسية الكاملة", titleEn: "Full Engineering Package",
+                audienceAr: "المكاتب الهندسية · أصحاب المشاريع", audienceEn: "Engineering Offices · Project Owners",
+                featuresAr: ["الواجهات المعمارية", "المخططات الكهربائية", "السباكة والتكييف", "جداول الكميات", "المخططات الإنشائية"],
+                featuresEn: ["Facade design", "Electrical plans", "Plumbing & HVAC", "Bill of Quantities", "Structural drawings"],
+              },
+              {
+                v: "V3", yearAr: "2026 — Q2", yearEn: "2026 — Q2",
+                titleAr: "الاعتماد الرسمي", titleEn: "Official Certification",
+                audienceAr: "أصحاب المشاريع · المكاتب المعتمدة", audienceEn: "Project Owners · Certified Offices",
+                featuresAr: ["شبكة مكاتب معتمدة", "مراجعة مهندسين مرخصين", "ختم هندسي رسمي", "ملف جاهز للتقديم", "تكامل مع البلديات"],
+                featuresEn: ["Certified offices network", "Licensed engineer review", "Official engineering stamp", "Submission-ready file", "Municipality integration"],
+              },
+              {
+                v: "V4", yearAr: "2027 — Q1", yearEn: "2027 — Q1",
+                titleAr: "التسعير والتنفيذ", titleEn: "Pricing & Execution",
+                audienceAr: "الأفراد · المطورون العقاريون", audienceEn: "Individuals · Real Estate Developers",
+                featuresAr: ["عروض مقاولين معتمدين", "مقارنة العروض", "إدارة عقود التنفيذ", "متابعة مراحل البناء", "تكامل بنوك التمويل"],
+                featuresEn: ["Certified contractor quotes", "Bid comparison", "Contract management", "Construction tracking", "Financing bank integration"],
+              },
+            ].map(({ v, yearAr, yearEn, titleAr, titleEn, audienceAr, audienceEn, featuresAr, featuresEn }) => (
+              <div key={v} className="soar-card rounded-2xl p-6 relative overflow-hidden opacity-80">
+                <div className="absolute top-4 right-4">
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-secondary/50 border border-border/30 rounded-full px-2 py-0.5">
+                    <Lock className="w-2.5 h-2.5" />
+                    {lang === "ar" ? "قريباً" : "Soon"}
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-muted-foreground/40 mb-2">{v}</div>
+                <h3 className="text-muted-foreground font-bold text-sm mb-1">{lang === "ar" ? titleAr : titleEn}</h3>
+                <p className="text-muted-foreground/50 text-xs mb-1">{lang === "ar" ? audienceAr : audienceEn}</p>
+                <p className="text-muted-foreground/40 text-xs font-semibold mb-4">{lang === "ar" ? yearAr : yearEn}</p>
+                <ul className="space-y-1.5">
+                  {(lang === "ar" ? featuresAr : featuresEn).map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground/50">
+                      <Lock className="w-3 h-3 text-muted-foreground/30 flex-shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 bg-primary/5 border border-primary/10 rounded-lg p-2.5 text-center">
+                  <p className="text-primary/50 text-[11px] font-semibold">
+                    {lang === "ar" ? "مشتركو Pro يحصلون على وصول مبكر" : "Pro subscribers get early access"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Feature Comparison */}
         <div className="soar-card rounded-2xl p-8">
           <h3 className="text-lg font-black text-white mb-6 text-center">

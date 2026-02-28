@@ -53,3 +53,13 @@
 - [x] Pro features: private project portfolio, more concepts, download formats
 - [x] Add facade selection UI with ready-made options
 - [x] Add DXF/AutoCAD export option (Pro)
+
+## Phase 9: 4-Version Roadmap Update
+
+- [ ] Add Roadmap page showing 4 phases (V1→V4) with timeline and target audience
+- [ ] Update Home page to reflect 4 phases clearly (V1 live, V2-V4 coming soon)
+- [ ] Update Pricing page to reflect V1 Free/Pro and tease V2-V4 as upcoming paid tiers
+- [ ] Update NavBar with Roadmap link
+- [ ] Update Pitch Deck: solution, business model, GTM, financials slides
+- [ ] Update Pitch Deck: correct target audience per phase
+- [ ] Re-generate updated Pitch Deck slides

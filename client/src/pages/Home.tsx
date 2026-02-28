@@ -211,6 +211,61 @@ export default function Home() {
       )}
 
       {/* ─── How It Works ─── */}
+      {/* ─── 4 Versions Roadmap Preview ─── */}
+      <section className="py-20 border-t border-border/30">
+        <div className="container">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 mb-4">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-primary text-sm font-semibold">{lang === "ar" ? "رؤية SOAR.AI" : "SOAR.AI Vision"}</span>
+            </div>
+            <h2 className="text-3xl font-black text-white mb-3">
+              {lang === "ar" ? "من الأرض إلى التنفيذ — 4 مراحل متكاملة" : "From Land to Execution — 4 Integrated Phases"}
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              {lang === "ar" ? "SOAR.AI تبني منظومة متكاملة تأخذك من تحليل الأرض حتى تنفيذ المشروع" : "SOAR.AI builds an integrated ecosystem taking you from land analysis to project execution"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-8">
+            {[
+              { v: "V1", status: "live", titleAr: "المخططات المعمارية", titleEn: "Architectural Blueprints", yearAr: "متاح الآن", yearEn: "Live Now", audienceAr: "أصحاب الأراضي · المكاتب الهندسية", audienceEn: "Land Owners · Engineering Offices" },
+              { v: "V2", status: "soon", titleAr: "الحزمة الهندسية الكاملة", titleEn: "Full Engineering Package", yearAr: "2026", yearEn: "2026", audienceAr: "المكاتب الهندسية · أصحاب المشاريع", audienceEn: "Engineering Offices · Project Owners" },
+              { v: "V3", status: "soon", titleAr: "الاعتماد الرسمي", titleEn: "Official Certification", yearAr: "2026", yearEn: "2026", audienceAr: "أصحاب المشاريع · المكاتب المعتمدة", audienceEn: "Project Owners · Certified Offices" },
+              { v: "V4", status: "future", titleAr: "التسعير والتنفيذ", titleEn: "Pricing & Execution", yearAr: "2027", yearEn: "2027", audienceAr: "الأفراد · المطورون العقاريون", audienceEn: "Individuals · Real Estate Developers" },
+            ].map(({ v, status, titleAr, titleEn, yearAr, yearEn, audienceAr, audienceEn }) => (
+              <div key={v} className={`soar-card p-5 relative overflow-hidden ${
+                status === "live" ? "border-primary/50" : status === "soon" ? "border-white/10" : "border-white/5"
+              }`}>
+                {status === "live" && (
+                  <div className="absolute top-3 right-3">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 border border-primary/30 rounded-full px-2 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      {lang === "ar" ? "متاح" : "LIVE"}
+                    </span>
+                  </div>
+                )}
+                <div className={`text-2xl font-black mb-2 ${
+                  status === "live" ? "text-primary" : status === "soon" ? "text-gray-500" : "text-gray-700"
+                }`}>{v}</div>
+                <h3 className={`font-bold text-sm mb-1 ${
+                  status === "live" ? "text-white" : "text-gray-500"
+                }`}>{lang === "ar" ? titleAr : titleEn}</h3>
+                <p className="text-[11px] text-gray-600 mb-2">{lang === "ar" ? audienceAr : audienceEn}</p>
+                <p className={`text-xs font-semibold ${
+                  status === "live" ? "text-primary" : "text-gray-600"
+                }`}>{lang === "ar" ? yearAr : yearEn}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <a href="/roadmap" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-semibold text-sm transition-colors">
+              {lang === "ar" ? "عرض خارطة الطريق الكاملة" : "View Full Roadmap"}
+              <span>→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+      {/* ─── How it works ─── */}
       <section className="py-20 border-t border-border/30">
         <div className="container">
           <div className="text-center mb-14">
