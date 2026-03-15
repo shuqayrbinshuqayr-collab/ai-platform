@@ -126,6 +126,21 @@ export async function updateBlueprintUrls(id: number, pdfUrl: string | null, png
   await db.update(blueprints).set({ pdfUrl, pngUrl }).where(eq(blueprints.id, id));
 }
 
+export async function selectBlueprint(blueprintId: number, projectId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Deselect all blueprints in the same project first
+  await db.update(blueprints).set({ isSelected: 0 }).where(and(eq(blueprints.projectId, projectId), eq(blueprints.userId, userId)));
+  // Select the chosen blueprint
+  await db.update(blueprints).set({ isSelected: 1 }).where(and(eq(blueprints.id, blueprintId), eq(blueprints.userId, userId)));
+}
+
+export async function getBlueprintsByBatch(batchId: string, userId: number): Promise<Blueprint[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(blueprints).where(and(eq(blueprints.batchId, batchId), eq(blueprints.userId, userId))).orderBy(blueprints.conceptIndex);
+}
+
 export async function getAllProjectsCount() {
   const db = await getDb();
   if (!db) return 0;

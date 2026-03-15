@@ -11,6 +11,7 @@ import NewProject from "./pages/NewProject";
 import ProjectDetail from "./pages/ProjectDetail";
 import BlueprintView from "./pages/BlueprintView";
 import Gallery from "./pages/Gallery";
+import GenerateBlueprints from "./pages/GenerateBlueprints";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Roadmap from "./pages/Roadmap";
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/projects/new" component={NewProject} />
       <Route path="/projects/:id" component={ProjectDetail} />
+      <Route path="/projects/:id/generate" component={GenerateBlueprints} />
       <Route path="/blueprints/:id" component={BlueprintView} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />

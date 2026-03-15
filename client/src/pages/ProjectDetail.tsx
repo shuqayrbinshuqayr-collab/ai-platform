@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLang } from "@/contexts/LangContext";
@@ -29,25 +28,14 @@ export default function ProjectDetail() {
   const projectId = parseInt(params.id ?? "0");
   const { lang, isRTL } = useLang();
   const [, navigate] = useLocation();
-  const [generating, setGenerating] = useState(false);
-
   const utils = trpc.useUtils();
   const { data: project, isLoading } = trpc.projects.get.useQuery({ id: projectId });
   const { data: blueprints } = trpc.blueprints.listByProject.useQuery({ projectId });
 
-  const generateMutation = trpc.blueprints.generate.useMutation({
-    onSuccess: (data) => {
-      toast.success(lang === "ar" ? "تم توليد المخطط بنجاح!" : "Blueprint generated successfully!");
-      utils.blueprints.listByProject.invalidate({ projectId });
-      utils.projects.get.invalidate({ id: projectId });
-      navigate(`/blueprints/${data.blueprintId}`);
-    },
-    onError: (err) => {
-      toast.error(err.message);
-      setGenerating(false);
-    },
-    onSettled: () => setGenerating(false),
-  });
+  // Navigate to generate6 page instead of calling generate directly
+  const handleGenerate6 = () => {
+    navigate(`/projects/${projectId}/generate`);
+  };
 
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
@@ -257,11 +245,7 @@ export default function ProjectDetail() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-all ${
-                  generating
-                    ? "border-primary/50 bg-primary/10 text-primary animate-pulse"
-                    : "border-border/50 text-muted-foreground"
-                }`}
+                className="w-8 h-8 rounded-lg border-2 border-border/50 flex items-center justify-center text-xs font-bold text-muted-foreground"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 {i + 1}
@@ -271,30 +255,12 @@ export default function ProjectDetail() {
 
           <Button
             size="lg"
-            onClick={() => {
-              setGenerating(true);
-              generateMutation.mutate({ projectId, lang });
-            }}
-            disabled={generating || project.status === "processing"}
+            onClick={handleGenerate6}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-black gap-3 glow-orange px-10"
           >
-            {generating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {lang === "ar" ? "جاري التوليد..." : "Generating..."}
-              </>
-            ) : (
-              <>
-                <Zap className="w-5 h-5" />
-                {lang === "ar" ? "توليد المخططات" : "Generate Blueprints"}
-              </>
-            )}
+            <Brain className="w-5 h-5" />
+            {lang === "ar" ? "توليد 6 مخططات" : "Generate 6 Blueprints"}
           </Button>
-          {generating && (
-            <p className="text-primary/60 text-xs font-mono animate-pulse">
-              {lang === "ar" ? "قد يستغرق هذا 15-30 ثانية..." : "This may take 15-30 seconds..."}
-            </p>
-          )}
         </div>
 
         {/* Previous Blueprints */}

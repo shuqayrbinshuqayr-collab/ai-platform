@@ -70,3 +70,13 @@
 - [x] Update ProjectDetail.tsx blueprint generation to reflect residential types
 - [x] Update AI prompt in routers.ts to focus on residential buildings and villas only
 - [x] Update Gallery.tsx filters to show only residential/villa types
+
+## Phase 11: MVP الجديد — إعادة بناء الـ Flow الكامل
+- [x] مراجعة الـ Flow الحالي وتحديد الفجوات مقارنة بالـ MVP المطلوب
+- [x] تحديث New Project Flow: Step 1 (رفع مخطط موجود / إنشاء جديد)
+- [x] تحديث Step 2: أسئلة ذكية (فيلا/عمارة، غرف، دورات مياه، إلخ)
+- [x] تحقق تلقائي من الكود المعماري السعودي في الـ Backend (checkSaudiBuildingCode)
+- [x] توليد 6 مخططات معمارية بالـ AI مع عرضها بشكل احترافي (generate6 + GenerateBlueprints page)
+- [x] شاشة اختيار المخطط النهائي (BlueprintCard + confirm selection)
+- [x] تجميل الـ UI وتحسين تجربة المستخدم للـ Case Study
+- [ ] Checkpoint نهائي للـ MVP

@@ -74,6 +74,12 @@ export const blueprints = mysqlTable("blueprints", {
   regulatoryCompliance: json("regulatoryCompliance"),
   aiModel: varchar("aiModel", { length: 64 }),
   generationTime: int("generationTime"), // ms
+  // Concept index (1-6) for batch generation
+  conceptIndex: int("conceptIndex").default(1).notNull(),
+  // Whether this blueprint was selected by the user
+  isSelected: int("isSelected").default(0).notNull(),
+  // Batch ID to group 6 generated blueprints together
+  batchId: varchar("batchId", { length: 64 }),
   // Storage
   pdfUrl: varchar("pdfUrl", { length: 512 }),
   pngUrl: varchar("pngUrl", { length: 512 }),

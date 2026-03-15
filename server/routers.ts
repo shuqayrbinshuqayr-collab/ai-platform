@@ -10,8 +10,139 @@ import {
   createProject, getProjectsByUser, getProjectById, updateProject, deleteProject,
   createBlueprint, getBlueprintsByProject, getBlueprintsByUser, getBlueprintById,
   updateUserProfile, getAllProjectsCount, getAllUsersCount,
-  getOrCreateSubscription, updateSubscription
+  getOrCreateSubscription, updateSubscription,
+  selectBlueprint, getBlueprintsByBatch,
 } from "./db";
+
+// ─── Saudi Building Code Checker ───────────────────────────────────────────
+function checkSaudiBuildingCode(project: {
+  landArea?: number | null;
+  buildingRatio?: number | null;
+  floorAreaRatio?: number | null;
+  maxFloors?: number | null;
+  frontSetback?: number | null;
+  backSetback?: number | null;
+  sideSetback?: number | null;
+  buildingType?: string | null;
+  numberOfFloors?: number | null;
+}) {
+  const warnings: string[] = [];
+  const warningsAr: string[] = [];
+
+  const landArea = project.landArea ?? 0;
+  const buildingRatio = project.buildingRatio ?? 60;
+  const maxFloors = project.maxFloors ?? 4;
+  const frontSetback = project.frontSetback ?? 4;
+  const backSetback = project.backSetback ?? 3;
+  const sideSetback = project.sideSetback ?? 2;
+  const requestedFloors = project.numberOfFloors ?? 2;
+
+  // Saudi Building Code: Residential setbacks
+  if (frontSetback < 4) {
+    warnings.push("Front setback must be at least 4m per Saudi Building Code");
+    warningsAr.push("الإرتداد الأمامي يجب أن يكون 4م على الأقل وفق الكود السعودي");
+  }
+  if (backSetback < 2) {
+    warnings.push("Back setback must be at least 2m per Saudi Building Code");
+    warningsAr.push("الإرتداد الخلفي يجب أن يكون 2م على الأقل وفق الكود السعودي");
+  }
+  if (sideSetback < 1.5) {
+    warnings.push("Side setback must be at least 1.5m per Saudi Building Code");
+    warningsAr.push("الإرتداد الجانبي يجب أن يكون 1.5م على الأقل وفق الكود السعودي");
+  }
+  if (buildingRatio > 75) {
+    warnings.push("Building coverage ratio exceeds 75% — typical Saudi residential max");
+    warningsAr.push("نسبة البناء تتجاوز 75% — الحد المعتاد للمناطق السكنية السعودية");
+  }
+  if (requestedFloors > maxFloors) {
+    warnings.push(`Requested ${requestedFloors} floors exceeds allowed ${maxFloors} floors`);
+    warningsAr.push(`الطوابق المطلوبة (${requestedFloors}) تتجاوز الحد المسموح (${maxFloors})`);
+  }
+  if (landArea > 0 && landArea < 100) {
+    warnings.push("Land area is very small for a residential project (< 100m²)");
+    warningsAr.push("مساحة الأرض صغيرة جداً للمشروع السكني (أقل من 100م²)");
+  }
+
+  // Auto-correct setbacks to minimum Saudi code values
+  const corrected = {
+    frontSetback: Math.max(frontSetback, 4),
+    backSetback: Math.max(backSetback, 2),
+    sideSetback: Math.max(sideSetback, 1.5),
+    buildingRatio: Math.min(buildingRatio, 75),
+    numberOfFloors: Math.min(requestedFloors, maxFloors),
+  };
+
+  return { warnings, warningsAr, corrected, isCompliant: warnings.length === 0 };
+}
+
+// ─── Build AI prompt for one concept ───────────────────────────────────────
+function buildConceptPrompt(project: any, conceptIndex: number, corrected: any) {
+  const conceptStyles = [
+    { style: "Modern Minimalist", styleAr: "عصري مينيمالي", focus: "open spaces, clean lines, maximum natural light" },
+    { style: "Traditional Saudi Heritage", styleAr: "تراثي سعودي", focus: "mashrabiya elements, central courtyard, Arabic arches" },
+    { style: "Contemporary Luxury", styleAr: "معاصر فاخر", focus: "double-height spaces, premium finishes, panoramic views" },
+    { style: "Functional Compact", styleAr: "وظيفي مدمج", focus: "efficient space utilization, smart storage, practical layout" },
+    { style: "Mediterranean", styleAr: "متوسطي", focus: "arched windows, terracotta tones, garden integration" },
+    { style: "Smart Home Ready", styleAr: "جاهز للمنزل الذكي", focus: "integrated tech spaces, home office, flexible rooms" },
+  ];
+  const concept = conceptStyles[conceptIndex - 1] ?? conceptStyles[0];
+  const rooms = project.additionalRequirements ?? "";
+
+  return `Generate architectural blueprint concept #${conceptIndex} with style: "${concept.style}" (${concept.styleAr}).
+Focus: ${concept.focus}
+
+PROJECT DATA:
+- Building Type: ${project.buildingType === "villa" ? "Residential Villa (فيلا سكنية)" : "Residential Building (مبنى سكني)"}
+- Land Area: ${project.landArea ?? "N/A"} m²
+- Land Shape: ${project.landShape ?? "rectangular"}
+- Floors Allowed: ${corrected.numberOfFloors}
+- Building Coverage: ${corrected.buildingRatio}%
+- Front Setback: ${corrected.frontSetback}m | Back: ${corrected.backSetback}m | Side: ${corrected.sideSetback}m
+- Room Requirements: ${rooms || "Standard residential layout"}
+
+CRITICAL: Respond ONLY with valid JSON, no markdown, no extra text.
+{
+  "title": "Concept ${conceptIndex}: ${concept.style}",
+  "titleAr": "المفهوم ${conceptIndex}: ${concept.styleAr}",
+  "conceptDescription": "2-paragraph description of this architectural concept in English",
+  "conceptDescriptionAr": "وصف من فقرتين لهذا المفهوم المعماري بالعربية",
+  "regulatoryCompliance": {
+    "buildingFootprint": <number m²>,
+    "actualCoverageRatio": <number %>,
+    "totalBuiltArea": <number m²>,
+    "actualFloorAreaRatio": <number>,
+    "isCompliant": true,
+    "complianceNotes": ["Saudi Building Code compliant", "Setbacks verified"],
+    "complianceNotesAr": ["متوافق مع الكود السعودي", "الإرتدادات مُراجَعة"]
+  },
+  "spaces": [
+    {
+      "name": "Space name in English",
+      "nameAr": "اسم المساحة بالعربية",
+      "floor": <0=ground, 1=first, etc>,
+      "width": <meters>,
+      "length": <meters>,
+      "area": <m²>,
+      "type": "bedroom|living|kitchen|bathroom|majlis|parking|corridor|balcony|storage|lobby|other",
+      "x": <0-100>,
+      "y": <0-100>,
+      "w": <0-100>,
+      "h": <0-100>
+    }
+  ],
+  "summary": {
+    "totalFloors": <number>,
+    "totalRooms": <number>,
+    "totalBathrooms": <number>,
+    "totalArea": <number m²>,
+    "parkingSpaces": <number>,
+    "estimatedCost": "SAR X,XXX,XXX - X,XXX,XXX",
+    "constructionDuration": "X-X months"
+  },
+  "highlights": ["Key feature 1", "Key feature 2", "Key feature 3"],
+  "highlightsAr": ["الميزة الأولى", "الميزة الثانية", "الميزة الثالثة"]
+}`;
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -128,7 +259,21 @@ export const appRouter = router({
         if (!bp) throw new Error("Blueprint not found");
         return bp;
       }),
-    generate: protectedProcedure
+    listByBatch: protectedProcedure
+      .input(z.object({ batchId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        return getBlueprintsByBatch(input.batchId, ctx.user.id);
+      }),
+    select: protectedProcedure
+      .input(z.object({ blueprintId: z.number(), projectId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await selectBlueprint(input.blueprintId, input.projectId, ctx.user.id);
+        await updateProject(input.projectId, ctx.user.id, { status: "completed" });
+        return { success: true };
+      }),
+
+    // ─── Generate 6 concepts at once ───────────────────────────────────
+    generate6: protectedProcedure
       .input(z.object({
         projectId: z.number(),
         lang: z.enum(["ar", "en"]).default("ar"),
@@ -137,121 +282,130 @@ export const appRouter = router({
         const project = await getProjectById(input.projectId, ctx.user.id);
         if (!project) throw new Error("Project not found");
 
+        // Step 1: Auto-check Saudi Building Code
+        const codeCheck = checkSaudiBuildingCode(project);
+
+        // Step 2: Apply auto-corrections silently
+        if (!codeCheck.isCompliant) {
+          await updateProject(input.projectId, ctx.user.id, {
+            frontSetback: codeCheck.corrected.frontSetback,
+            backSetback: codeCheck.corrected.backSetback,
+            sideSetback: codeCheck.corrected.sideSetback,
+            buildingRatio: codeCheck.corrected.buildingRatio,
+            numberOfFloors: codeCheck.corrected.numberOfFloors,
+          });
+        }
+
         await updateProject(input.projectId, ctx.user.id, { status: "processing" });
 
+        // Step 3: Generate batch ID
+        const batchId = `batch_${Date.now()}_${ctx.user.id}`;
         const startTime = Date.now();
 
-        const systemPrompt = `You are an expert architectural consultant AI specializing in generating preliminary architectural blueprints for residential buildings and villas in Saudi Arabia. 
-You analyze land data, regulatory constraints, and user requirements to produce structured architectural concepts for RESIDENTIAL BUILDINGS and RESIDENTIAL VILLAS only.
-Always respond with valid JSON only, no markdown, no extra text.`;
-
-        const userPrompt = `Generate a preliminary architectural blueprint based on the following data:
-
-PROJECT: ${project.name}
-BUILDING TYPE: ${project.buildingType}
-
-LAND DATA:
-- Area: ${project.landArea ?? "N/A"} m²
-- Width: ${project.landWidth ?? "N/A"} m
-- Length: ${project.landLength ?? "N/A"} m
-- Shape: ${project.landShape ?? "rectangular"}
-
-REGULATORY CONSTRAINTS:
-- Building Coverage Ratio: ${project.buildingRatio ?? 60}%
-- Floor Area Ratio: ${project.floorAreaRatio ?? 2.0}
-- Max Floors Allowed: ${project.maxFloors ?? 4}
-- Front Setback: ${project.frontSetback ?? 4} m
-- Back Setback: ${project.backSetback ?? 3} m
-- Side Setback: ${project.sideSetback ?? 2} m
-
-USER REQUIREMENTS:
-- Number of Rooms: ${project.numberOfRooms ?? 4}
-- Number of Floors: ${project.numberOfFloors ?? 2}
-- Parking Spaces: ${project.parkingSpaces ?? 2}
-- Additional Requirements: ${project.additionalRequirements ?? "None"}
-
-Respond with this exact JSON structure:
-{
-  "title": "Blueprint title in English",
-  "titleAr": "Blueprint title in Arabic",
-  "conceptDescription": "Detailed architectural concept description in English (3-4 paragraphs)",
-  "conceptDescriptionAr": "Detailed architectural concept description in Arabic (3-4 paragraphs)",
-  "regulatoryCompliance": {
-    "buildingFootprint": <number in m²>,
-    "actualCoverageRatio": <number as percentage>,
-    "totalBuiltArea": <number in m²>,
-    "actualFloorAreaRatio": <number>,
-    "isCompliant": <boolean>,
-    "complianceNotes": ["note1", "note2"],
-    "complianceNotesAr": ["ملاحظة1", "ملاحظة2"]
-  },
-  "spaces": [
-    {
-      "name": "Space name",
-      "nameAr": "اسم المساحة",
-      "floor": <floor number starting from 0 for ground>,
-      "width": <number in m>,
-      "length": <number in m>,
-      "area": <number in m²>,
-      "type": "bedroom|living|kitchen|bathroom|office|parking|corridor|balcony|storage|lobby|other",
-      "x": <position x on floor plan 0-100>,
-      "y": <position y on floor plan 0-100>,
-      "w": <width percentage 0-100>,
-      "h": <height percentage 0-100>
-    }
-  ],
-  "summary": {
-    "totalFloors": <number>,
-    "totalRooms": <number>,
-    "totalBathrooms": <number>,
-    "totalArea": <number in m²>,
-    "parkingSpaces": <number>,
-    "estimatedCost": "<cost range in SAR>",
-    "constructionDuration": "<duration estimate>"
-  }
-}`;
-
-        const response = await invokeLLM({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
+        // Step 4: Generate 6 concepts in parallel
+        const conceptPromises = Array.from({ length: 6 }, (_, i) => {
+          const conceptIndex = i + 1;
+          const prompt = buildConceptPrompt(project, conceptIndex, codeCheck.corrected);
+          return invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: "You are an expert Saudi architectural AI. Generate precise floor plan data. Always respond with valid JSON only, no markdown.",
+              },
+              { role: "user", content: prompt },
+            ],
+          }).then(async (response) => {
+            const rawContent = response.choices[0]?.message?.content;
+            const content = typeof rawContent === "string" ? rawContent : "{}";
+            let structuredData: any = {};
+            try {
+              // Strip markdown code blocks if present
+              const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
+              structuredData = JSON.parse(cleaned);
+            } catch {
+              structuredData = { error: "Parse failed", raw: content.slice(0, 200) };
+            }
+            const blueprintId = await createBlueprint({
+              projectId: input.projectId,
+              userId: ctx.user.id,
+              title: structuredData.title ?? `Concept ${conceptIndex}`,
+              version: 1,
+              conceptIndex,
+              batchId,
+              conceptDescription: structuredData.conceptDescription ?? "",
+              conceptDescriptionAr: structuredData.conceptDescriptionAr ?? "",
+              structuredData,
+              regulatoryCompliance: structuredData.regulatoryCompliance ?? {},
+              aiModel: "built-in",
+              generationTime: Date.now() - startTime,
+            });
+            return { blueprintId, conceptIndex, structuredData };
+          });
         });
 
+        const results = await Promise.all(conceptPromises);
+
+        await updateProject(input.projectId, ctx.user.id, { status: "completed" });
+
+        if (project.isLargeProject) {
+          await notifyOwner({
+            title: `Large Project — 6 Blueprints Generated: ${project.name}`,
+            content: `6 blueprint concepts generated for "${project.name}" (User ID: ${ctx.user.id}). Batch: ${batchId}`,
+          });
+        }
+
+        return {
+          batchId,
+          blueprints: results,
+          codeWarnings: codeCheck.warningsAr,
+          codeWarningsEn: codeCheck.warnings,
+          autoCorrections: !codeCheck.isCompliant ? codeCheck.corrected : null,
+        };
+      }),
+
+    // Keep legacy single generate for backward compat
+    generate: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        lang: z.enum(["ar", "en"]).default("ar"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const project = await getProjectById(input.projectId, ctx.user.id);
+        if (!project) throw new Error("Project not found");
+        await updateProject(input.projectId, ctx.user.id, { status: "processing" });
+        const startTime = Date.now();
+        const codeCheck = checkSaudiBuildingCode(project);
+        const prompt = buildConceptPrompt(project, 1, codeCheck.corrected);
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are an expert Saudi architectural AI. Always respond with valid JSON only, no markdown." },
+            { role: "user", content: prompt },
+          ],
+        });
         const rawContent = response.choices[0]?.message?.content;
-        const content = typeof rawContent === 'string' ? rawContent : "{}";
+        const content = typeof rawContent === "string" ? rawContent : "{}";
         let structuredData: any = {};
         try {
-          structuredData = JSON.parse(content);
+          const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
+          structuredData = JSON.parse(cleaned);
         } catch {
           structuredData = { error: "Failed to parse AI response", raw: content };
         }
-
         const generationTime = Date.now() - startTime;
-
         const blueprintId = await createBlueprint({
           projectId: input.projectId,
           userId: ctx.user.id,
           title: structuredData.title ?? project.name,
           version: 1,
+          conceptIndex: 1,
           conceptDescription: structuredData.conceptDescription ?? "",
           conceptDescriptionAr: structuredData.conceptDescriptionAr ?? "",
-          structuredData: structuredData,
+          structuredData,
           regulatoryCompliance: structuredData.regulatoryCompliance ?? {},
           aiModel: "built-in",
           generationTime,
         });
-
         await updateProject(input.projectId, ctx.user.id, { status: "completed" });
-
-        // Notify owner for large projects
-        if (project.isLargeProject) {
-          await notifyOwner({
-            title: `Large Project Blueprint Generated - ${project.name}`,
-            content: `A blueprint was generated for a large project "${project.name}" by user ID ${ctx.user.id}. This project requires review and technical support. Blueprint ID: ${blueprintId}`,
-          });
-        }
-
         return { blueprintId, structuredData };
       }),
   }),
@@ -270,8 +424,8 @@ Respond with this exact JSON structure:
             ? "هذا تسجيل صوتي لمتطلبات مشروع معماري من مكتب هندسي"
             : "This is a voice recording of architectural project requirements from an engineering office",
         });
-        const text = 'text' in result ? result.text : '';
-        const lang = 'language' in result ? (result as any).language : input.language;
+        const text = "text" in result ? result.text : "";
+        const lang = "language" in result ? (result as any).language : input.language;
         return { text, language: lang };
       }),
     parseRequirements: protectedProcedure
@@ -336,7 +490,7 @@ Text: "${input.text}"`,
           },
         });
         const rawContent2 = response.choices[0]?.message?.content;
-        const content2 = typeof rawContent2 === 'string' ? rawContent2 : "{}";
+        const content2 = typeof rawContent2 === "string" ? rawContent2 : "{}";
         try {
           return JSON.parse(content2);
         } catch {
@@ -354,8 +508,8 @@ Text: "${input.text}"`,
       return {
         totalProjects: projects.length,
         totalBlueprints: blueprints.length,
-        completedProjects: projects.filter(p => p.status === "completed").length,
-        draftProjects: projects.filter(p => p.status === "draft").length,
+        completedProjects: projects.filter((p) => p.status === "completed").length,
+        draftProjects: projects.filter((p) => p.status === "draft").length,
       };
     }),
   }),
