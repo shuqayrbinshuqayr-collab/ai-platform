@@ -92,6 +92,10 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any) 
   return `Generate architectural blueprint concept #${conceptIndex} with style: "${concept.style}" (${concept.styleAr}).
 Focus: ${concept.focus}
 
+REFERENCE: Based on real Saudi villa blueprints (10.5m × 22m, 2 floors):
+- Ground floor: Entrance hall (5.8×1.9m), Men's Majlis (7.4×4.2m), Staircase (2.5×6.6m), Distributor (2.6×3.7m), Family Hall (5.46×5.0m), Kitchen (3.14×4.0m), Bathroom (3.14×1.5m), Toilet (1.3×1.45m), Maid Room (3.1×2.1m), Storage (1.8×2.4m), Bedroom 1 (3.1×3.9m), Bedroom 2 (4.3×3.6m)
+- First floor: Balcony (5.6×1.8m), Men's Majlis (7.4×3.9m), Staircase (2.5×6.0m), Family Living (4.3×3.6m), Master Bedroom (4.6×3.6m), Bathroom (1.9×2.0m), Bedroom 1 (3.07×3.0m), Bedroom 2 (4.2×3.0m), Bedroom 3 (4.0×5.0m), Bedroom 4 (4.0×4.2m), Kitchen (2.9×4.0m), Dining (4.24×3.0m), Toilet (1.0×1.2m), Family Hall 2 (2.7×4.2m), Balcony 2 (5.1×1.0m)
+
 PROJECT DATA:
 - Building Type: ${project.buildingType === "villa" ? "Residential Villa (فيلا سكنية)" : "Residential Building (مبنى سكني)"}
 - Land Area: ${project.landArea ?? "N/A"} m²
