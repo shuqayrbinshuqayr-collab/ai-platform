@@ -11,71 +11,57 @@ import {
   Layers, Ruler, Clock, ChevronRight, Star
 } from "lucide-react";
 
-// ─── Room color map ───────────────────────────────────────────────────────
-const ROOM_COLORS: Record<string, string> = {
-  bedroom: "oklch(0.70 0.19 45 / 0.18)",
-  living: "oklch(0.65 0.15 200 / 0.18)",
-  kitchen: "oklch(0.65 0.18 145 / 0.18)",
-  bathroom: "oklch(0.60 0.15 280 / 0.18)",
-  office: "oklch(0.65 0.18 60 / 0.18)",
-  parking: "oklch(0.35 0.05 240 / 0.22)",
-  corridor: "oklch(0.30 0.05 240 / 0.15)",
-  balcony: "oklch(0.65 0.18 120 / 0.18)",
-  storage: "oklch(0.40 0.08 240 / 0.15)",
-  lobby: "oklch(0.65 0.20 180 / 0.18)",
-  majlis: "oklch(0.70 0.19 45 / 0.22)",
-  other: "oklch(0.40 0.08 240 / 0.15)",
-};
-const ROOM_STROKE: Record<string, string> = {
-  bedroom: "oklch(0.70 0.19 45)",
-  living: "oklch(0.65 0.20 200)",
-  kitchen: "oklch(0.65 0.18 145)",
-  bathroom: "oklch(0.65 0.15 280)",
-  office: "oklch(0.65 0.18 60)",
-  parking: "oklch(0.55 0.08 240)",
-  corridor: "oklch(0.50 0.08 240)",
-  balcony: "oklch(0.65 0.18 120)",
-  storage: "oklch(0.55 0.10 240)",
-  lobby: "oklch(0.65 0.20 180)",
-  majlis: "oklch(0.75 0.22 45)",
-  other: "oklch(0.55 0.10 240)",
+// ─── AutoCAD-style room fills (light architectural colors) ────────────────────
+const ROOM_HATCH_MINI: Record<string, string> = {
+  bedroom: "#EEF2FF", master_bedroom: "#FFF7ED", living: "#F0FDF4",
+  family_living: "#F0FDF4", majlis: "#FFFBEB", kitchen: "#ECFDF5",
+  bathroom: "#EFF6FF", toilet: "#EFF6FF", dining: "#FFF1F2",
+  corridor: "#F8FAFC", distributor: "#F8FAFC", entrance: "#FFFBEB",
+  parking: "#F1F5F9", storage: "#F8FAFC", balcony: "#F0FDF4",
+  laundry: "#EFF6FF", maid_room: "#FDF4FF", office: "#EEF2FF",
+  prayer: "#FFFBEB", staircase: "#F1F5F9", other: "#F8FAFC",
 };
 
-// // ─── Mini floor plan SVG ────────────────────────────────────────────
+// ─── Mini floor plan SVG — AutoCAD style ─────────────────────────────────────
 function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: number; bspLayout?: any }) {
   const floorSpaces = (spaces ?? []).filter((s) => (s.floor ?? 0) === floor);
   if (floorSpaces.length === 0) return null;
 
-  const SVG_W = 200;
-  const SVG_H = 160;
-  const PAD = 8;
+  const SVG_W = 220;
+  const SVG_H = 180;
+  const PAD = 10;
   const innerW = SVG_W - PAD * 2;
   const innerH = SVG_H - PAD * 2;
 
-  // Determine coordinate system: BSP rooms use meters (x, y, width, height)
-  // AI spaces use percentage (x, y, w, h in 0-100)
   const hasBSPCoords = bspLayout?.buildingWidth && floorSpaces[0]?.width !== undefined;
   const bldW = bspLayout?.buildingWidth ?? 10;
   const bldH = bspLayout?.buildingDepth ?? 20;
 
   return (
-    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+      className="w-full h-full"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ background: "#FFFFFF" }}
+    >
       <defs>
         <pattern id={`grid-mini-${floor}`} width="8" height="8" patternUnits="userSpaceOnUse">
-          <path d="M 8 0 L 0 0 0 8" fill="none" stroke="oklch(0.70 0.19 45 / 0.05)" strokeWidth="0.4" />
+          <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#E5E7EB" strokeWidth="0.3" />
+        </pattern>
+        <pattern id={`hatch-mini-${floor}`} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="5" stroke="#D1D5DB" strokeWidth="0.8"/>
         </pattern>
       </defs>
-      {/* Background */}
-      <rect width={SVG_W} height={SVG_H} fill="oklch(0.12 0.01 240)" />
-      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill={`url(#grid-mini-${floor})`} />
-      {/* Building outline */}
-      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="none" stroke="oklch(0.70 0.19 45)" strokeWidth="1.5" />
 
+      {/* White background */}
+      <rect width={SVG_W} height={SVG_H} fill="#FFFFFF"/>
+      {/* Grid */}
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill={`url(#grid-mini-${floor})`}/>
+
+      {/* Rooms */}
       {floorSpaces.map((space, i) => {
         let x: number, y: number, w: number, h: number;
-
         if (hasBSPCoords && space.width !== undefined) {
-          // BSP meter-based coordinates — scale to SVG
           const scaleX = innerW / bldW;
           const scaleY = innerH / bldH;
           x = PAD + (space.x ?? 0) * scaleX;
@@ -83,29 +69,41 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
           w = Math.max((space.width ?? 3) * scaleX, 4);
           h = Math.max((space.height ?? 3) * scaleY, 4);
         } else {
-          // Percentage-based coordinates (0-100)
           x = PAD + ((space.x ?? 0) / 100) * innerW;
           y = PAD + ((space.y ?? 0) / 100) * innerH;
           w = Math.max(((space.w ?? 10) / 100) * innerW, 4);
           h = Math.max(((space.h ?? 10) / 100) * innerH, 4);
         }
-
-        const fill = ROOM_COLORS[space.type] ?? ROOM_COLORS.other;
-        const stroke = ROOM_STROKE[space.type] ?? ROOM_STROKE.other;
+        const fill = space.type === "balcony" ? `url(#hatch-mini-${floor})` : (ROOM_HATCH_MINI[space.type] ?? "#F8FAFC");
         const cx = x + w / 2;
         const cy = y + h / 2;
+        const area = space.area ?? (space.width && space.height ? (space.width * space.height).toFixed(1) : null);
 
         return (
           <g key={i}>
-            <rect x={x} y={y} width={w} height={h} fill={fill} stroke={stroke} strokeWidth="1" />
-            {w > 28 && h > 16 && (
+            {/* Room fill */}
+            <rect x={x} y={y} width={w} height={h} fill={fill} />
+            {/* Black walls */}
+            <rect x={x} y={y} width={w} height={h} fill="none" stroke="#1A1A1A" strokeWidth="1.5" />
+            {/* Room label */}
+            {w > 25 && h > 14 && (
               <>
-                <text x={cx} y={cy - 1} textAnchor="middle" fontSize="5.5" fill="oklch(0.92 0.05 45)" fontFamily="Arial, sans-serif" fontWeight="bold">
-                  {space.nameAr ?? space.name ?? ""}
+                <text
+                  x={cx} y={cy - (area ? 4 : 0)}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fill="#111827" fontSize="5.5"
+                  fontFamily="'Cairo', Arial, sans-serif" fontWeight="700"
+                >
+                  {(space.nameAr ?? space.name ?? "").substring(0, 12)}
                 </text>
-                {(space.area ?? (space.width && space.height ? space.width * space.height : null)) && (
-                  <text x={cx} y={cy + 7} textAnchor="middle" fontSize="4.5" fill="oklch(0.65 0.05 45)" fontFamily="monospace">
-                    {(space.area ?? (space.width * space.height)).toFixed(1)}m²
+                {area && (
+                  <text
+                    x={cx} y={cy + 5}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="#6B7280" fontSize="4.5"
+                    fontFamily="monospace"
+                  >
+                    {parseFloat(area).toFixed(1)}m²
                   </text>
                 )}
               </>
@@ -113,6 +111,20 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
           </g>
         );
       })}
+
+      {/* Outer building boundary — thick black */}
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="none" stroke="#000000" strokeWidth="2.5" />
+
+      {/* Floor label bar */}
+      <rect x="0" y={SVG_H - 14} width={SVG_W} height="14" fill="#F9FAFB"/>
+      <line x1="0" y1={SVG_H - 14} x2={SVG_W} y2={SVG_H - 14} stroke="#D1D5DB" strokeWidth="0.5"/>
+      <text
+        x="6" y={SVG_H - 5}
+        fill="#374151" fontSize="6"
+        fontFamily="'Share Tech Mono', monospace" fontWeight="600"
+      >
+        {floor === 0 ? "الدور الأرضي" : `الدور ${floor}`}  |  {bldW.toFixed(1)}م × {bldH.toFixed(1)}م
+      </text>
     </svg>
   );
 }
