@@ -63,6 +63,70 @@ function FloorPlan({
 
   const WALL = 2.5; // wall stroke width in SVG units
 
+  // ─── Dimension line helper ─────────────────────────────────────────────────
+  // Draws a horizontal or vertical dimension annotation with arrows and text
+  function DimLine({
+    x1, y1, x2, y2, value, offset = 0, axis
+  }: {
+    x1: number; y1: number; x2: number; y2: number;
+    value: string; offset?: number; axis: "h" | "v";
+  }) {
+    const TICK = 4;       // tick mark half-length
+    const ARROW = 5;      // arrowhead size
+    const GAP = 2;        // gap between wall and dim line
+    const DIM_COLOR = "#374151";
+    const DIM_FONT = 8;
+
+    if (axis === "h") {
+      // Horizontal dimension — drawn BELOW the room
+      const dy = y2 + GAP + offset;  // y position of dim line
+      const mx = (x1 + x2) / 2;     // midpoint x
+      return (
+        <g>
+          {/* Extension lines */}
+          <line x1={x1} y1={y2 + GAP} x2={x1} y2={dy + TICK} stroke={DIM_COLOR} strokeWidth="0.6" strokeDasharray="2,2"/>
+          <line x1={x2} y1={y2 + GAP} x2={x2} y2={dy + TICK} stroke={DIM_COLOR} strokeWidth="0.6" strokeDasharray="2,2"/>
+          {/* Main dim line */}
+          <line x1={x1} y1={dy} x2={x2} y2={dy} stroke={DIM_COLOR} strokeWidth="0.8"/>
+          {/* Arrowheads */}
+          <polygon points={`${x1},${dy} ${x1+ARROW},${dy-2} ${x1+ARROW},${dy+2}`} fill={DIM_COLOR}/>
+          <polygon points={`${x2},${dy} ${x2-ARROW},${dy-2} ${x2-ARROW},${dy+2}`} fill={DIM_COLOR}/>
+          {/* Value label */}
+          <rect x={mx - 14} y={dy - 5} width="28" height="10" fill="#FFFFFF"/>
+          <text x={mx} y={dy + 1} textAnchor="middle" dominantBaseline="middle"
+            fill={DIM_COLOR} fontSize={DIM_FONT}
+            fontFamily="'Share Tech Mono', 'Courier New', monospace" fontWeight="600">
+            {value}
+          </text>
+        </g>
+      );
+    } else {
+      // Vertical dimension — drawn to the RIGHT of the room
+      const dx = x2 + GAP + offset;  // x position of dim line
+      const my = (y1 + y2) / 2;      // midpoint y
+      return (
+        <g>
+          {/* Extension lines */}
+          <line x1={x2 + GAP} y1={y1} x2={dx + TICK} y2={y1} stroke={DIM_COLOR} strokeWidth="0.6" strokeDasharray="2,2"/>
+          <line x1={x2 + GAP} y1={y2} x2={dx + TICK} y2={y2} stroke={DIM_COLOR} strokeWidth="0.6" strokeDasharray="2,2"/>
+          {/* Main dim line */}
+          <line x1={dx} y1={y1} x2={dx} y2={y2} stroke={DIM_COLOR} strokeWidth="0.8"/>
+          {/* Arrowheads */}
+          <polygon points={`${dx},${y1} ${dx-2},${y1+ARROW} ${dx+2},${y1+ARROW}`} fill={DIM_COLOR}/>
+          <polygon points={`${dx},${y2} ${dx-2},${y2-ARROW} ${dx+2},${y2-ARROW}`} fill={DIM_COLOR}/>
+          {/* Value label — rotated */}
+          <rect x={dx - 5} y={my - 14} width="10" height="28" fill="#FFFFFF"/>
+          <text x={dx + 1} y={my} textAnchor="middle" dominantBaseline="middle"
+            fill={DIM_COLOR} fontSize={DIM_FONT}
+            fontFamily="'Share Tech Mono', 'Courier New', monospace" fontWeight="600"
+            transform={`rotate(-90, ${dx + 1}, ${my})`}>
+            {value}
+          </text>
+        </g>
+      );
+    }
+  }
+
   // Convert space to SVG pixel coordinates
   function toSVG(space: any): { x: number; y: number; w: number; h: number } {
     if (isMeterMode) {
@@ -186,20 +250,27 @@ function FloorPlan({
                     {area} m²
                   </text>
                 )}
-                {/* Dimension annotation inside room (width × height) */}
-                {w > 70 && h > 40 && wm > 0 && hm > 0 && (
-                  <text
-                    x={cx} y={cy + 20}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#9CA3AF"
-                    fontSize={6.5}
-                    fontFamily="'Share Tech Mono', 'Courier New', monospace"
-                  >
-                    {wm.toFixed(2)}×{hm.toFixed(2)}م
-                  </text>
-                )}
               </>
+            )}
+
+            {/* ─── Internal dimension lines (cotes) ─── */}
+            {/* Horizontal dim — width of room, shown at bottom edge inside */}
+            {w > 55 && wm > 0 && (
+              <DimLine
+                x1={x + 4} y1={y} x2={x + w - 4} y2={y + h - 6}
+                value={`${wm.toFixed(2)}م`}
+                offset={0}
+                axis="h"
+              />
+            )}
+            {/* Vertical dim — height of room, shown at right edge inside */}
+            {h > 45 && hm > 0 && (
+              <DimLine
+                x1={x} y1={y + 4} x2={x + w - 6} y2={y + h - 4}
+                value={`${hm.toFixed(2)}م`}
+                offset={0}
+                axis="v"
+              />
             )}
           </g>
         );

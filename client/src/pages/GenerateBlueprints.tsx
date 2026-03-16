@@ -108,6 +108,49 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
                 )}
               </>
             )}
+
+            {/* ─── Mini cotes ─── */}
+            {/* Width cote — horizontal, at bottom of room */}
+            {w > 40 && (() => {
+              const wm = hasBSPCoords && space.width ? space.width : ((space.w ?? 0) / 100) * bldW;
+              if (wm <= 0) return null;
+              const lx1 = x + 3; const lx2 = x + w - 3;
+              const ly = y + h - 5;
+              const mx = (lx1 + lx2) / 2;
+              return (
+                <g>
+                  <line x1={lx1} y1={ly} x2={lx2} y2={ly} stroke="#374151" strokeWidth="0.6"/>
+                  <polygon points={`${lx1},${ly} ${lx1+3},${ly-1.5} ${lx1+3},${ly+1.5}`} fill="#374151"/>
+                  <polygon points={`${lx2},${ly} ${lx2-3},${ly-1.5} ${lx2-3},${ly+1.5}`} fill="#374151"/>
+                  <rect x={mx - 8} y={ly - 4} width="16" height="7" fill="#FFFFFF"/>
+                  <text x={mx} y={ly} textAnchor="middle" dominantBaseline="middle"
+                    fill="#374151" fontSize="4" fontFamily="monospace" fontWeight="600">
+                    {wm.toFixed(1)}م
+                  </text>
+                </g>
+              );
+            })()}
+            {/* Height cote — vertical, at right of room */}
+            {h > 35 && (() => {
+              const hm = hasBSPCoords && space.height ? space.height : ((space.h ?? 0) / 100) * bldH;
+              if (hm <= 0) return null;
+              const lx = x + w - 5;
+              const ly1 = y + 3; const ly2 = y + h - 3;
+              const my = (ly1 + ly2) / 2;
+              return (
+                <g>
+                  <line x1={lx} y1={ly1} x2={lx} y2={ly2} stroke="#374151" strokeWidth="0.6"/>
+                  <polygon points={`${lx},${ly1} ${lx-1.5},${ly1+3} ${lx+1.5},${ly1+3}`} fill="#374151"/>
+                  <polygon points={`${lx},${ly2} ${lx-1.5},${ly2-3} ${lx+1.5},${ly2-3}`} fill="#374151"/>
+                  <rect x={lx - 4} y={my - 8} width="7" height="16" fill="#FFFFFF"/>
+                  <text x={lx} y={my} textAnchor="middle" dominantBaseline="middle"
+                    fill="#374151" fontSize="4" fontFamily="monospace" fontWeight="600"
+                    transform={`rotate(-90, ${lx}, ${my})`}>
+                    {hm.toFixed(1)}م
+                  </text>
+                </g>
+              );
+            })()}
           </g>
         );
       })}
