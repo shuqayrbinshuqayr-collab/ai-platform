@@ -107,3 +107,10 @@
 - [ ] PDF Export endpoint — يُنتج PDF A3 احترافي مع SVG المخطط
 - [ ] زر تحميل PDF في BlueprintView
 - [ ] Checkpoint نهائي
+
+## Phase 14: إخفاء اشتراطات الكود السعودي من الـ UI
+- [x] إزالة عرض codeWarnings/autoCorrections من GenerateBlueprints.tsx
+- [x] إزالة Step 1 الاشتراطات كاملاً من NewProject form (تخطي تلقائي)
+- [x] إخفاء regulatoryCompliance section من BlueprintView
+- [x] تحديث عداد الخطوات ليعكس 3 خطوات فقط (بدل 4)
+- [ ] Checkpoint نهائي

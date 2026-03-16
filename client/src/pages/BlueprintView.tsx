@@ -279,51 +279,7 @@ export default function BlueprintView() {
             </div>
           )}
 
-          {/* Regulatory Compliance */}
-          {compliance && Object.keys(compliance).length > 0 && (
-            <div className="soar-card rounded-xl p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Ruler className="w-5 h-5 text-primary" />
-                <span className="font-bold text-foreground">{t(lang, "regulatoryCompliance")}</span>
-                {compliance.isCompliant ? (
-                  <CheckCircle className="w-4 h-4 text-emerald-400 ms-auto" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-400 ms-auto" />
-                )}
-              </div>
-              <div className={`px-3 py-2 rounded-lg text-sm font-semibold ${
-                compliance.isCompliant
-                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                  : "bg-red-500/15 text-red-300 border border-red-500/30"
-              }`}>
-                {compliance.isCompliant ? t(lang, "compliant") : t(lang, "nonCompliant")}
-              </div>
-              <div className="space-y-2 text-sm">
-                {compliance.buildingFootprint && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{lang === "ar" ? "بصمة المبنى" : "Building Footprint"}</span>
-                    <span className="text-foreground font-mono font-bold">{compliance.buildingFootprint} m²</span>
-                  </div>
-                )}
-                {compliance.actualCoverageRatio && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{lang === "ar" ? "نسبة التغطية" : "Coverage Ratio"}</span>
-                    <span className="text-foreground font-mono font-bold">{compliance.actualCoverageRatio}%</span>
-                  </div>
-                )}
-              </div>
-              {compliance.complianceNotes && compliance.complianceNotes.length > 0 && (
-                <div className="space-y-1">
-                  {(lang === "ar" ? compliance.complianceNotesAr : compliance.complianceNotes)?.map((note: string, i: number) => (
-                    <div key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>{note}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Regulatory Compliance — hidden from user, processed in backend */}
         </div>
 
         {/* Concept Description */}

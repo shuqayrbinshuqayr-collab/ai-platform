@@ -424,22 +424,7 @@ export default function GenerateBlueprints() {
               </p>
             </div>
 
-            {/* Code warnings */}
-            {codeWarnings.length > 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-2 text-yellow-400 font-semibold text-sm mb-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  {lang === "ar" ? "تم تصحيح الاشتراطات تلقائياً وفق الكود السعودي:" : "Requirements auto-corrected per Saudi Building Code:"}
-                </div>
-                <ul className="space-y-1">
-                  {codeWarnings.map((w, i) => (
-                    <li key={i} className="text-xs text-yellow-300/80 flex items-start gap-2">
-                      <span className="text-yellow-400 font-mono">›</span> {w}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Code warnings hidden — processed silently in backend */}
 
             {/* Project summary strip */}
             {project && (
@@ -448,7 +433,7 @@ export default function GenerateBlueprints() {
                   { icon: HomeIcon, label: lang === "ar" ? "نوع المبنى" : "Type", value: project.buildingType === "villa" ? (lang === "ar" ? "فيلا سكنية" : "Villa") : (lang === "ar" ? "مبنى سكني" : "Residential") },
                   { icon: Ruler, label: lang === "ar" ? "المساحة" : "Area", value: `${project.landArea ?? "—"} م²` },
                   { icon: Building2, label: lang === "ar" ? "الأدوار" : "Floors", value: project.numberOfFloors ?? "—" },
-                  { icon: Zap, label: lang === "ar" ? "نسبة البناء" : "Coverage", value: `${project.buildingRatio ?? 60}%` },
+                  { icon: Zap, label: lang === "ar" ? "الحي" : "District", value: project.neighborhoodName ?? (lang === "ar" ? "الرياض" : "Riyadh") },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center gap-2 bg-secondary/30 border border-border/40 rounded-lg px-3 py-1.5 text-xs">
                     <Icon className="w-3.5 h-3.5 text-primary" />

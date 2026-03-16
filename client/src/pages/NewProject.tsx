@@ -147,7 +147,7 @@ export default function NewProject() {
 
   const steps = [
     { id: 0, label: lang === "ar" ? "تحديد الأرض" : "Land Location", icon: MapPin },
-    { id: 1, label: lang === "ar" ? "الاشتراطات" : "Regulations", icon: Ruler },
+    // Step 1 (Regulations) is processed automatically in backend — hidden from user
     { id: 2, label: lang === "ar" ? "متطلبات المبنى" : "Building Needs", icon: Building2 },
     { id: 3, label: lang === "ar" ? "الواجهة والتفاصيل" : "Facade & Details", icon: HomeIcon },
   ];
@@ -430,75 +430,7 @@ export default function NewProject() {
             </div>
           )}
 
-          {/* ─── Step 1: Regulatory ─── */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Ruler className="w-5 h-5 text-primary" />
-                {lang === "ar" ? "الاشتراطات التنظيمية" : "Regulatory Requirements"}
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "نسبة البناء (%)" : "Building Ratio (%)"}</Label>
-                  <Input type="number" value={form.buildingRatio} onChange={e => set("buildingRatio", e.target.value)}
-                    placeholder="60" min="0" max="100" className="bg-input border-border text-foreground" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "معامل البناء (FAR)" : "Floor Area Ratio (FAR)"}</Label>
-                  <Input type="number" value={form.floorAreaRatio} onChange={e => set("floorAreaRatio", e.target.value)}
-                    placeholder="2.0" step="0.1" className="bg-input border-border text-foreground" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "عدد الأدوار المسموح" : "Max Floors Allowed"}</Label>
-                  <Input type="number" value={form.maxFloors} onChange={e => set("maxFloors", e.target.value)}
-                    placeholder="4" min="1" className="bg-input border-border text-foreground" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "عدد الأدوار المطلوبة" : "Number of Floors"}</Label>
-                  <Input type="number" value={form.numberOfFloors} onChange={e => set("numberOfFloors", e.target.value)}
-                    placeholder="2" min="1" className="bg-input border-border text-foreground" />
-                </div>
-              </div>
-
-              <div className="border-t border-border/40 pt-4">
-                <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "الإرتدادات (م)" : "Setbacks (m)"}</Label>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { key: "frontSetback" as keyof FormData, ar: "أمامي", en: "Front" },
-                    { key: "backSetback" as keyof FormData, ar: "خلفي", en: "Back" },
-                    { key: "sideSetback" as keyof FormData, ar: "جانبي", en: "Side" },
-                  ].map(({ key, ar, en }) => (
-                    <div key={key} className="space-y-1.5">
-                      <Label className="text-muted-foreground text-xs">{lang === "ar" ? ar : en}</Label>
-                      <Input type="number" value={form[key] as string} onChange={e => set(key, e.target.value)}
-                        placeholder="3" className="bg-input border-border text-foreground" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Compliance preview */}
-              {form.buildingRatio && form.landArea && (
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
-                  <div className="text-xs text-primary font-mono mb-2">{lang === "ar" ? "// تقدير الامتثال //" : "// COMPLIANCE ESTIMATE //"}</div>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">{lang === "ar" ? "مساحة البناء المسموحة:" : "Allowed build area:"}</span>
-                      <span className="text-primary font-bold ms-1">
-                        {(parseFloat(form.landArea) * parseFloat(form.buildingRatio) / 100).toFixed(0)} m²
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{lang === "ar" ? "إجمالي المساحة البنائية:" : "Total floor area:"}</span>
-                      <span className="text-primary font-bold ms-1">
-                        {(parseFloat(form.landArea) * parseFloat(form.floorAreaRatio || "2")).toFixed(0)} m²
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Step 1 (Regulations) — processed silently in backend, not shown to user */}
 
           {/* ─── Step 2: Building Requirements ─── */}
           {step === 2 && (
@@ -608,7 +540,11 @@ export default function NewProject() {
           <div className="flex items-center justify-between pt-4 border-t border-border/40">
             <Button
               variant="outline"
-              onClick={() => setStep(s => Math.max(0, s - 1))}
+              onClick={() => {
+                // Skip step 1 (regulations) — handled in backend
+                const prevStep = step === 2 ? 0 : Math.max(0, step - 1);
+                setStep(prevStep);
+              }}
               disabled={step === 0}
               className="gap-2 border-border/60 text-muted-foreground hover:text-foreground"
             >
@@ -617,12 +553,16 @@ export default function NewProject() {
             </Button>
 
             <span className="text-xs text-muted-foreground font-mono">
-              {step + 1} / {steps.length}
+              {steps.findIndex(s => s.id === step) + 1} / {steps.length}
             </span>
 
-            {step < steps.length - 1 ? (
+            {step < steps[steps.length - 1].id ? (
               <Button
-                onClick={() => setStep(s => Math.min(steps.length - 1, s + 1))}
+                onClick={() => {
+                  // Skip step 1 (regulations) — handled in backend
+                  const nextStep = step === 0 ? 2 : Math.min(3, step + 1);
+                  setStep(nextStep);
+                }}
                 className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
               >
                 {t(lang, "next")}
