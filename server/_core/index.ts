@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerUploadRoute } from "../uploadAudio";
+import { registerUploadDocumentRoute } from "../uploadDocuments";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,6 +39,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Audio upload route
   registerUploadRoute(app);
+  // Document upload route (deed + building code PDFs)
+  registerUploadDocumentRoute(app);
   // tRPC API
   app.use(
     "/api/trpc",

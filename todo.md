@@ -79,4 +79,31 @@
 - [x] توليد 6 مخططات معمارية بالـ AI مع عرضها بشكل احترافي (generate6 + GenerateBlueprints page)
 - [x] شاشة اختيار المخطط النهائي (BlueprintCard + confirm selection)
 - [x] تجميل الـ UI وتحسين تجربة المستخدم للـ Case Study
-- [ ] Checkpoint نهائي للـ MVP
+- [x] Checkpoint نهائي للـ MVP (version: 821b8fdc)
+
+## Phase 12: BSP Layout Engine + PDF Export
+
+- [ ] BSP Algorithm في server/bsp.ts — يُقسّم مساحة الأرض ويوزّع الغرف بأبعاد حقيقية
+- [ ] SVG Generator — يُنتج SVG هندسي مع كوتات واتجاه الشمال ومقياس رسم
+- [ ] tRPC procedure: blueprints.generateSVG — يُعيد SVG string
+- [ ] تحديث GenerateBlueprints.tsx لعرض SVG الهندسي في كل بطاقة
+- [ ] تحديث BlueprintView.tsx لعرض SVG الكامل مع تفاصيل الغرف
+- [ ] PDF Export endpoint — يُنتج PDF A3 احترافي
+- [ ] Branded PDF مع شعار المكتب + جدول الغرف + بيانات المشروع
+- [ ] Demo Mode بدون Login في الـ Landing Page
+- [ ] Checkpoint نهائي
+
+## Phase 13: رفع الملفين + AI Extractor + PDF Export
+
+- [x] إضافة حقول bedrooms/bathrooms/majlis/garages/maidRooms/balconies للـ Schema
+- [x] pnpm db:push لتحديث قاعدة البيانات
+- [x] إصلاح أخطاء TypeScript في routers.ts (project.majlis etc.)
+- [x] tRPC procedure: documents.extractDeed — يستخرج بيانات الصك من PDF
+- [x] tRPC procedure: documents.extractBuildingCode — يستخرج نظام البناء من PDF
+- [x] صفحة UploadDocuments.tsx — رفع الصك ونظام البناء مع AI extraction
+- [x] ملء تلقائي لحقول المشروع بعد استخراج الملفين
+- [x] /api/upload endpoint لرفع PDF/صور إلى S3
+- [x] تحديث NewProject Flow ليوجه لـ upload بعد إنشاء المشروع
+- [ ] PDF Export endpoint — يُنتج PDF A3 احترافي مع SVG المخطط
+- [ ] زر تحميل PDF في BlueprintView
+- [ ] Checkpoint نهائي

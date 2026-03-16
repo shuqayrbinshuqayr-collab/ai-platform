@@ -12,6 +12,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import BlueprintView from "./pages/BlueprintView";
 import Gallery from "./pages/Gallery";
 import GenerateBlueprints from "./pages/GenerateBlueprints";
+import UploadDocuments from "./pages/UploadDocuments";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Roadmap from "./pages/Roadmap";
@@ -24,6 +25,8 @@ function Router() {
       <Route path="/projects/new" component={NewProject} />
       <Route path="/projects/:id" component={ProjectDetail} />
       <Route path="/projects/:id/generate" component={GenerateBlueprints} />
+      <Route path="/projects/:id/upload">{(params) => <UploadDocuments projectId={parseInt((params as any).id ?? "0")} />}</Route>
+      <Route path="/projects/:id/requirements" component={ProjectDetail} />
       <Route path="/blueprints/:id" component={BlueprintView} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />

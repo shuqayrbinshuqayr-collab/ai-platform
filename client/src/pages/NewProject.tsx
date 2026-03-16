@@ -122,8 +122,8 @@ export default function NewProject() {
 
   const createProject = trpc.projects.create.useMutation({
     onSuccess: (data) => {
-      toast.success(lang === "ar" ? "تم إنشاء المشروع — جاري توليد المخططات..." : "Project created — generating blueprints...");
-      navigate(`/projects/${data.id}/generate`);
+      toast.success(lang === "ar" ? "تم إنشاء المشروع — ارفع وثائق الأرض" : "Project created — upload land documents");
+      navigate(`/projects/${data.id}/upload`);
     },
     onError: (err) => toast.error(err.message),
   });
