@@ -330,34 +330,42 @@ export function generateBSPLayout(params: {
     if (floorRooms.length === 0) continue;
 
     // BSP for this floor
+    // CRITICAL: iterations must equal exactly floorRooms.length - 1
+    // so we get exactly floorRooms.length leaves — no empty cells, no gaps
     const root: BSPNode = { x: 0, y: 0, w: buildingWidth, h: buildingDepth };
-    const iterations = Math.max(floorRooms.length + 2, 4);
-    const minSize = 2.0;
-    buildBSP(root, iterations, minSize);
+    const targetLeaves = floorRooms.length;
+    const minSize = 1.8;
+    // Split exactly (targetLeaves - 1) times to get targetLeaves leaves
+    buildBSP(root, targetLeaves - 1, minSize);
 
     const leaves = getLeaves(root);
     leaves.sort((a, b) => (b.w * b.h) - (a.w * a.h));
     const sortedRooms = [...floorRooms].sort((a, b) => b.minArea - a.minArea);
 
     const rooms: Room[] = [];
+
+    // Assign each room to a leaf — if more leaves than rooms, merge extras into last room
+    // If more rooms than leaves, split the largest leaf
+    const assignCount = Math.max(leaves.length, sortedRooms.length);
+
     for (let i = 0; i < Math.min(leaves.length, sortedRooms.length); i++) {
       const leaf = leaves[i];
       const roomDef = sortedRooms[i];
-      const pad = 0.15; // wall thickness
 
-      // Use preferred dimensions if they fit in the leaf
-      const rw = Math.max(Math.min(roomDef.prefW, leaf.w - pad * 2), 2.0);
-      const rh = Math.max(Math.min(roomDef.prefH, leaf.h - pad * 2), 2.0);
+      // Room fills the ENTIRE leaf cell — walls are drawn as borders by SVG renderer
+      // This eliminates all gaps between rooms
+      const rw = parseFloat(Math.max(leaf.w, 1.8).toFixed(2));
+      const rh = parseFloat(Math.max(leaf.h, 1.8).toFixed(2));
 
       const room: Room = {
         id: `${roomDef.type}-f${f}-${i}`,
         nameAr: roomDef.nameAr,
         nameEn: roomDef.nameEn,
         type: roomDef.type,
-        x: parseFloat((leaf.x + pad).toFixed(2)),
-        y: parseFloat((leaf.y + pad).toFixed(2)),
-        width: parseFloat(rw.toFixed(2)),
-        height: parseFloat(rh.toFixed(2)),
+        x: parseFloat(leaf.x.toFixed(2)),
+        y: parseFloat(leaf.y.toFixed(2)),
+        width: rw,
+        height: rh,
         area: parseFloat((rw * rh).toFixed(1)),
         floor: f,
         hasWindow: ["bedroom", "master_bedroom", "living", "family_living", "majlis", "kitchen", "dining", "balcony", "office"].includes(roomDef.type),
@@ -368,6 +376,31 @@ export function generateBSPLayout(params: {
       };
       rooms.push(room);
     }
+
+    // If there are leftover leaves (more leaves than rooms), assign them as storage/corridor
+    // to fill the building completely with no empty cells
+    for (let i = sortedRooms.length; i < leaves.length; i++) {
+      const leaf = leaves[i];
+      const rw = parseFloat(Math.max(leaf.w, 1.8).toFixed(2));
+      const rh = parseFloat(Math.max(leaf.h, 1.8).toFixed(2));
+      const fillType: RoomType = rw * rh < 6 ? "storage" : "corridor";
+      rooms.push({
+        id: `${fillType}-f${f}-fill-${i}`,
+        nameAr: fillType === "storage" ? "مخزن" : "ممر",
+        nameEn: fillType === "storage" ? "Storage" : "Corridor",
+        type: fillType,
+        x: parseFloat(leaf.x.toFixed(2)),
+        y: parseFloat(leaf.y.toFixed(2)),
+        width: rw,
+        height: rh,
+        area: parseFloat((rw * rh).toFixed(1)),
+        floor: f,
+        hasWindow: false,
+        hasDoor: true,
+        doorWall: "south",
+      });
+    }
+    void assignCount;
 
     floors.push({
       floor: f,

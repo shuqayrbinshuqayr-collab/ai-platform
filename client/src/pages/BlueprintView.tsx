@@ -41,70 +41,106 @@ const ROOM_STROKE: Record<string, string> = {
   other: "oklch(0.55 0.10 240)",
 };
 
-function FloorPlan({ spaces, floor, lang }: { spaces: any[]; floor: number; lang: string }) {
-  const floorSpaces = spaces.filter(s => s.floor === floor);
+function FloorPlan({ spaces, floor, lang, bldW, bldH }: { spaces: any[]; floor: number; lang: string; bldW?: number; bldH?: number }) {
+  const floorSpaces = spaces.filter(s => (s.floor ?? 0) === floor);
   if (floorSpaces.length === 0) return null;
 
+  const SVG_W = 500;
+  const SVG_H = 400;
+  const PAD = 30;
+  const innerW = SVG_W - PAD * 2; // 440
+  const innerH = SVG_H - PAD * 2; // 340
+
+  // Detect coordinate system:
+  // - If spaces have w/h fields (0-100 range) → percentage mode
+  // - If spaces have width/height fields (meters) → meter mode
+  const firstSpace = floorSpaces[0];
+  const isMeterMode = firstSpace?.width !== undefined && firstSpace?.w === undefined;
+  const buildingW = bldW ?? 10;
+  const buildingH = bldH ?? 20;
+
   return (
-    <svg viewBox="0 0 500 400" className="w-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id={`grid-fp-${floor}`} width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M 20 0 L 0 0 0 20" fill="none" stroke="oklch(0.70 0.19 45 / 0.08)" strokeWidth="0.5"/>
         </pattern>
       </defs>
-      <rect width="500" height="400" fill={`url(#grid-fp-${floor})`} />
+      <rect width={SVG_W} height={SVG_H} fill="oklch(0.09 0.008 240)" />
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill={`url(#grid-fp-${floor})`} />
 
       {/* Outer boundary */}
-      <rect x="30" y="30" width="440" height="340" fill="none" stroke="oklch(0.70 0.19 45 / 0.6)" strokeWidth="2.5" />
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="none" stroke="oklch(0.70 0.19 45 / 0.6)" strokeWidth="2.5" />
 
-      {/* Corner markers - orange */}
-      <path d="M 30 30 L 55 30 M 30 30 L 30 55" stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
-      <path d="M 470 30 L 445 30 M 470 30 L 470 55" stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
-      <path d="M 30 370 L 55 370 M 30 370 L 30 345" stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
-      <path d="M 470 370 L 445 370 M 470 370 L 470 345" stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
+      {/* Corner markers */}
+      <path d={`M ${PAD} ${PAD} L ${PAD+25} ${PAD} M ${PAD} ${PAD} L ${PAD} ${PAD+25}`} stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
+      <path d={`M ${SVG_W-PAD} ${PAD} L ${SVG_W-PAD-25} ${PAD} M ${SVG_W-PAD} ${PAD} L ${SVG_W-PAD} ${PAD+25}`} stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
+      <path d={`M ${PAD} ${SVG_H-PAD} L ${PAD+25} ${SVG_H-PAD} M ${PAD} ${SVG_H-PAD} L ${PAD} ${SVG_H-PAD-25}`} stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
+      <path d={`M ${SVG_W-PAD} ${SVG_H-PAD} L ${SVG_W-PAD-25} ${SVG_H-PAD} M ${SVG_W-PAD} ${SVG_H-PAD} L ${SVG_W-PAD} ${SVG_H-PAD-25}`} stroke="oklch(0.70 0.19 45)" strokeWidth="2.5" />
 
       {/* Rooms */}
       {floorSpaces.map((space, i) => {
-        const x = 30 + (space.x / 100) * 440;
-        const y = 30 + (space.y / 100) * 340;
-        const w = (space.w / 100) * 440;
-        const h = (space.h / 100) * 340;
+        let x: number, y: number, w: number, h: number;
+
+        if (isMeterMode) {
+          // Meter-based: scale to SVG
+          const scaleX = innerW / buildingW;
+          const scaleY = innerH / buildingH;
+          x = PAD + (space.x ?? 0) * scaleX;
+          y = PAD + (space.y ?? 0) * scaleY;
+          w = Math.max((space.width ?? 3) * scaleX, 6);
+          h = Math.max((space.height ?? space.length ?? 3) * scaleY, 6);
+        } else {
+          // Percentage-based (0-100)
+          x = PAD + ((space.x ?? 0) / 100) * innerW;
+          y = PAD + ((space.y ?? 0) / 100) * innerH;
+          w = Math.max(((space.w ?? 10) / 100) * innerW, 6);
+          h = Math.max(((space.h ?? 10) / 100) * innerH, 6);
+        }
+
         const fill = ROOM_COLORS[space.type] ?? ROOM_COLORS.other;
         const stroke = ROOM_STROKE[space.type] ?? ROOM_STROKE.other;
         const nameAr = space.nameAr || space.name;
         const nameEn = space.name;
         const label = lang === "ar" ? nameAr : nameEn;
+        const area = space.area ?? (space.width && (space.height ?? space.length) ? (space.width * (space.height ?? space.length)).toFixed(1) : null);
+        const cx = x + w / 2;
+        const cy = y + h / 2;
 
         return (
           <g key={i}>
             <rect x={x} y={y} width={w} height={h} fill={fill} stroke={stroke} strokeWidth="1.5" />
-            <text
-              x={x + w / 2} y={y + h / 2 - 6}
-              textAnchor="middle" dominantBaseline="middle"
-              fill="oklch(0.92 0.05 240)" fontSize="9"
-              fontFamily="'Cairo', 'Share Tech Mono', monospace"
-              style={{ fontWeight: 600 }}
-            >
-              {label.length > 12 ? label.substring(0, 12) + "…" : label}
-            </text>
-            {space.area && (
-              <text
-                x={x + w / 2} y={y + h / 2 + 8}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="oklch(0.70 0.19 45 / 0.8)" fontSize="8"
-                fontFamily="'Share Tech Mono', monospace"
-              >
-                {space.area}m²
-              </text>
+            {w > 40 && h > 25 && (
+              <>
+                <text
+                  x={cx} y={cy - 5}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fill="oklch(0.95 0.05 45)" fontSize="10"
+                  fontFamily="'Cairo', Arial, sans-serif"
+                  fontWeight="700"
+                >
+                  {label && label.length > 14 ? label.substring(0, 14) + "…" : label}
+                </text>
+                {area && (
+                  <text
+                    x={cx} y={cy + 9}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="oklch(0.70 0.19 45)" fontSize="9"
+                    fontFamily="'Share Tech Mono', monospace"
+                  >
+                    {area}m²
+                  </text>
+                )}
+              </>
             )}
           </g>
         );
       })}
 
       {/* Title block */}
-      <rect x="0" y="385" width="500" height="15" fill="oklch(0.12 0.010 240)" />
-      <text x="10" y="395" fill="oklch(0.70 0.19 45 / 0.8)" fontSize="8" fontFamily="'Share Tech Mono', monospace">
-        {`SOAR.AI // ${lang === "ar" ? "الطابق" : "FLOOR"} ${floor === 0 ? (lang === "ar" ? "الأرضي" : "GROUND") : floor} // SCALE 1:100`}
+      <rect x="0" y={SVG_H - 15} width={SVG_W} height="15" fill="oklch(0.12 0.010 240)" />
+      <text x="10" y={SVG_H - 5} fill="oklch(0.70 0.19 45 / 0.8)" fontSize="8" fontFamily="'Share Tech Mono', monospace">
+        {`SOAR.AI // ${lang === "ar" ? "الطابق" : "FLOOR"} ${floor === 0 ? (lang === "ar" ? "الأرضي" : "GROUND") : floor} // ${buildingW.toFixed(1)}m × ${buildingH.toFixed(1)}m`}
       </text>
     </svg>
   );
@@ -221,7 +257,13 @@ export default function BlueprintView() {
                     </span>
                   </div>
                   <div className="p-4" style={{ background: "oklch(0.09 0.008 240)" }}>
-                    <FloorPlan spaces={spaces} floor={floor} lang={lang} />
+                    <FloorPlan
+                      spaces={spaces}
+                      floor={floor}
+                      lang={lang}
+                      bldW={summary?.buildingWidth}
+                      bldH={summary?.buildingDepth}
+                    />
                   </div>
                 </div>
               ))}

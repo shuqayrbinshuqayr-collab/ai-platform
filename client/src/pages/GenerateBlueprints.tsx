@@ -41,40 +41,74 @@ const ROOM_STROKE: Record<string, string> = {
   other: "oklch(0.55 0.10 240)",
 };
 
-// ─── Mini floor plan SVG ──────────────────────────────────────────────────
-function MiniFloorPlan({ spaces, floor }: { spaces: any[]; floor: number }) {
-  const floorSpaces = (spaces ?? []).filter((s) => s.floor === floor);
+// // ─── Mini floor plan SVG ────────────────────────────────────────────
+function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: number; bspLayout?: any }) {
+  const floorSpaces = (spaces ?? []).filter((s) => (s.floor ?? 0) === floor);
   if (floorSpaces.length === 0) return null;
+
+  const SVG_W = 200;
+  const SVG_H = 160;
+  const PAD = 8;
+  const innerW = SVG_W - PAD * 2;
+  const innerH = SVG_H - PAD * 2;
+
+  // Determine coordinate system: BSP rooms use meters (x, y, width, height)
+  // AI spaces use percentage (x, y, w, h in 0-100)
+  const hasBSPCoords = bspLayout?.buildingWidth && floorSpaces[0]?.width !== undefined;
+  const bldW = bspLayout?.buildingWidth ?? 10;
+  const bldH = bspLayout?.buildingDepth ?? 20;
+
   return (
-    <svg viewBox="0 0 200 160" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <pattern id={`grid-mini-${floor}`} width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="oklch(0.70 0.19 45 / 0.06)" strokeWidth="0.5" />
+        <pattern id={`grid-mini-${floor}`} width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M 8 0 L 0 0 0 8" fill="none" stroke="oklch(0.70 0.19 45 / 0.05)" strokeWidth="0.4" />
         </pattern>
       </defs>
-      <rect width="200" height="160" fill={`url(#grid-mini-${floor})`} />
-      <rect x="10" y="10" width="180" height="140" fill="none" stroke="oklch(0.70 0.19 45 / 0.5)" strokeWidth="1.5" />
+      {/* Background */}
+      <rect width={SVG_W} height={SVG_H} fill="oklch(0.12 0.01 240)" />
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill={`url(#grid-mini-${floor})`} />
+      {/* Building outline */}
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="none" stroke="oklch(0.70 0.19 45)" strokeWidth="1.5" />
+
       {floorSpaces.map((space, i) => {
-        const x = 10 + (space.x / 100) * 180;
-        const y = 10 + (space.y / 100) * 140;
-        const w = (space.w / 100) * 180;
-        const h = (space.h / 100) * 140;
+        let x: number, y: number, w: number, h: number;
+
+        if (hasBSPCoords && space.width !== undefined) {
+          // BSP meter-based coordinates — scale to SVG
+          const scaleX = innerW / bldW;
+          const scaleY = innerH / bldH;
+          x = PAD + (space.x ?? 0) * scaleX;
+          y = PAD + (space.y ?? 0) * scaleY;
+          w = Math.max((space.width ?? 3) * scaleX, 4);
+          h = Math.max((space.height ?? 3) * scaleY, 4);
+        } else {
+          // Percentage-based coordinates (0-100)
+          x = PAD + ((space.x ?? 0) / 100) * innerW;
+          y = PAD + ((space.y ?? 0) / 100) * innerH;
+          w = Math.max(((space.w ?? 10) / 100) * innerW, 4);
+          h = Math.max(((space.h ?? 10) / 100) * innerH, 4);
+        }
+
         const fill = ROOM_COLORS[space.type] ?? ROOM_COLORS.other;
         const stroke = ROOM_STROKE[space.type] ?? ROOM_STROKE.other;
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+
         return (
           <g key={i}>
             <rect x={x} y={y} width={w} height={h} fill={fill} stroke={stroke} strokeWidth="1" />
-            {w > 25 && h > 15 && (
-              <text
-                x={x + w / 2}
-                y={y + h / 2 + 3}
-                textAnchor="middle"
-                fontSize="6"
-                fill="oklch(0.90 0.05 45)"
-                fontFamily="monospace"
-              >
-                {space.nameAr ?? space.name ?? ""}
-              </text>
+            {w > 28 && h > 16 && (
+              <>
+                <text x={cx} y={cy - 1} textAnchor="middle" fontSize="5.5" fill="oklch(0.92 0.05 45)" fontFamily="Arial, sans-serif" fontWeight="bold">
+                  {space.nameAr ?? space.name ?? ""}
+                </text>
+                {(space.area ?? (space.width && space.height ? space.width * space.height : null)) && (
+                  <text x={cx} y={cy + 7} textAnchor="middle" fontSize="4.5" fill="oklch(0.65 0.05 45)" fontFamily="monospace">
+                    {(space.area ?? (space.width * space.height)).toFixed(1)}m²
+                  </text>
+                )}
+              </>
             )}
           </g>
         );

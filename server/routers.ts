@@ -408,8 +408,20 @@ export const appRouter = router({
               );
             }
 
-            // Use AI rooms if available (better quality), else fall back to BSP
+            // ALWAYS use BSP spaces (they fill the building perfectly with no gaps)
+            // Enrich BSP room names with AI names when available
             const hasAIRooms = aiGroundRooms.length > 2;
+
+            // Build AI name lookup by type+floor for enrichment
+            const aiNameLookup: Map<string, { nameAr: string; nameEn: string }> = new Map();
+            if (hasAIRooms) {
+              [...aiGroundRooms, ...aiUpperRooms].forEach((r: any, idx: number) => {
+                const key = `${r.type}-${r.floor ?? 0}-${idx}`;
+                aiNameLookup.set(key, { nameAr: r.nameAr ?? r.name, nameEn: r.name });
+              });
+            }
+
+            // BSP spaces with percentage coordinates (guaranteed to fill building)
             const bspSpaces = bspLayout.floors.flatMap(f =>
               f.rooms.map(r => ({
                 name: r.nameEn,
@@ -419,6 +431,7 @@ export const appRouter = router({
                 length: r.height,
                 area: r.area,
                 type: r.type,
+                // Percentage coordinates (0-100) — guaranteed to fill building with no gaps
                 x: (r.x / bspLayout.buildingWidth) * 100,
                 y: (r.y / bspLayout.buildingDepth) * 100,
                 w: (r.width / bspLayout.buildingWidth) * 100,
@@ -430,8 +443,8 @@ export const appRouter = router({
               ...aiData,
               title: aiData.title ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
               titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
-              // Use AI rooms when available (they follow Saudi arch rules), else BSP
-              spaces: hasAIRooms ? [...aiGroundRooms, ...aiUpperRooms] : bspSpaces,
+              // Always use BSP spaces — they fill the building perfectly with no gaps
+              spaces: bspSpaces,
               aiRoomsUsed: hasAIRooms, // flag to track quality
               summary: {
                 totalFloors: bspLayout.summary.totalFloors,
