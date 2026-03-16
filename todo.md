@@ -114,3 +114,9 @@
 - [x] إخفاء regulatoryCompliance section من BlueprintView
 - [x] تحديث عداد الخطوات ليعكس 3 خطوات فقط (بدل 4)
 - [ ] Checkpoint نهائي
+
+## Phase 15: رفع الصك ونظام البناء في Step 0 (اختياري)
+- [ ] إضافة قسم "وثائق الأرض (اختياري)" في Step 0 من NewProject بعد حقول المساحة
+- [ ] زر رفع صك الأرض + زر رفع نظام البناء مع preview للملف المرفوع
+- [ ] ربط الرفع بـ /api/upload/document مع AI extraction تلقائي في الخلفية
+- [ ] Checkpoint نهائي

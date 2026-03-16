@@ -17,7 +17,7 @@ import { MapView } from "@/components/Map";
 import {
   MapPin, Building2, Ruler, ChevronRight, ChevronLeft,
   Zap, CheckCircle, Mic, Home as HomeIcon,
-  Plus, Minus, Brain, ArrowRight
+  Plus, Minus, Brain, ArrowRight, Upload, FileText, X
 } from "lucide-react";
 
 type FormData = {
@@ -116,9 +116,37 @@ export default function NewProject() {
   const [landMarker, setLandMarker] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const [deedFile, setDeedFile] = useState<File | null>(null);
+  const [buildingCodeFile, setBuildingCodeFile] = useState<File | null>(null);
+  const [uploadingDeed, setUploadingDeed] = useState(false);
+  const [uploadingCode, setUploadingCode] = useState(false);
+  const [deedUploaded, setDeedUploaded] = useState(false);
+  const [buildingCodeUploaded, setBuildingCodeUploaded] = useState(false);
+  const deedInputRef = useRef<HTMLInputElement>(null);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   const ArrowNext = isRTL ? ChevronLeft : ChevronRight;
   const ArrowPrev = isRTL ? ChevronRight : ChevronLeft;
+
+  const handleDocUpload = async (file: File, type: "deed" | "buildingCode", projectId?: number) => {
+    const setUploading = type === "deed" ? setUploadingDeed : setUploadingCode;
+    const setUploaded = type === "deed" ? setDeedUploaded : setBuildingCodeUploaded;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("type", type);
+      if (projectId) fd.append("projectId", String(projectId));
+      const res = await fetch("/api/upload/document", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      setUploaded(true);
+      toast.success(lang === "ar" ? (type === "deed" ? "تم رفع الصك بنجاح" : "تم رفع نظام البناء بنجاح") : (type === "deed" ? "Deed uploaded" : "Building code uploaded"));
+    } catch {
+      toast.error(lang === "ar" ? "حدث خطأ في الرفع" : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const createProject = trpc.projects.create.useMutation({
     onSuccess: (data) => {
@@ -427,6 +455,102 @@ export default function NewProject() {
                   </div>
                 </div>
               )}
+
+              {/* Optional Document Upload */}
+              <div className="border border-dashed border-border/50 rounded-xl p-4 space-y-3 bg-secondary/10">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {lang === "ar" ? "وثائق الأرض" : "Land Documents"}
+                  </span>
+                  <span className="text-xs text-muted-foreground ms-auto px-2 py-0.5 rounded-full border border-border/40 bg-secondary/40">
+                    {lang === "ar" ? "اختياري" : "Optional"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {lang === "ar"
+                    ? "ارفع صك الأرض ونظام البناء ليستخرج النظام تلقائياً ويطبقه على المخطط"
+                    : "Upload deed & building code for automatic regulation extraction"}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Deed Upload */}
+                  <div>
+                    <input ref={deedInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) { setDeedFile(f); handleDocUpload(f, "deed"); }
+                      }} />
+                    <button type="button"
+                      onClick={() => deedInputRef.current?.click()}
+                      className={`w-full flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-xs ${
+                        deedUploaded
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                          : "border-border/40 bg-secondary/20 text-muted-foreground hover:border-primary/40 hover:text-primary"
+                      }`}>
+                      {uploadingDeed ? (
+                        <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                      ) : deedUploaded ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Upload className="w-5 h-5" />
+                      )}
+                      <span className="font-medium">
+                        {deedUploaded
+                          ? (lang === "ar" ? "تم رفع الصك" : "Deed Uploaded")
+                          : uploadingDeed
+                          ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
+                          : (lang === "ar" ? "صك الأرض" : "Land Deed")}
+                      </span>
+                      {deedFile && !uploadingDeed && (
+                        <span className="text-[10px] opacity-60 truncate max-w-full">{deedFile.name}</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Building Code Upload */}
+                  <div>
+                    <input ref={codeInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) { setBuildingCodeFile(f); handleDocUpload(f, "buildingCode"); }
+                      }} />
+                    <button type="button"
+                      onClick={() => codeInputRef.current?.click()}
+                      className={`w-full flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-xs ${
+                        buildingCodeUploaded
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                          : "border-border/40 bg-secondary/20 text-muted-foreground hover:border-primary/40 hover:text-primary"
+                      }`}>
+                      {uploadingCode ? (
+                        <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                      ) : buildingCodeUploaded ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Upload className="w-5 h-5" />
+                      )}
+                      <span className="font-medium">
+                        {buildingCodeUploaded
+                          ? (lang === "ar" ? "تم رفع نظام البناء" : "Code Uploaded")
+                          : uploadingCode
+                          ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
+                          : (lang === "ar" ? "نظام البناء" : "Building Code")}
+                      </span>
+                      {buildingCodeFile && !uploadingCode && (
+                        <span className="text-[10px] opacity-60 truncate max-w-full">{buildingCodeFile.name}</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {(deedUploaded || buildingCodeUploaded) && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 pt-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    {lang === "ar"
+                      ? "سيتم استخراج البيانات تلقائياً وتطبيقها على المخطط"
+                      : "Data will be extracted automatically and applied to the blueprint"}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
