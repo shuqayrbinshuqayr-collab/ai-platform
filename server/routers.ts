@@ -5,6 +5,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
+import { buildEnhancedArchPrompt } from "./saudiArchRules";
+import { generateRAGContext } from "./blueprintRAG";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import {
@@ -76,77 +78,54 @@ function checkSaudiBuildingCode(project: {
   return { warnings, warningsAr, corrected, isCompliant: warnings.length === 0 };
 }
 
-// ─── Build AI prompt for one concept ───────────────────────────────────────
+// ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
 function buildConceptPrompt(project: any, conceptIndex: number, corrected: any) {
   const conceptStyles = [
-    { style: "Modern Minimalist", styleAr: "عصري مينيمالي", focus: "open spaces, clean lines, maximum natural light" },
-    { style: "Traditional Saudi Heritage", styleAr: "تراثي سعودي", focus: "mashrabiya elements, central courtyard, Arabic arches" },
-    { style: "Contemporary Luxury", styleAr: "معاصر فاخر", focus: "double-height spaces, premium finishes, panoramic views" },
-    { style: "Functional Compact", styleAr: "وظيفي مدمج", focus: "efficient space utilization, smart storage, practical layout" },
-    { style: "Mediterranean", styleAr: "متوسطي", focus: "arched windows, terracotta tones, garden integration" },
-    { style: "Smart Home Ready", styleAr: "جاهز للمنزل الذكي", focus: "integrated tech spaces, home office, flexible rooms" },
+    { en: "Modern Minimalist", ar: "عصري مينيمالي", focus: "open spaces, clean lines, maximum natural light, minimal walls" },
+    { en: "Traditional Saudi Heritage", ar: "تراثي سعودي", focus: "mashrabiya elements, central courtyard, Arabic arches, ornamental details" },
+    { en: "Contemporary Luxury", ar: "معاصر فاخر", focus: "double-height spaces, premium finishes, panoramic views, grand entrance" },
+    { en: "Functional Compact", ar: "وظيفي مدمج", focus: "efficient space utilization, smart storage, practical layout, no wasted space" },
+    { en: "Mediterranean", ar: "متوسطي", focus: "arched windows, terracotta tones, garden integration, outdoor living" },
+    { en: "Smart Home Ready", ar: "جاهز للمنزل الذكي", focus: "integrated tech spaces, home office, flexible multi-purpose rooms" },
   ];
   const concept = conceptStyles[conceptIndex - 1] ?? conceptStyles[0];
-  const rooms = project.additionalRequirements ?? "";
 
-  return `Generate architectural blueprint concept #${conceptIndex} with style: "${concept.style}" (${concept.styleAr}).
-Focus: ${concept.focus}
+  // Generate RAG context from similar real blueprints
+  const ragContext = generateRAGContext({
+    landArea: project.landArea ?? 300,
+    landWidth: project.landWidth ?? undefined,
+    landLength: project.landLength ?? undefined,
+    floors: corrected.numberOfFloors,
+    bedrooms: project.bedrooms ?? 4,
+    bathrooms: project.bathrooms ?? 3,
+    hasMajlis: (project.majlis ?? 1) > 0,
+    hasParking: (project.garages ?? 1) > 0,
+  });
 
-REFERENCE: Based on real Saudi villa blueprints (10.5m × 22m, 2 floors):
-- Ground floor: Entrance hall (5.8×1.9m), Men's Majlis (7.4×4.2m), Staircase (2.5×6.6m), Distributor (2.6×3.7m), Family Hall (5.46×5.0m), Kitchen (3.14×4.0m), Bathroom (3.14×1.5m), Toilet (1.3×1.45m), Maid Room (3.1×2.1m), Storage (1.8×2.4m), Bedroom 1 (3.1×3.9m), Bedroom 2 (4.3×3.6m)
-- First floor: Balcony (5.6×1.8m), Men's Majlis (7.4×3.9m), Staircase (2.5×6.0m), Family Living (4.3×3.6m), Master Bedroom (4.6×3.6m), Bathroom (1.9×2.0m), Bedroom 1 (3.07×3.0m), Bedroom 2 (4.2×3.0m), Bedroom 3 (4.0×5.0m), Bedroom 4 (4.0×4.2m), Kitchen (2.9×4.0m), Dining (4.24×3.0m), Toilet (1.0×1.2m), Family Hall 2 (2.7×4.2m), Balcony 2 (5.1×1.0m)
-
-PROJECT DATA:
-- Building Type: ${project.buildingType === "villa" ? "Residential Villa (فيلا سكنية)" : "Residential Building (مبنى سكني)"}
-- Land Area: ${project.landArea ?? "N/A"} m²
-- Land Shape: ${project.landShape ?? "rectangular"}
-- Floors Allowed: ${corrected.numberOfFloors}
-- Building Coverage: ${corrected.buildingRatio}%
-- Front Setback: ${corrected.frontSetback}m | Back: ${corrected.backSetback}m | Side: ${corrected.sideSetback}m
-- Room Requirements: ${rooms || "Standard residential layout"}
-
-CRITICAL: Respond ONLY with valid JSON, no markdown, no extra text.
-{
-  "title": "Concept ${conceptIndex}: ${concept.style}",
-  "titleAr": "المفهوم ${conceptIndex}: ${concept.styleAr}",
-  "conceptDescription": "2-paragraph description of this architectural concept in English",
-  "conceptDescriptionAr": "وصف من فقرتين لهذا المفهوم المعماري بالعربية",
-  "regulatoryCompliance": {
-    "buildingFootprint": <number m²>,
-    "actualCoverageRatio": <number %>,
-    "totalBuiltArea": <number m²>,
-    "actualFloorAreaRatio": <number>,
-    "isCompliant": true,
-    "complianceNotes": ["Saudi Building Code compliant", "Setbacks verified"],
-    "complianceNotesAr": ["متوافق مع الكود السعودي", "الإرتدادات مُراجَعة"]
-  },
-  "spaces": [
-    {
-      "name": "Space name in English",
-      "nameAr": "اسم المساحة بالعربية",
-      "floor": <0=ground, 1=first, etc>,
-      "width": <meters>,
-      "length": <meters>,
-      "area": <m²>,
-      "type": "bedroom|living|kitchen|bathroom|majlis|parking|corridor|balcony|storage|lobby|other",
-      "x": <0-100>,
-      "y": <0-100>,
-      "w": <0-100>,
-      "h": <0-100>
-    }
-  ],
-  "summary": {
-    "totalFloors": <number>,
-    "totalRooms": <number>,
-    "totalBathrooms": <number>,
-    "totalArea": <number m²>,
-    "parkingSpaces": <number>,
-    "estimatedCost": "SAR X,XXX,XXX - X,XXX,XXX",
-    "constructionDuration": "X-X months"
-  },
-  "highlights": ["Key feature 1", "Key feature 2", "Key feature 3"],
-  "highlightsAr": ["الميزة الأولى", "الميزة الثانية", "الميزة الثالثة"]
-}`;
+  // Use the enhanced prompt builder with Saudi rules
+  return buildEnhancedArchPrompt({
+    buildingType: project.buildingType === "villa" ? "villa" : "residential",
+    landArea: project.landArea ?? 300,
+    landWidth: project.landWidth ?? undefined,
+    landLength: project.landLength ?? undefined,
+    landShape: project.landShape ?? "rectangular",
+    numberOfFloors: corrected.numberOfFloors,
+    bedrooms: project.bedrooms ?? 4,
+    bathrooms: project.bathrooms ?? 3,
+    majlis: project.majlis ?? 1,
+    maidRooms: project.maidRooms ?? 0,
+    balconies: project.balconies ?? 1,
+    garages: project.garages ?? 1,
+    additionalRequirements: project.additionalRequirements,
+    setbacks: {
+      front: corrected.frontSetback,
+      back: corrected.backSetback,
+      side: corrected.sideSetback,
+    },
+    buildingRatio: corrected.buildingRatio,
+    conceptIndex,
+    conceptStyle: concept,
+  }) + ragContext;
 }
 
 export const appRouter = router({
@@ -385,26 +364,75 @@ export const appRouter = router({
 
             // Merge BSP layout with AI enrichment
             const conceptTitle = CONCEPT_TITLES[i];
+
+            // Try to use AI-generated rooms (higher quality) if available
+            // Fall back to BSP rooms if AI didn't return valid room data
+            let aiGroundRooms: any[] = [];
+            let aiUpperRooms: any[] = [];
+            if (aiData.groundFloor?.rooms && Array.isArray(aiData.groundFloor.rooms) && aiData.groundFloor.rooms.length > 2) {
+              aiGroundRooms = aiData.groundFloor.rooms.map((r: any) => ({
+                name: r.nameEn ?? r.name ?? "Room",
+                nameAr: r.nameAr ?? "غرفة",
+                floor: 0,
+                width: parseFloat((r.width ?? 3.5).toFixed(2)),
+                length: parseFloat((r.length ?? 3.5).toFixed(2)),
+                area: parseFloat((r.area ?? (r.width ?? 3.5) * (r.length ?? 3.5)).toFixed(1)),
+                type: r.type ?? "bedroom",
+                x: (parseFloat((r.x ?? 0).toFixed(2)) / bspLayout.buildingWidth) * 100,
+                y: (parseFloat((r.y ?? 0).toFixed(2)) / bspLayout.buildingDepth) * 100,
+                w: (parseFloat((r.width ?? 3.5).toFixed(2)) / bspLayout.buildingWidth) * 100,
+                h: (parseFloat((r.length ?? 3.5).toFixed(2)) / bspLayout.buildingDepth) * 100,
+                hasWindow: r.hasWindow,
+                doorWall: r.doorWall,
+                notes: r.notes,
+              }));
+            }
+            if (aiData.upperFloors && Array.isArray(aiData.upperFloors)) {
+              aiUpperRooms = aiData.upperFloors.flatMap((floorData: any) =>
+                (floorData.rooms ?? []).map((r: any) => ({
+                  name: r.nameEn ?? r.name ?? "Room",
+                  nameAr: r.nameAr ?? "غرفة",
+                  floor: floorData.floorNumber ?? 1,
+                  width: parseFloat((r.width ?? 3.5).toFixed(2)),
+                  length: parseFloat((r.length ?? 3.5).toFixed(2)),
+                  area: parseFloat((r.area ?? (r.width ?? 3.5) * (r.length ?? 3.5)).toFixed(1)),
+                  type: r.type ?? "bedroom",
+                  x: (parseFloat((r.x ?? 0).toFixed(2)) / bspLayout.buildingWidth) * 100,
+                  y: (parseFloat((r.y ?? 0).toFixed(2)) / bspLayout.buildingDepth) * 100,
+                  w: (parseFloat((r.width ?? 3.5).toFixed(2)) / bspLayout.buildingWidth) * 100,
+                  h: (parseFloat((r.length ?? 3.5).toFixed(2)) / bspLayout.buildingDepth) * 100,
+                  hasWindow: r.hasWindow,
+                  doorWall: r.doorWall,
+                  notes: r.notes,
+                }))
+              );
+            }
+
+            // Use AI rooms if available (better quality), else fall back to BSP
+            const hasAIRooms = aiGroundRooms.length > 2;
+            const bspSpaces = bspLayout.floors.flatMap(f =>
+              f.rooms.map(r => ({
+                name: r.nameEn,
+                nameAr: r.nameAr,
+                floor: r.floor,
+                width: r.width,
+                length: r.height,
+                area: r.area,
+                type: r.type,
+                x: (r.x / bspLayout.buildingWidth) * 100,
+                y: (r.y / bspLayout.buildingDepth) * 100,
+                w: (r.width / bspLayout.buildingWidth) * 100,
+                h: (r.height / bspLayout.buildingDepth) * 100,
+              }))
+            );
+
             const structuredData = {
               ...aiData,
               title: aiData.title ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
               titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
-              // BSP-generated accurate floor plans override AI spaces
-              spaces: bspLayout.floors.flatMap(f =>
-                f.rooms.map(r => ({
-                  name: r.nameEn,
-                  nameAr: r.nameAr,
-                  floor: r.floor,
-                  width: r.width,
-                  length: r.height,
-                  area: r.area,
-                  type: r.type,
-                  x: (r.x / bspLayout.buildingWidth) * 100,
-                  y: (r.y / bspLayout.buildingDepth) * 100,
-                  w: (r.width / bspLayout.buildingWidth) * 100,
-                  h: (r.height / bspLayout.buildingDepth) * 100,
-                }))
-              ),
+              // Use AI rooms when available (they follow Saudi arch rules), else BSP
+              spaces: hasAIRooms ? [...aiGroundRooms, ...aiUpperRooms] : bspSpaces,
+              aiRoomsUsed: hasAIRooms, // flag to track quality
               summary: {
                 totalFloors: bspLayout.summary.totalFloors,
                 totalRooms: bspLayout.summary.totalRooms,

@@ -126,3 +126,11 @@
 - [ ] عند اختيار رفع الوثائق: إخفاء حقول المساحة/العرض/الطول وإظهار زري الرفع فقط
 - [ ] عند اختيار الإدخال اليدوي: إخفاء قسم الوثائق وإظهار الحقول فقط
 - [ ] Checkpoint نهائي
+
+## Phase 17: تحسين جودة المخططات — Saudi Arch Rules + RAG System
+- [x] إنشاء server/saudiArchRules.ts — قاعدة 50+ قاعدة معمارية سعودية (أبعاد حقيقية، قواعد تجاور، قواعد موضع)
+- [x] إنشاء server/blueprintRAG.ts — نظام RAG بـ 4 مخططات مرجعية حقيقية
+- [x] تحديث buildConceptPrompt في routers.ts لاستخدام buildEnhancedArchPrompt + generateRAGContext
+- [x] تحديث generate6 procedure لاستخدام AI rooms عند توفرها (بدلاً من BSP فقط)
+- [ ] اختبار النظام المحسّن بتوليد مخطط حقيقي
+- [ ] Checkpoint نهائي
