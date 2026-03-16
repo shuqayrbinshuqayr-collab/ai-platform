@@ -116,6 +116,7 @@ export default function NewProject() {
   const [landMarker, setLandMarker] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const [landInputMode, setLandInputMode] = useState<"choose" | "documents" | "manual">("choose");
   const [deedFile, setDeedFile] = useState<File | null>(null);
   const [buildingCodeFile, setBuildingCodeFile] = useState<File | null>(null);
   const [uploadingDeed, setUploadingDeed] = useState(false);
@@ -355,6 +356,187 @@ export default function NewProject() {
                 {lang === "ar" ? "تحديد موقع الأرض" : "Land Location"}
               </h2>
 
+              {/* ─── Land Input Mode Selector ─── */}
+              {landInputMode === "choose" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {lang === "ar" ? "كيف تريد إدخال بيانات الأرض؟" : "How would you like to enter land data?"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Option 1: Upload Documents */}
+                    <button
+                      type="button"
+                      onClick={() => setLandInputMode("documents")}
+                      className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all text-center group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 transition-all">
+                        <FileText className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-foreground mb-1">
+                          {lang === "ar" ? "رفع الوثائق" : "Upload Documents"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {lang === "ar" ? "صك الأرض + نظام البناء" : "Land deed + building code"}
+                        </div>
+                        <div className="text-[10px] text-primary mt-1 font-semibold">
+                          {lang === "ar" ? "✓ ملء تلقائي بالكامل" : "✓ Auto-fill everything"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Manual Entry */}
+                    <button
+                      type="button"
+                      onClick={() => setLandInputMode("manual")}
+                      className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border/50 bg-secondary/20 hover:border-primary/40 hover:bg-secondary/40 transition-all text-center group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-secondary/40 border border-border/40 flex items-center justify-center group-hover:bg-secondary/60 transition-all">
+                        <Ruler className="w-6 h-6 text-muted-foreground group-hover:text-foreground" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-foreground mb-1">
+                          {lang === "ar" ? "إدخال يدوي" : "Manual Entry"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {lang === "ar" ? "أدخل المساحة والأبعاد" : "Enter area & dimensions"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          {lang === "ar" ? "لا تملك الوثائق الآن" : "Don't have documents yet"}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Documents Mode ─── */}
+              {landInputMode === "documents" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setLandInputMode("choose")}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      <ChevronLeft className="w-3 h-3" />
+                      {lang === "ar" ? "تغيير الطريقة" : "Change method"}
+                    </button>
+                    <div className="flex-1 h-px bg-border/30" />
+                    <span className="text-xs text-primary font-semibold">
+                      {lang === "ar" ? "رفع الوثائق" : "Upload Documents"}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">
+                        {lang === "ar" ? "النظام سيستخرج تلقائياً:" : "System will auto-extract:"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                      {(lang === "ar"
+                        ? ["المساحة والأبعاد", "الحي والموقع", "نسبة البناء", "الارتفاعات المسموحة", "الارتدادات", "منطقة التقسيم"]
+                        : ["Area & dimensions", "Neighborhood & location", "Building ratio", "Allowed heights", "Setbacks", "Zoning area"]
+                      ).map(item => (
+                        <div key={item} className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Deed Upload */}
+                    <div>
+                      <input ref={deedInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f) { setDeedFile(f); handleDocUpload(f, "deed"); }
+                        }} />
+                      <button type="button" onClick={() => deedInputRef.current?.click()}
+                        className={`w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          deedUploaded
+                            ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400"
+                            : "border-dashed border-border/50 bg-secondary/20 text-muted-foreground hover:border-primary/50 hover:text-primary"
+                        }`}>
+                        {uploadingDeed ? (
+                          <div className="w-6 h-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                        ) : deedUploaded ? (
+                          <CheckCircle className="w-7 h-7" />
+                        ) : (
+                          <Upload className="w-7 h-7" />
+                        )}
+                        <span className="text-xs font-bold">
+                          {deedUploaded ? (lang === "ar" ? "✓ تم رفع الصك" : "✓ Deed Uploaded")
+                            : uploadingDeed ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
+                            : (lang === "ar" ? "صك الأرض" : "Land Deed")}
+                        </span>
+                        <span className="text-[10px] opacity-60">{lang === "ar" ? "PDF أو صورة" : "PDF or image"}</span>
+                        {deedFile && !uploadingDeed && (
+                          <span className="text-[10px] opacity-50 truncate max-w-full">{deedFile.name}</span>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Building Code Upload */}
+                    <div>
+                      <input ref={codeInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f) { setBuildingCodeFile(f); handleDocUpload(f, "buildingCode"); }
+                        }} />
+                      <button type="button" onClick={() => codeInputRef.current?.click()}
+                        className={`w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          buildingCodeUploaded
+                            ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400"
+                            : "border-dashed border-border/50 bg-secondary/20 text-muted-foreground hover:border-primary/50 hover:text-primary"
+                        }`}>
+                        {uploadingCode ? (
+                          <div className="w-6 h-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                        ) : buildingCodeUploaded ? (
+                          <CheckCircle className="w-7 h-7" />
+                        ) : (
+                          <Upload className="w-7 h-7" />
+                        )}
+                        <span className="text-xs font-bold">
+                          {buildingCodeUploaded ? (lang === "ar" ? "✓ تم رفع نظام البناء" : "✓ Code Uploaded")
+                            : uploadingCode ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
+                            : (lang === "ar" ? "نظام البناء" : "Building Code")}
+                        </span>
+                        <span className="text-[10px] opacity-60">{lang === "ar" ? "من أمانة الرياض" : "From Riyadh Municipality"}</span>
+                        {buildingCodeFile && !uploadingCode && (
+                          <span className="text-[10px] opacity-50 truncate max-w-full">{buildingCodeFile.name}</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {(deedUploaded || buildingCodeUploaded) && (
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      {lang === "ar"
+                        ? "سيتم استخراج البيانات تلقائياً وتطبيقها على المخطط في الخلفية"
+                        : "Data will be extracted automatically and applied to the blueprint in the background"}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Manual Mode ─── */}
+              {landInputMode === "manual" && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setLandInputMode("choose")}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      <ChevronLeft className="w-3 h-3" />
+                      {lang === "ar" ? "تغيير الطريقة" : "Change method"}
+                    </button>
+                    <div className="flex-1 h-px bg-border/30" />
+                    <span className="text-xs text-muted-foreground font-semibold">
+                      {lang === "ar" ? "إدخال يدوي" : "Manual Entry"}
+                    </span>
+                  </div>
+
               {/* Building type selector */}
               <div>
                 <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
@@ -455,102 +637,8 @@ export default function NewProject() {
                   </div>
                 </div>
               )}
-
-              {/* Optional Document Upload */}
-              <div className="border border-dashed border-border/50 rounded-xl p-4 space-y-3 bg-secondary/10">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">
-                    {lang === "ar" ? "وثائق الأرض" : "Land Documents"}
-                  </span>
-                  <span className="text-xs text-muted-foreground ms-auto px-2 py-0.5 rounded-full border border-border/40 bg-secondary/40">
-                    {lang === "ar" ? "اختياري" : "Optional"}
-                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {lang === "ar"
-                    ? "ارفع صك الأرض ونظام البناء ليستخرج النظام تلقائياً ويطبقه على المخطط"
-                    : "Upload deed & building code for automatic regulation extraction"}
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Deed Upload */}
-                  <div>
-                    <input ref={deedInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
-                      onChange={e => {
-                        const f = e.target.files?.[0];
-                        if (f) { setDeedFile(f); handleDocUpload(f, "deed"); }
-                      }} />
-                    <button type="button"
-                      onClick={() => deedInputRef.current?.click()}
-                      className={`w-full flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-xs ${
-                        deedUploaded
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                          : "border-border/40 bg-secondary/20 text-muted-foreground hover:border-primary/40 hover:text-primary"
-                      }`}>
-                      {uploadingDeed ? (
-                        <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
-                      ) : deedUploaded ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Upload className="w-5 h-5" />
-                      )}
-                      <span className="font-medium">
-                        {deedUploaded
-                          ? (lang === "ar" ? "تم رفع الصك" : "Deed Uploaded")
-                          : uploadingDeed
-                          ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
-                          : (lang === "ar" ? "صك الأرض" : "Land Deed")}
-                      </span>
-                      {deedFile && !uploadingDeed && (
-                        <span className="text-[10px] opacity-60 truncate max-w-full">{deedFile.name}</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Building Code Upload */}
-                  <div>
-                    <input ref={codeInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
-                      onChange={e => {
-                        const f = e.target.files?.[0];
-                        if (f) { setBuildingCodeFile(f); handleDocUpload(f, "buildingCode"); }
-                      }} />
-                    <button type="button"
-                      onClick={() => codeInputRef.current?.click()}
-                      className={`w-full flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-xs ${
-                        buildingCodeUploaded
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                          : "border-border/40 bg-secondary/20 text-muted-foreground hover:border-primary/40 hover:text-primary"
-                      }`}>
-                      {uploadingCode ? (
-                        <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
-                      ) : buildingCodeUploaded ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Upload className="w-5 h-5" />
-                      )}
-                      <span className="font-medium">
-                        {buildingCodeUploaded
-                          ? (lang === "ar" ? "تم رفع نظام البناء" : "Code Uploaded")
-                          : uploadingCode
-                          ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
-                          : (lang === "ar" ? "نظام البناء" : "Building Code")}
-                      </span>
-                      {buildingCodeFile && !uploadingCode && (
-                        <span className="text-[10px] opacity-60 truncate max-w-full">{buildingCodeFile.name}</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {(deedUploaded || buildingCodeUploaded) && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-400 pt-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    {lang === "ar"
-                      ? "سيتم استخراج البيانات تلقائياً وتطبيقها على المخطط"
-                      : "Data will be extracted automatically and applied to the blueprint"}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
 
