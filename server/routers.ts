@@ -631,30 +631,42 @@ Text: "${input.text}"`,
           messages: [
             {
               role: "system",
-              content: "You are an expert at reading Saudi real estate deed documents (صكوك الأراضي). Extract all land data accurately. Always respond with valid JSON only, no markdown.",
+              content: `You are an expert at reading Saudi real estate deed documents issued by the Ministry of Justice (وزارة العدل) and the Real Estate Market (البورصة العقارية). These documents are titled 'وثيقة تملك عقار' or 'صك ملكية'. Extract all land data from the document tables and text. Key fields: رقم الوثيقة، المدينة، الحي، رقم المخطط، رقم القطعة، مساحة العقار، نوع العقار، الحدود والأبعاد (شمالاً/جنوباً/شرقاً/غرباً with lengths), الارتدادات (mentioned as 'ارتداد عرض X.00م' in boundary descriptions). Always respond with valid JSON only, no markdown.`,
             },
             {
               role: "user",
               content: [
                 {
                   type: "text" as const,
-                  text: `Extract all data from this Saudi land deed (صك الأرض) and return JSON:
+                  text: `Extract all data from this Saudi real estate deed (وثيقة تملك عقار / صك ملكية) and return JSON:
 {
   "deedNumber": string|null,
   "plotNumber": string|null,
   "blockNumber": string|null,
+  "planNumber": string|null,
   "neighborhoodName": string|null,
   "districtName": string|null,
   "cityName": string|null,
   "landArea": number|null,
+  "propertyType": "أرض"|"شقة"|"فيلا"|"عمارة"|"دور"|"محل"|string|null,
   "landWidth": number|null,
   "landLength": number|null,
+  "northLength": number|null,
+  "southLength": number|null,
+  "eastLength": number|null,
+  "westLength": number|null,
+  "northSetback": number|null,
+  "southSetback": number|null,
+  "eastSetback": number|null,
+  "westSetback": number|null,
   "landShape": "rectangular"|"square"|"irregular"|"L-shape"|"T-shape"|null,
   "coordinates": string|null,
   "ownerName": string|null,
   "deedDate": string|null,
   "notes": string|null
 }
+For setbacks: look in boundary description for 'ارتداد عرض X.00م' — extract X as a number.
+For lengths: look in boundary table column 'الطول م'.
 Return ONLY valid JSON, no extra text.`,
                 },
                 {
@@ -682,12 +694,22 @@ Return ONLY valid JSON, no extra text.`,
             deedNumber: extracted.deedNumber ?? undefined,
             plotNumber: extracted.plotNumber ?? undefined,
             blockNumber: extracted.blockNumber ?? undefined,
-            neighborhoodName: extracted.neighborhoodName ?? undefined,
+            planNumber: extracted.planNumber ?? undefined,
+            neighborhoodName: extracted.neighborhoodName ?? extracted.districtName ?? undefined,
+            propertyType: extracted.propertyType ?? undefined,
             landArea: extracted.landArea ?? undefined,
             landWidth: extracted.landWidth ?? undefined,
             landLength: extracted.landLength ?? undefined,
             landShape: extracted.landShape ?? undefined,
             landCoordinates: extracted.coordinates ?? undefined,
+            northLength: extracted.northLength ?? undefined,
+            southLength: extracted.southLength ?? undefined,
+            eastLength: extracted.eastLength ?? undefined,
+            westLength: extracted.westLength ?? undefined,
+            northSetback: extracted.northSetback ?? undefined,
+            southSetback: extracted.southSetback ?? undefined,
+            eastSetback: extracted.eastSetback ?? undefined,
+            westSetback: extracted.westSetback ?? undefined,
           });
         }
         return { extracted, success: !extracted.error };

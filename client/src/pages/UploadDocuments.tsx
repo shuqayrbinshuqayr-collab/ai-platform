@@ -14,12 +14,22 @@ interface ExtractedDeed {
   deedNumber?: string;
   plotNumber?: string;
   blockNumber?: string;
+  planNumber?: string;
   neighborhoodName?: string;
   districtName?: string;
   cityName?: string;
   landArea?: number;
+  propertyType?: string;
   landWidth?: number;
   landLength?: number;
+  northLength?: number;
+  southLength?: number;
+  eastLength?: number;
+  westLength?: number;
+  northSetback?: number;
+  southSetback?: number;
+  eastSetback?: number;
+  westSetback?: number;
   landShape?: string;
   ownerName?: string;
   deedDate?: string;
@@ -207,12 +217,30 @@ export default function UploadDocuments({ projectId }: UploadDocumentsProps) {
                 <CardContent className="p-4">
                   <p className="text-[#f97316] text-xs font-bold mb-3">البيانات المستخرجة تلقائياً</p>
                   <div className="space-y-1.5 text-xs">
-                    {extractedDeed.neighborhoodName && <div className="flex justify-between"><span className="text-white/40">الحي</span><span className="text-white">{extractedDeed.neighborhoodName}</span></div>}
+                    {extractedDeed.cityName && <div className="flex justify-between"><span className="text-white/40">المدينة</span><span className="text-white">{extractedDeed.cityName}</span></div>}
+                    {(extractedDeed.neighborhoodName || extractedDeed.districtName) && <div className="flex justify-between"><span className="text-white/40">الحي</span><span className="text-white">{extractedDeed.neighborhoodName || extractedDeed.districtName}</span></div>}
+                    {extractedDeed.planNumber && <div className="flex justify-between"><span className="text-white/40">رقم المخطط</span><span className="text-white">{extractedDeed.planNumber}</span></div>}
                     {extractedDeed.plotNumber && <div className="flex justify-between"><span className="text-white/40">رقم القطعة</span><span className="text-white">{extractedDeed.plotNumber}</span></div>}
-                    {extractedDeed.blockNumber && <div className="flex justify-between"><span className="text-white/40">رقم البلوك</span><span className="text-white">{extractedDeed.blockNumber}</span></div>}
+                    {extractedDeed.propertyType && <div className="flex justify-between"><span className="text-white/40">نوع العقار</span><span className="text-white">{extractedDeed.propertyType}</span></div>}
                     {extractedDeed.landArea && <div className="flex justify-between"><span className="text-white/40">المساحة</span><span className="text-[#f97316] font-bold">{extractedDeed.landArea} م²</span></div>}
-                    {extractedDeed.landWidth && <div className="flex justify-between"><span className="text-white/40">العرض</span><span className="text-white">{extractedDeed.landWidth} م</span></div>}
-                    {extractedDeed.landLength && <div className="flex justify-between"><span className="text-white/40">الطول</span><span className="text-white">{extractedDeed.landLength} م</span></div>}
+                    {(extractedDeed.northLength || extractedDeed.southLength) && (
+                      <div className="mt-2 pt-2 border-t border-white/10">
+                        <p className="text-white/30 text-xs mb-1">أبعاد الأرض</p>
+                        {extractedDeed.northLength && <div className="flex justify-between"><span className="text-white/40">شمالاً</span><span className="text-white">{extractedDeed.northLength} م</span></div>}
+                        {extractedDeed.southLength && <div className="flex justify-between"><span className="text-white/40">جنوباً</span><span className="text-white">{extractedDeed.southLength} م</span></div>}
+                        {extractedDeed.eastLength && <div className="flex justify-between"><span className="text-white/40">شرقاً</span><span className="text-white">{extractedDeed.eastLength} م</span></div>}
+                        {extractedDeed.westLength && <div className="flex justify-between"><span className="text-white/40">غرباً</span><span className="text-white">{extractedDeed.westLength} م</span></div>}
+                      </div>
+                    )}
+                    {(extractedDeed.northSetback || extractedDeed.southSetback) && (
+                      <div className="mt-2 pt-2 border-t border-white/10">
+                        <p className="text-white/30 text-xs mb-1">الارتدادات</p>
+                        {extractedDeed.northSetback && <div className="flex justify-between"><span className="text-white/40">أمامي</span><span className="text-[#f97316]">{extractedDeed.northSetback} م</span></div>}
+                        {extractedDeed.southSetback && <div className="flex justify-between"><span className="text-white/40">خلفي</span><span className="text-[#f97316]">{extractedDeed.southSetback} م</span></div>}
+                        {extractedDeed.eastSetback && <div className="flex justify-between"><span className="text-white/40">جانبي شرق</span><span className="text-[#f97316]">{extractedDeed.eastSetback} م</span></div>}
+                        {extractedDeed.westSetback && <div className="flex justify-between"><span className="text-white/40">جانبي غرب</span><span className="text-[#f97316]">{extractedDeed.westSetback} م</span></div>}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

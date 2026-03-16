@@ -43,6 +43,13 @@
       "when": 1773693733189,
       "tag": "0005_glossy_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773695820861,
+      "tag": "0006_ambiguous_hellcat",
+      "breakpoints": true
     }
   ]
 }
