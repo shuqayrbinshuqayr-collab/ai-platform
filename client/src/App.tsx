@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import NewProject from "./pages/NewProject";
 import ProjectDetail from "./pages/ProjectDetail";
 import BlueprintView from "./pages/BlueprintView";
+import BlueprintEditor from "./pages/BlueprintEditor";
 import Gallery from "./pages/Gallery";
 import GenerateBlueprints from "./pages/GenerateBlueprints";
 import UploadDocuments from "./pages/UploadDocuments";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/projects/:id/upload">{(params) => <UploadDocuments projectId={parseInt((params as any).id ?? "0")} />}</Route>
       <Route path="/projects/:id/requirements" component={ProjectDetail} />
       <Route path="/blueprints/:id" component={BlueprintView} />
+      <Route path="/blueprints/:id/edit" component={BlueprintEditor} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />
       <Route path="/pricing" component={Pricing} />

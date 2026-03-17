@@ -110,6 +110,11 @@ export const blueprints = mysqlTable("blueprints", {
   // Storage
   pdfUrl: varchar("pdfUrl", { length: 512 }),
   pngUrl: varchar("pngUrl", { length: 512 }),
+  // Engineer edits - stores modified room layout after manual editing
+  editedSpaces: json("editedSpaces"), // Array of edited room spaces
+  editorFeedback: text("editorFeedback"), // Engineer's notes on the edit
+  isEditedByEngineer: int("isEditedByEngineer").default(0).notNull(), // 1 if manually edited
+  addedToRAG: int("addedToRAG").default(0).notNull(), // 1 if used as RAG reference
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

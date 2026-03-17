@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { getDb } from "./db";
+import { blueprints } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -7,7 +10,8 @@ import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { buildEnhancedArchPrompt } from "./saudiArchRules";
-import { generateRAGContext } from "./blueprintRAG";
+import { generateRAGContext, generateLearnedContext } from "./blueprintRAG";
+import { getLearnedBlueprints } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import {
@@ -80,7 +84,7 @@ function checkSaudiBuildingCode(project: {
 }
 
 // ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
-function buildConceptPrompt(project: any, conceptIndex: number, corrected: any) {
+function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, learnedContext = "") {
   const conceptStyles = [
     { en: "Modern Minimalist", ar: "عصري مينيمالي", focus: "open spaces, clean lines, maximum natural light, minimal walls" },
     { en: "Traditional Saudi Heritage", ar: "تراثي سعودي", focus: "mashrabiya elements, central courtyard, Arabic arches, ornamental details" },
@@ -126,7 +130,7 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any) 
     buildingRatio: corrected.buildingRatio,
     conceptIndex,
     conceptStyle: concept,
-  }) + ragContext;
+  }) + ragContext + learnedContext;
 }
 
 export const appRouter = router({
@@ -304,6 +308,102 @@ export const appRouter = router({
         return { dxfContent, fileName: `blueprint-floor${input.floor}.dxf` };
       }),
 
+    // ─── Save Engineer Edits ───────────────────────────────────────────────────
+    saveEdits: protectedProcedure
+      .input(z.object({
+        blueprintId: z.number(),
+        editedSpaces: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          nameAr: z.string().optional(),
+          type: z.string(),
+          x: z.number(),
+          y: z.number(),
+          width: z.number(),
+          height: z.number(),
+          floor: z.number().default(0),
+        })),
+        editorFeedback: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const bp = await getBlueprintById(input.blueprintId, ctx.user.id);
+        if (!bp) throw new Error("Blueprint not found");
+        const db = await getDb();
+        if (!db) throw new Error("Database unavailable");
+        await db.update(blueprints)
+          .set({
+            editedSpaces: input.editedSpaces,
+            editorFeedback: input.editorFeedback ?? null,
+            isEditedByEngineer: 1,
+            updatedAt: new Date(),
+          })
+          .where(eq(blueprints.id, input.blueprintId));
+        return { success: true };
+      }),
+
+    // ─── Submit Feedback & Add to RAG ───────────────────────────────────────────
+    submitFeedback: protectedProcedure
+      .input(z.object({
+        blueprintId: z.number(),
+        feedback: z.string(),
+        addToRAG: z.boolean().default(false),
+        ragLabel: z.string().optional(), // e.g. "فيلا 300م² - حي الريان"
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const bp = await getBlueprintById(input.blueprintId, ctx.user.id);
+        if (!bp) throw new Error("Blueprint not found");
+        const updates: any = {
+          editorFeedback: input.feedback,
+          updatedAt: new Date(),
+        };
+        if (input.addToRAG) {
+          updates.addedToRAG = 1;
+          // Build RAG entry from edited or original spaces
+          const spaces = (bp.editedSpaces as any[]) ?? ((bp.structuredData as any)?.spaces ?? []);
+          const project = await getProjectById((bp as any).projectId, ctx.user.id);
+          if (project && spaces.length > 0) {
+            const ragEntry = {
+              id: `user_edit_${bp.id}`,
+              label: input.ragLabel ?? `مخطط معدّل - ${project.name}`,
+              buildingType: project.buildingType ?? "villa",
+              totalArea: project.landArea ?? 0,
+              floors: project.numberOfFloors ?? 1,
+              rooms: spaces.map((s: any) => ({
+                name: s.nameAr ?? s.name,
+                type: s.type,
+                width: s.width,
+                length: s.height,
+                area: Math.round(s.width * s.height),
+                floor: s.floor ?? 0,
+                position: s.x < 33 ? "left" : s.x > 66 ? "right" : "center",
+              })),
+            };
+            // Store in DB for future RAG queries (as JSON in editorFeedback metadata)
+            updates.editorFeedback = JSON.stringify({ feedback: input.feedback, ragEntry });
+          }
+        }
+        const db = await getDb();
+        if (!db) throw new Error("Database unavailable");
+        await db.update(blueprints)
+          .set(updates)
+          .where(eq(blueprints.id, input.blueprintId));
+        return { success: true, addedToRAG: input.addToRAG };
+      }),
+
+    // ─── Get Edited Spaces ───────────────────────────────────────────────────────
+    getEdits: protectedProcedure
+      .input(z.object({ blueprintId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const bp = await getBlueprintById(input.blueprintId, ctx.user.id);
+        if (!bp) throw new Error("Blueprint not found");
+        return {
+          editedSpaces: bp.editedSpaces as any[] ?? null,
+          editorFeedback: bp.editorFeedback,
+          isEditedByEngineer: bp.isEditedByEngineer === 1,
+          addedToRAG: bp.addedToRAG === 1,
+        };
+      }),
+
     // ─── Generate 6 concepts at once ───────────────────────────────────
     generate6: protectedProcedure
       .input(z.object({
@@ -328,17 +428,17 @@ export const appRouter = router({
           });
         }
 
-        await updateProject(input.projectId, ctx.user.id, { status: "processing" });
-
+         await updateProject(input.projectId, ctx.user.id, { status: "processing" });
         // Step 3: Generate batch ID
         const batchId = `batch_${Date.now()}_${ctx.user.id}`;
         const startTime = Date.now();
-
+        // Step 3b: Load learned blueprints from engineer edits
+        const learnedBps = await getLearnedBlueprints();
+        const learnedContext = generateLearnedContext(learnedBps);
         // Step 4: Generate 6 concepts in parallel (BSP + AI)
         const conceptPromises = Array.from({ length: 6 }, (_, i) => {
           const conceptIndex = i + 1;
-
-          // 4a: Generate BSP layout (deterministic, instant)
+          // 4a: Generate BSP layout (deterministic, instant)t)
           const bspLayout = generateBSPLayout({
             landArea: project.landArea ?? 300,
             buildingType: (project.buildingType === "villa" ? "villa" : "apartment") as "villa" | "apartment",
@@ -360,7 +460,7 @@ export const appRouter = router({
           });
 
           // 4b: AI enrichment (titles, descriptions, highlights)
-          const prompt = buildConceptPrompt(project, conceptIndex, codeCheck.corrected);
+          const prompt = buildConceptPrompt(project, conceptIndex, codeCheck.corrected, learnedContext);
           return invokeLLM({
             messages: [
               {

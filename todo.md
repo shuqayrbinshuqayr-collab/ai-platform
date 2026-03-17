@@ -150,3 +150,12 @@
 - [x] إضافة tRPC procedure لتصدير DXF
 - [x] إضافة زر تحميل DXF في BlueprintView.tsx
 - [x] حفظ Checkpoint
+
+## Phase 21: محرر مخططات تفاعلي مع التعلم من التعديلات
+- [ ] تحديث drizzle schema لحفظ editedSpaces في جدول blueprints
+- [ ] pnpm db:push لتحديث قاعدة البيانات
+- [ ] إضافة tRPC procedures: blueprints.saveEdits, blueprints.submitFeedback
+- [ ] بناء واجهة المحرر التفاعلي في BlueprintEditor.tsx (سحب + تغيير أبعاد + تسمية)
+- [ ] إضافة زر "تعديل المخطط" في BlueprintView.tsx
+- [ ] نظام التعلم: حفظ المخططات المعدّلة كمرجع جديد في RAG عند الموافقة
+- [ ] حفظ Checkpoint

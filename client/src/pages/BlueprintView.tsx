@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import {
   ArrowLeft, ArrowRight, Download, CheckCircle, XCircle,
-  Loader2, Layers, FileText, Ruler, Brain
+  Loader2, Layers, FileText, Ruler, Brain, Edit3
 } from "lucide-react";
 import { useRef } from "react";
 import React from "react";
@@ -558,6 +558,13 @@ export default function BlueprintView() {
             >
               {dxfLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4"/>}
               {lang === "ar" ? "تصدير DXF (AutoCAD)" : "Export DXF (AutoCAD)"}
+            </Button>
+            <Button
+              onClick={() => navigate(`/blueprints/${blueprintId}/edit`)}
+              className="gap-2 shrink-0 bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Edit3 className="w-4 h-4"/>
+              {lang === "ar" ? "تعديل المخطط" : "Edit Blueprint"}
             </Button>
           </div>
         </div>

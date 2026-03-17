@@ -180,3 +180,12 @@ export async function incrementBlueprintsUsed(userId: number) {
   const sub = await getOrCreateSubscription(userId);
   await db.update(subscriptions).set({ blueprintsUsed: sub.blueprintsUsed + 1 }).where(eq(subscriptions.id, sub.id));
 }
+
+// ─── Learning System: Get blueprints added to RAG ────────────────────────────
+export async function getLearnedBlueprints(): Promise<Blueprint[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(blueprints)
+    .where(eq(blueprints.addedToRAG, 1))
+    .limit(20);
+}

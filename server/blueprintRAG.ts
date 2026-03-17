@@ -472,3 +472,50 @@ export function getBlueprintDatabase(): BlueprintTemplate[] {
 }
 
 export { BLUEPRINT_DATABASE };
+
+// ─── Learning System: Generate RAG context from user-edited blueprints ────────
+// This function is called at generation time to include learned patterns
+export function generateLearnedContext(learnedBlueprints: any[]): string {
+  if (!learnedBlueprints || learnedBlueprints.length === 0) return "";
+  
+  let context = "\n\n=== ENGINEER-APPROVED PATTERNS (Learn from these) ===\n";
+  
+  for (const bp of learnedBlueprints.slice(0, 3)) {
+    // Try to parse ragEntry from editorFeedback
+    let ragEntry: any = null;
+    let feedback = "";
+    
+    try {
+      const parsed = JSON.parse(bp.editorFeedback ?? "{}");
+      ragEntry = parsed.ragEntry ?? null;
+      feedback = parsed.feedback ?? "";
+    } catch {
+      feedback = bp.editorFeedback ?? "";
+    }
+    
+    const spaces = (bp.editedSpaces as any[]) ?? [];
+    if (spaces.length === 0 && !ragEntry) continue;
+    
+    const label = ragEntry?.label ?? `مخطط معدّل #${bp.id}`;
+    context += `\n--- ${label} ---\n`;
+    
+    if (feedback) {
+      context += `Engineer notes: ${feedback}\n`;
+    }
+    
+    if (ragEntry?.rooms) {
+      context += "Approved room layout:\n";
+      for (const room of ragEntry.rooms) {
+        context += `  • ${room.name}: ${room.width}×${room.length}m = ${room.area}m² (${room.position})\n`;
+      }
+    } else if (spaces.length > 0) {
+      context += "Approved spaces:\n";
+      for (const s of spaces.slice(0, 10)) {
+        context += `  • ${s.nameAr ?? s.name}: pos(${s.x.toFixed(0)}%, ${s.y.toFixed(0)}%) size(${s.width.toFixed(0)}%×${s.height.toFixed(0)}%)\n`;
+      }
+    }
+  }
+  
+  context += "\n=== END LEARNED PATTERNS ===\n";
+  return context;
+}
