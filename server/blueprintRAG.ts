@@ -180,6 +180,168 @@ const BLUEPRINT_DATABASE: BlueprintTemplate[] = [
     ],
   },
 
+  // ── المخطط 5: فيلا حي الريان - الرياض (نوع A/B) ─────────────────────────
+  {
+    id: "riyan_villa_ab_2floors",
+    name: "Riyan District Villa A/B - Riyadh",
+    nameAr: "فيلا حي الريان - الرياض (نوع أ/ب)",
+    landArea: 315,
+    landWidth: 13.0,
+    landLength: 24.0,
+    floors: 2,
+    bedrooms: 4,
+    bathrooms: 6,
+    hasMajlis: true,
+    hasParking: true,
+    style: "Contemporary Saudi",
+    source: "Riyan District Riyadh - Verified Project",
+    tags: ["contemporary", "large", "2floors", "majlis", "parking", "riyadh"],
+    groundFloor: [
+      { type: "majlis", nameAr: "مجلس رجال", nameEn: "Men's Majlis", width: 5.50, length: 4.05, area: 22.3, x: 0.0, y: 0.0, side: "north-west" },
+      { type: "entrance_hall", nameAr: "مدخل", nameEn: "Entrance", width: 3.15, length: 2.50, area: 7.9, x: 5.50, y: 0.0, side: "north" },
+      { type: "toilet", nameAr: "دورة مياه ضيوف", nameEn: "Guest WC", width: 1.65, length: 1.20, area: 2.0, x: 0.0, y: 4.05, side: "west" },
+      { type: "toilet", nameAr: "مغسلة ضيوف", nameEn: "Guest Powder Room", width: 1.65, length: 1.20, area: 2.0, x: 1.65, y: 4.05, side: "west" },
+      { type: "dining", nameAr: "منطقة طعام", nameEn: "Dining Area", width: 4.95, length: 4.50, area: 22.3, x: 0.0, y: 5.25, side: "west" },
+      { type: "family_hall", nameAr: "منطقة معيشة", nameEn: "Living Area", width: 4.95, length: 4.50, area: 22.3, x: 5.50, y: 2.50, side: "center" },
+      { type: "toilet", nameAr: "دورة مياه عائلة", nameEn: "Family WC", width: 1.65, length: 1.20, area: 2.0, x: 0.0, y: 9.75, side: "west" },
+      { type: "toilet", nameAr: "مغسلة عائلة", nameEn: "Family Powder Room", width: 1.65, length: 1.20, area: 2.0, x: 1.65, y: 9.75, side: "west" },
+      { type: "kitchen", nameAr: "مطبخ خارجي", nameEn: "Clean Kitchen", width: 2.65, length: 3.15, area: 8.3, x: 0.0, y: 10.95, side: "south-west" },
+      { type: "kitchen", nameAr: "مطبخ داخلي", nameEn: "Dirty Kitchen", width: 4.50, length: 3.00, area: 13.5, x: 3.30, y: 10.95, side: "south" },
+      { type: "parking", nameAr: "موقف سيارة", nameEn: "Parking", width: 6.00, length: 5.50, area: 33.0, x: 7.00, y: 0.0, side: "north-east" },
+      { type: "staircase", nameAr: "درج", nameEn: "Staircase", width: 3.00, length: 5.50, area: 16.5, x: 10.00, y: 5.50, side: "east" },
+    ],
+    upperFloors: [
+      {
+        floor: 1,
+        rooms: [
+          { type: "master_bedroom", nameAr: "غرفة نوم رئيسية", nameEn: "Master Bedroom", width: 4.60, length: 4.00, area: 18.4, x: 0.0, y: 0.0, side: "north-west" },
+          { type: "wardrobe", nameAr: "غرفة ملابس رئيسية", nameEn: "Master Walk-in Closet", width: 2.65, length: 4.00, area: 10.6, x: 4.60, y: 0.0, side: "north" },
+          { type: "bathroom", nameAr: "دورة مياه رئيسية", nameEn: "Master WC", width: 1.75, length: 4.00, area: 7.0, x: 7.25, y: 0.0, side: "north-east" },
+          { type: "bedroom", nameAr: "غرفة نوم 1", nameEn: "Bedroom 1", width: 4.20, length: 4.00, area: 16.8, x: 0.0, y: 4.00, side: "west" },
+          { type: "bathroom", nameAr: "دورة مياه 1", nameEn: "WC 1", width: 1.65, length: 2.45, area: 4.0, x: 4.20, y: 4.00, side: "center" },
+          { type: "bedroom", nameAr: "غرفة نوم 2", nameEn: "Bedroom 2", width: 4.00, length: 4.00, area: 16.0, x: 0.0, y: 8.00, side: "west" },
+          { type: "bedroom", nameAr: "غرفة نوم 3", nameEn: "Bedroom 3", width: 4.30, length: 4.00, area: 17.2, x: 4.50, y: 8.00, side: "east" },
+          { type: "bathroom", nameAr: "دورة مياه 2", nameEn: "WC 2", width: 1.65, length: 2.45, area: 4.0, x: 8.80, y: 8.00, side: "east" },
+          { type: "staircase", nameAr: "درج", nameEn: "Staircase", width: 3.00, length: 5.50, area: 16.5, x: 10.00, y: 0.0, side: "east" },
+          { type: "distributor", nameAr: "ممر", nameEn: "Corridor", width: 2.00, length: 8.00, area: 16.0, x: 4.20, y: 0.0, side: "center" },
+        ]
+      },
+      {
+        floor: 2,
+        rooms: [
+          { type: "maid_room", nameAr: "غرفة خادمة", nameEn: "Maid's Room", width: 3.60, length: 2.20, area: 7.9, x: 0.0, y: 0.0, side: "north-west" },
+          { type: "bathroom", nameAr: "دورة مياه خادمة", nameEn: "Maid's WC", width: 1.55, length: 1.50, area: 2.3, x: 3.60, y: 0.0, side: "north" },
+          { type: "laundry", nameAr: "غرفة غسيل", nameEn: "Laundry Room", width: 2.80, length: 1.50, area: 4.2, x: 0.0, y: 2.20, side: "west" },
+        ]
+      }
+    ],
+  },
+
+  // ── المخطط 6: فيلا حي الريان - الرياض (نوع C مع ديوانية) ──────────────────
+  {
+    id: "riyan_villa_c_2floors",
+    name: "Riyan District Villa C - Riyadh (with Diwaniya)",
+    nameAr: "فيلا حي الريان - الرياض (نوع ج مع ديوانية)",
+    landArea: 263,
+    landWidth: 11.0,
+    landLength: 24.0,
+    floors: 2,
+    bedrooms: 4,
+    bathrooms: 6,
+    hasMajlis: true,
+    hasParking: true,
+    style: "Contemporary Saudi with Diwaniya",
+    source: "Riyan District Riyadh - Verified Project",
+    tags: ["contemporary", "medium", "2floors", "majlis", "diwaniya", "parking", "riyadh"],
+    groundFloor: [
+      { type: "diwaniya", nameAr: "ديوانية", nameEn: "Diwaniya", width: 5.15, length: 4.00, area: 20.6, x: 0.0, y: 0.0, side: "north-west" },
+      { type: "majlis", nameAr: "مجلس رجال", nameEn: "Men's Majlis", width: 5.50, length: 4.05, area: 22.3, x: 0.0, y: 4.00, side: "west" },
+      { type: "entrance_hall", nameAr: "مدخل", nameEn: "Entrance", width: 3.15, length: 2.00, area: 6.3, x: 5.50, y: 0.0, side: "north" },
+      { type: "toilet", nameAr: "دورة مياه ضيوف", nameEn: "Guest WC", width: 1.75, length: 1.20, area: 2.1, x: 0.0, y: 8.05, side: "west" },
+      { type: "toilet", nameAr: "مغسلة ضيوف", nameEn: "Guest Powder Room", width: 1.75, length: 1.75, area: 3.1, x: 1.75, y: 8.05, side: "west" },
+      { type: "dining", nameAr: "منطقة طعام", nameEn: "Dining Area", width: 4.59, length: 3.85, area: 17.7, x: 0.0, y: 9.80, side: "west" },
+      { type: "family_hall", nameAr: "منطقة معيشة", nameEn: "Living Area", width: 4.95, length: 4.50, area: 22.3, x: 5.50, y: 2.00, side: "center" },
+      { type: "kitchen", nameAr: "مطبخ خارجي", nameEn: "Clean Kitchen", width: 2.65, length: 3.15, area: 8.3, x: 0.0, y: 13.65, side: "south-west" },
+      { type: "kitchen", nameAr: "مطبخ داخلي", nameEn: "Dirty Kitchen", width: 4.50, length: 3.00, area: 13.5, x: 3.30, y: 13.65, side: "south" },
+      { type: "parking", nameAr: "موقف سيارة", nameEn: "Parking", width: 6.00, length: 5.50, area: 33.0, x: 5.00, y: 0.0, side: "north-east" },
+      { type: "staircase", nameAr: "درج", nameEn: "Staircase", width: 3.00, length: 5.50, area: 16.5, x: 8.00, y: 5.50, side: "east" },
+    ],
+    upperFloors: [
+      {
+        floor: 1,
+        rooms: [
+          { type: "master_bedroom", nameAr: "غرفة نوم رئيسية", nameEn: "Master Bedroom", width: 4.60, length: 4.00, area: 18.4, x: 0.0, y: 0.0, side: "north-west" },
+          { type: "wardrobe", nameAr: "غرفة ملابس رئيسية", nameEn: "Master Walk-in Closet", width: 2.30, length: 4.00, area: 9.2, x: 4.60, y: 0.0, side: "north" },
+          { type: "bathroom", nameAr: "دورة مياه رئيسية", nameEn: "Master WC", width: 1.75, length: 4.00, area: 7.0, x: 6.90, y: 0.0, side: "north-east" },
+          { type: "bedroom", nameAr: "غرفة نوم 1", nameEn: "Bedroom 1", width: 4.20, length: 4.00, area: 16.8, x: 0.0, y: 4.00, side: "west" },
+          { type: "bathroom", nameAr: "دورة مياه 1", nameEn: "WC 1", width: 1.65, length: 2.45, area: 4.0, x: 4.20, y: 4.00, side: "center" },
+          { type: "bedroom", nameAr: "غرفة نوم 2", nameEn: "Bedroom 2", width: 4.00, length: 4.00, area: 16.0, x: 0.0, y: 8.00, side: "west" },
+          { type: "bedroom", nameAr: "غرفة نوم 3", nameEn: "Bedroom 3", width: 4.30, length: 4.00, area: 17.2, x: 4.50, y: 8.00, side: "east" },
+          { type: "bathroom", nameAr: "دورة مياه 2", nameEn: "WC 2", width: 1.65, length: 2.45, area: 4.0, x: 8.80, y: 8.00, side: "east" },
+          { type: "distributor", nameAr: "ممر", nameEn: "Corridor", width: 2.00, length: 8.00, area: 16.0, x: 4.20, y: 0.0, side: "center" },
+        ]
+      }
+    ],
+  },
+
+  // ── المخطط 7: فيلا حي النخيل - الرياض (فيلا فاخرة مع بيسمنت) ──────────────
+  {
+    id: "nakheel_villa_luxury_3floors",
+    name: "Nakheel District Luxury Villa - Riyadh (Basement + 2 Floors)",
+    nameAr: "فيلا فاخرة حي النخيل - الرياض (بيسمنت + دورين)",
+    landArea: 500,
+    landWidth: 16.0,
+    landLength: 31.0,
+    floors: 3,
+    bedrooms: 5,
+    bathrooms: 8,
+    hasMajlis: true,
+    hasParking: true,
+    style: "Luxury Contemporary",
+    source: "Nakheel District Riyadh - Verified Project",
+    tags: ["luxury", "large", "3floors", "basement", "majlis", "parking", "riyadh", "pool"],
+    groundFloor: [
+      { type: "kitchen", nameAr: "مطبخ", nameEn: "Kitchen", width: 4.25, length: 4.40, area: 18.7, x: 0.0, y: 0.0, side: "north-west" },
+      { type: "pantry", nameAr: "مستودع", nameEn: "Pantry", width: 2.00, length: 4.40, area: 8.8, x: 4.25, y: 0.0, side: "north" },
+      { type: "maid_room", nameAr: "غرفة خادمة", nameEn: "Maid's Room", width: 2.00, length: 3.00, area: 6.0, x: 6.25, y: 0.0, side: "north-east" },
+      { type: "entrance_hall", nameAr: "مدخل عائلي", nameEn: "Family Entrance", width: 2.00, length: 2.00, area: 4.0, x: 4.25, y: 4.40, side: "center" },
+      { type: "dining", nameAr: "غرفة طعام", nameEn: "Dining", width: 4.00, length: 4.00, area: 16.0, x: 0.0, y: 4.40, side: "west" },
+      { type: "outdoor", nameAr: "جلسة خارجية", nameEn: "Outdoor Seating", width: 3.00, length: 4.40, area: 13.2, x: 0.0, y: 8.40, side: "west" },
+      { type: "family_hall", nameAr: "صالة معيشة", nameEn: "Living Hall", width: 3.00, length: 4.40, area: 13.2, x: 4.00, y: 8.40, side: "center" },
+      { type: "balcony", nameAr: "بلكونة", nameEn: "Balcony", width: 2.00, length: 2.00, area: 4.0, x: 7.00, y: 8.40, side: "east" },
+      { type: "entrance_hall", nameAr: "مدخل رئيسي", nameEn: "Main Entrance", width: 2.00, length: 3.00, area: 6.0, x: 4.00, y: 12.80, side: "center" },
+      { type: "majlis", nameAr: "مجلس", nameEn: "Majlis", width: 4.25, length: 4.28, area: 18.2, x: 0.0, y: 12.80, side: "south-west" },
+      { type: "parking", nameAr: "موقف سيارة", nameEn: "Garage", width: 6.00, length: 5.00, area: 30.0, x: 10.00, y: 0.0, side: "north-east" },
+      { type: "staircase", nameAr: "درج", nameEn: "Staircase", width: 3.00, length: 5.00, area: 15.0, x: 13.00, y: 5.00, side: "east" },
+    ],
+    upperFloors: [
+      {
+        floor: 1,
+        rooms: [
+          { type: "master_bedroom", nameAr: "غرفة نوم ماستر 1", nameEn: "Master Bedroom 1", width: 4.00, length: 5.00, area: 20.0, x: 0.0, y: 0.0, side: "north-west" },
+          { type: "wardrobe", nameAr: "غرفة ملابس 1", nameEn: "Dressing 1", width: 4.00, length: 2.00, area: 8.0, x: 0.0, y: 5.00, side: "west" },
+          { type: "master_bedroom", nameAr: "غرفة نوم ماستر 2", nameEn: "Master Bedroom 2", width: 4.00, length: 5.40, area: 21.6, x: 0.0, y: 7.00, side: "west" },
+          { type: "wardrobe", nameAr: "غرفة ملابس 2", nameEn: "Dressing 2", width: 4.00, length: 2.00, area: 8.0, x: 0.0, y: 12.40, side: "west" },
+          { type: "wardrobe", nameAr: "غرفة ملابس 3", nameEn: "Dressing 3", width: 4.00, length: 4.00, area: 16.0, x: 0.0, y: 14.40, side: "south-west" },
+          { type: "master_bedroom", nameAr: "غرفة نوم ماستر 3", nameEn: "Master Bedroom 3", width: 4.00, length: 4.22, area: 16.9, x: 5.00, y: 14.40, side: "south" },
+          { type: "family_hall", nameAr: "منطقة جلوس", nameEn: "Seating Area", width: 4.24, length: 4.22, area: 17.9, x: 5.00, y: 10.00, side: "center" },
+          { type: "double_height", nameAr: "ارتفاع مزدوج", nameEn: "Double Height", width: 3.00, length: 4.38, area: 13.1, x: 9.00, y: 5.00, side: "east" },
+          { type: "office", nameAr: "مكتب", nameEn: "Office", width: 1.40, length: 4.40, area: 6.2, x: 5.00, y: 0.0, side: "north" },
+          { type: "balcony", nameAr: "بلكونة", nameEn: "Balcony", width: 2.02, length: 1.40, area: 2.8, x: 9.00, y: 18.00, side: "south-east" },
+          { type: "staircase", nameAr: "درج", nameEn: "Staircase", width: 3.00, length: 5.00, area: 15.0, x: 13.00, y: 0.0, side: "east" },
+        ]
+      },
+      {
+        floor: 2,
+        rooms: [
+          { type: "master_bedroom", nameAr: "غرفة نوم ماستر 4", nameEn: "Master Bedroom 4", width: 3.00, length: 4.40, area: 13.2, x: 0.0, y: 0.0, side: "north-west" },
+          { type: "family_hall", nameAr: "منطقة جلوس", nameEn: "Seating Area", width: 4.00, length: 4.00, area: 16.0, x: 0.0, y: 4.40, side: "west" },
+          { type: "outdoor", nameAr: "جلسة خارجية", nameEn: "Outdoor Seating", width: 9.20, length: 3.00, area: 27.6, x: 0.0, y: 8.40, side: "south" },
+        ]
+      }
+    ],
+  },
+
   // ── المخطط 4: شقة سكنية 12×18م - دور واحد ────────────────────────────────
   {
     id: "apartment_12x18_1floor",
