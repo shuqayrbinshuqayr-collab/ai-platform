@@ -11,7 +11,7 @@ import {
   Layers, Ruler, Clock, ChevronRight, Star
 } from "lucide-react";
 
-// ─── AutoCAD-style room fills (light architectural colors) ────────────────────
+// ─── AutoCAD-style room fills ────────────────────────────────────────────────
 const ROOM_HATCH_MINI: Record<string, string> = {
   bedroom: "#EEF2FF", master_bedroom: "#FFF7ED", living: "#F0FDF4",
   family_living: "#F0FDF4", majlis: "#FFFBEB", kitchen: "#ECFDF5",
@@ -21,6 +21,8 @@ const ROOM_HATCH_MINI: Record<string, string> = {
   laundry: "#EFF6FF", maid_room: "#FDF4FF", office: "#EEF2FF",
   prayer: "#FFFBEB", staircase: "#F1F5F9", other: "#F8FAFC",
 };
+const MINI_HAS_DOOR = new Set(["bedroom","master_bedroom","living","family_living","majlis","kitchen","dining","bathroom","toilet","maid_room","office","prayer","entrance","storage","laundry","corridor","distributor"]);
+const MINI_HAS_WIN  = new Set(["bedroom","master_bedroom","living","family_living","majlis","kitchen","dining","balcony","office","prayer"]);
 
 // ─── Mini floor plan SVG — AutoCAD style ─────────────────────────────────────
 function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: number; bspLayout?: any }) {
@@ -74,43 +76,124 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
           w = Math.max(((space.w ?? 10) / 100) * innerW, 4);
           h = Math.max(((space.h ?? 10) / 100) * innerH, 4);
         }
-        const fill = space.type === "balcony" ? `url(#hatch-mini-${floor})` : (ROOM_HATCH_MINI[space.type] ?? "#F8FAFC");
+        const type = space.type ?? "other";
+        const fill = type === "balcony" ? `url(#hatch-mini-${floor})` : (ROOM_HATCH_MINI[type] ?? "#F8FAFC");
         const cx = x + w / 2;
         const cy = y + h / 2;
         const area = space.area ?? (space.width && space.height ? (space.width * space.height).toFixed(1) : null);
+        const WALL = 2;   // wall thickness
+        const HW = WALL / 2;
+
+        // Door size
+        const dw = Math.min(w * 0.35, 20);
+        // Window size
+        const ww = Math.min(w * 0.4, 25);
+
+        // Door placement
+        const doorOnLeft = ["majlis","family_living","living"].includes(type);
+        const doorOnTop  = ["balcony"].includes(type);
 
         return (
           <g key={i}>
             {/* Room fill */}
-            <rect x={x} y={y} width={w} height={h} fill={fill} />
-            {/* Black walls */}
-            <rect x={x} y={y} width={w} height={h} fill="none" stroke="#1A1A1A" strokeWidth="1.5" />
+            <rect x={x} y={y} width={w} height={h} fill={fill}/>
+
+            {/* Outer thick wall */}
+            <rect x={x-HW} y={y-HW} width={w+WALL} height={h+WALL}
+              fill="none" stroke="#1A1A1A" strokeWidth={WALL}/>
+            {/* Inner thin wall line */}
+            <rect x={x+HW} y={y+HW} width={w-WALL} height={h-WALL}
+              fill="none" stroke="#4B5563" strokeWidth="0.4"/>
+
+            {/* Staircase lines */}
+            {type === "staircase" && (() => {
+              const steps = Math.max(3, Math.floor(h / 10));
+              return Array.from({length: steps}).map((_,si) => (
+                <line key={si} x1={x+2} y1={y + si*(h/steps)} x2={x+w-2} y2={y + si*(h/steps)}
+                  stroke="#9CA3AF" strokeWidth="0.5"/>
+              ));
+            })()}
+
+            {/* Window symbol (right wall) */}
+            {MINI_HAS_WIN.has(type) && w > 20 && h > 15 && (() => {
+              if (doorOnTop || ["majlis","living","family_living"].includes(type)) {
+                // window on top
+                const wx = x + w/2 - ww/2;
+                return (
+                  <g>
+                    <rect x={wx} y={y-HW} width={ww} height={WALL} fill="#FFFFFF" stroke="none"/>
+                    <line x1={wx} y1={y-HW} x2={wx+ww} y2={y-HW} stroke="#1A1A1A" strokeWidth="0.5"/>
+                    <line x1={wx} y1={y} x2={wx+ww} y2={y} stroke="#6B9AC4" strokeWidth="0.8"/>
+                    <line x1={wx} y1={y+HW} x2={wx+ww} y2={y+HW} stroke="#1A1A1A" strokeWidth="0.5"/>
+                  </g>
+                );
+              }
+              // window on right wall
+              const wh2 = Math.min(h * 0.4, 20);
+              const wy = y + h * 0.25;
+              return (
+                <g>
+                  <rect x={x+w-HW} y={wy} width={WALL} height={wh2} fill="#FFFFFF" stroke="none"/>
+                  <line x1={x+w-HW} y1={wy} x2={x+w-HW} y2={wy+wh2} stroke="#1A1A1A" strokeWidth="0.5"/>
+                  <line x1={x+w} y1={wy} x2={x+w} y2={wy+wh2} stroke="#6B9AC4" strokeWidth="0.8"/>
+                  <line x1={x+w+HW} y1={wy} x2={x+w+HW} y2={wy+wh2} stroke="#1A1A1A" strokeWidth="0.5"/>
+                </g>
+              );
+            })()}
+
+            {/* Door symbol */}
+            {MINI_HAS_DOOR.has(type) && w > 18 && h > 18 && (() => {
+              if (doorOnTop) {
+                const dx = x + w/2 - dw/2;
+                return (
+                  <g stroke="#1A1A1A" strokeWidth="0.7" fill="none">
+                    <rect x={dx} y={y-HW} width={dw} height={WALL} fill="#FFFFFF" stroke="none"/>
+                    <line x1={dx} y1={y} x2={dx} y2={y-dw}/>
+                    <path d={`M ${dx} ${y} A ${dw} ${dw} 0 0 1 ${dx+dw} ${y}`} strokeDasharray="2,1.5"/>
+                  </g>
+                );
+              } else if (doorOnLeft) {
+                const dy = y + h/2 - dw/2;
+                return (
+                  <g stroke="#1A1A1A" strokeWidth="0.7" fill="none">
+                    <rect x={x-HW} y={dy} width={WALL} height={dw} fill="#FFFFFF" stroke="none"/>
+                    <line x1={x} y1={dy} x2={x+dw} y2={dy}/>
+                    <path d={`M ${x} ${dy} A ${dw} ${dw} 0 0 0 ${x} ${dy+dw}`} strokeDasharray="2,1.5"/>
+                  </g>
+                );
+              } else {
+                // door on bottom wall
+                const dx = x + w/2 - dw/2;
+                return (
+                  <g stroke="#1A1A1A" strokeWidth="0.7" fill="none">
+                    <rect x={dx} y={y+h-HW} width={dw} height={WALL} fill="#FFFFFF" stroke="none"/>
+                    <line x1={dx} y1={y+h} x2={dx} y2={y+h-dw}/>
+                    <path d={`M ${dx} ${y+h} A ${dw} ${dw} 0 0 0 ${dx+dw} ${y+h}`} strokeDasharray="2,1.5"/>
+                  </g>
+                );
+              }
+            })()}
+
             {/* Room label */}
             {w > 25 && h > 14 && (
               <>
-                <text
-                  x={cx} y={cy - (area ? 4 : 0)}
+                <text x={cx} y={cy - (area ? 4 : 0)}
                   textAnchor="middle" dominantBaseline="middle"
                   fill="#111827" fontSize="5.5"
-                  fontFamily="'Cairo', Arial, sans-serif" fontWeight="700"
-                >
+                  fontFamily="'Cairo',Arial,sans-serif" fontWeight="700">
                   {(space.nameAr ?? space.name ?? "").substring(0, 12)}
                 </text>
                 {area && (
-                  <text
-                    x={cx} y={cy + 5}
+                  <text x={cx} y={cy + 5}
                     textAnchor="middle" dominantBaseline="middle"
-                    fill="#6B7280" fontSize="4.5"
-                    fontFamily="monospace"
-                  >
+                    fill="#6B7280" fontSize="4.5" fontFamily="monospace">
                     {parseFloat(area).toFixed(1)}m²
                   </text>
                 )}
               </>
             )}
 
-            {/* ─── Mini cotes ─── */}
-            {/* Width cote — horizontal, at bottom of room */}
+            {/* Mini cotes */}
             {w > 40 && (() => {
               const wm = hasBSPCoords && space.width ? space.width : ((space.w ?? 0) / 100) * bldW;
               if (wm <= 0) return null;
@@ -119,10 +202,10 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
               const mx = (lx1 + lx2) / 2;
               return (
                 <g>
-                  <line x1={lx1} y1={ly} x2={lx2} y2={ly} stroke="#374151" strokeWidth="0.6"/>
+                  <line x1={lx1} y1={ly} x2={lx2} y2={ly} stroke="#374151" strokeWidth="0.5"/>
                   <polygon points={`${lx1},${ly} ${lx1+3},${ly-1.5} ${lx1+3},${ly+1.5}`} fill="#374151"/>
                   <polygon points={`${lx2},${ly} ${lx2-3},${ly-1.5} ${lx2-3},${ly+1.5}`} fill="#374151"/>
-                  <rect x={mx - 8} y={ly - 4} width="16" height="7" fill="#FFFFFF"/>
+                  <rect x={mx-8} y={ly-4} width="16" height="7" fill="#FFFFFF"/>
                   <text x={mx} y={ly} textAnchor="middle" dominantBaseline="middle"
                     fill="#374151" fontSize="4" fontFamily="monospace" fontWeight="600">
                     {wm.toFixed(1)}م
@@ -130,7 +213,6 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
                 </g>
               );
             })()}
-            {/* Height cote — vertical, at right of room */}
             {h > 35 && (() => {
               const hm = hasBSPCoords && space.height ? space.height : ((space.h ?? 0) / 100) * bldH;
               if (hm <= 0) return null;
@@ -139,13 +221,13 @@ function MiniFloorPlan({ spaces, floor, bspLayout }: { spaces: any[]; floor: num
               const my = (ly1 + ly2) / 2;
               return (
                 <g>
-                  <line x1={lx} y1={ly1} x2={lx} y2={ly2} stroke="#374151" strokeWidth="0.6"/>
+                  <line x1={lx} y1={ly1} x2={lx} y2={ly2} stroke="#374151" strokeWidth="0.5"/>
                   <polygon points={`${lx},${ly1} ${lx-1.5},${ly1+3} ${lx+1.5},${ly1+3}`} fill="#374151"/>
                   <polygon points={`${lx},${ly2} ${lx-1.5},${ly2-3} ${lx+1.5},${ly2-3}`} fill="#374151"/>
-                  <rect x={lx - 4} y={my - 8} width="7" height="16" fill="#FFFFFF"/>
+                  <rect x={lx-4} y={my-8} width="7" height="16" fill="#FFFFFF"/>
                   <text x={lx} y={my} textAnchor="middle" dominantBaseline="middle"
                     fill="#374151" fontSize="4" fontFamily="monospace" fontWeight="600"
-                    transform={`rotate(-90, ${lx}, ${my})`}>
+                    transform={`rotate(-90,${lx},${my})`}>
                     {hm.toFixed(1)}م
                   </text>
                 </g>
