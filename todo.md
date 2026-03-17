@@ -144,3 +144,9 @@
 - [x] إعادة كتابة FloorPlan SVG renderer بجدران سميكة وأبواب وقوس ونوافذ
 - [x] تحديث MiniFloorPlan بنفس الأسلوب
 - [x] حفظ Checkpoint
+
+## Phase 20: تصدير DXF لـ AutoCAD
+- [x] بناء dxfGenerator.ts في server
+- [x] إضافة tRPC procedure لتصدير DXF
+- [x] إضافة زر تحميل DXF في BlueprintView.tsx
+- [x] حفظ Checkpoint

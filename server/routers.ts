@@ -5,6 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
+import { generateDXF } from "./dxfGenerator";
 import { buildEnhancedArchPrompt } from "./saudiArchRules";
 import { generateRAGContext } from "./blueprintRAG";
 import { notifyOwner } from "./_core/notification";
@@ -284,6 +285,23 @@ export const appRouter = router({
         await selectBlueprint(input.blueprintId, input.projectId, ctx.user.id);
         await updateProject(input.projectId, ctx.user.id, { status: "completed" });
         return { success: true };
+      }),
+
+    // ─── Export DXF ──────────────────────────────────────────────────────────────────────
+    exportDXF: protectedProcedure
+      .input(z.object({
+        blueprintId: z.number(),
+        floor: z.number().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        const bp = await getBlueprintById(input.blueprintId, ctx.user.id);
+        if (!bp) throw new Error("Blueprint not found");
+        const data = bp.structuredData as any ?? {};
+        const spaces = data.spaces ?? [];
+        const bspLayout = data.bspLayout;
+        const projectName = (bp as any).projectName ?? data.titleAr ?? data.title ?? "مخطط";
+        const dxfContent = generateDXF(spaces, bspLayout, projectName, input.floor);
+        return { dxfContent, fileName: `blueprint-floor${input.floor}.dxf` };
       }),
 
     // ─── Generate 6 concepts at once ───────────────────────────────────

@@ -9,6 +9,7 @@ import {
   Loader2, Layers, FileText, Ruler, Brain
 } from "lucide-react";
 import { useRef } from "react";
+import React from "react";
 
 // ─── Room fill colors (very light, architectural) ────────────────────────────
 const ROOM_FILL: Record<string, string> = {
@@ -455,6 +456,25 @@ export default function BlueprintView() {
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
   const { data: blueprint, isLoading } = trpc.blueprints.get.useQuery({ id: blueprintId });
+  const [dxfFloor, setDxfFloor] = React.useState<number | null>(null);
+  const { data: dxfData, isFetching: dxfLoading } = trpc.blueprints.exportDXF.useQuery(
+    { blueprintId, floor: dxfFloor ?? 0 },
+    { enabled: dxfFloor !== null, staleTime: Infinity }
+  );
+
+  // Auto-download when DXF data arrives
+  React.useEffect(() => {
+    if (dxfData?.dxfContent && dxfFloor !== null) {
+      const blob = new Blob([dxfData.dxfContent], { type: "application/dxf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = dxfData.fileName ?? `blueprint-floor${dxfFloor}.dxf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setDxfFloor(null);
+    }
+  }, [dxfData]);
 
   if (isLoading) {
     return (
@@ -525,10 +545,21 @@ export default function BlueprintView() {
               <p className="text-muted-foreground text-sm max-w-xl leading-relaxed">{description}</p>
             )}
           </div>
-          <Button onClick={handleDownloadSVG} variant="outline" className="gap-2 shrink-0">
-            <Download className="w-4 h-4"/>
-            {lang === "ar" ? "تحميل SVG" : "Download SVG"}
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleDownloadSVG} variant="outline" className="gap-2 shrink-0">
+              <Download className="w-4 h-4"/>
+              {lang === "ar" ? "تحميل SVG" : "Download SVG"}
+            </Button>
+            <Button
+              onClick={() => setDxfFloor(floorsArr[0] ?? 0)}
+              variant="outline"
+              className="gap-2 shrink-0 border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+              disabled={dxfLoading}
+            >
+              {dxfLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4"/>}
+              {lang === "ar" ? "تصدير DXF (AutoCAD)" : "Export DXF (AutoCAD)"}
+            </Button>
+          </div>
         </div>
 
         {/* Floor plans */}
