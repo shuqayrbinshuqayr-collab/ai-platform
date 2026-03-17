@@ -8,7 +8,7 @@ import { useLocation } from "wouter";
 import {
   Zap, ArrowRight, LayoutGrid, Image, FolderOpen,
   MapPin, Brain, Download, CheckCircle, Crown,
-  Building2, Home as HomeIcon, Star
+  Building2, Home as HomeIcon, Star, Upload, Search
 } from "lucide-react";
 
 export default function Home() {
@@ -99,38 +99,47 @@ export default function Home() {
                 : "SOAR.AI analyzes land data and regulatory constraints to generate professional preliminary architectural blueprints that accelerate the initial design phase"}
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
-              {isAuthenticated ? (
-                <Button
-                  size="lg"
-                  onClick={() => navigate("/projects/new")}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base px-8 h-12 gap-2 glow-orange"
-                >
-                  <Zap className="w-5 h-5" />
-                  {lang === "ar" ? "ابدأ مشروعاً جديداً" : "Start New Project"}
-                  <ArrowRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  onClick={() => window.location.href = getLoginUrl()}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base px-8 h-12 gap-2 glow-orange"
-                >
-                  <Zap className="w-5 h-5" />
-                  {lang === "ar" ? "ابدأ مجاناً" : "Start for Free"}
-                  <ArrowRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
-                </Button>
-              )}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate("/gallery")}
-                className="border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5 font-semibold text-base px-8 h-12 gap-2"
+            {/* CTA — Three main actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16 max-w-3xl mx-auto w-full">
+              {/* 1. Start new project */}
+              <button
+                onClick={() => isAuthenticated ? navigate("/projects/new") : (window.location.href = getLoginUrl())}
+                className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-primary/40 bg-primary/10 hover:bg-primary/20 hover:border-primary transition-all cursor-pointer"
               >
-                <LayoutGrid className="w-5 h-5" />
-                {lang === "ar" ? "معرض المخططات" : "View Gallery"}
-              </Button>
+                <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center group-hover:bg-primary/30 transition-all">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <div className="text-center">
+                  <div className="font-black text-white text-sm">{lang === "ar" ? "ابدأ مشروع جديد" : "Start New Project"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{lang === "ar" ? "توليد مخططات بالذكاء الاصطناعي" : "AI-powered blueprint generation"}</div>
+                </div>
+              </button>
+              {/* 2. Gallery */}
+              <button
+                onClick={() => navigate("/gallery")}
+                className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-all">
+                  <LayoutGrid className="w-6 h-6 text-white/70" />
+                </div>
+                <div className="text-center">
+                  <div className="font-black text-white text-sm">{lang === "ar" ? "معرض المخططات" : "Blueprint Gallery"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{lang === "ar" ? "استعرض المشاريع السابقة" : "Browse previous projects"}</div>
+                </div>
+              </button>
+              {/* 3. Upload & Analyze */}
+              <button
+                onClick={() => navigate("/analyze")}
+                className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500/60 transition-all cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
+                  <Upload className="w-6 h-6 text-purple-400" />
+                </div>
+                <div className="text-center">
+                  <div className="font-black text-white text-sm">{lang === "ar" ? "رفع مخطط للتحليل" : "Upload & Analyze"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{lang === "ar" ? "اكتشف ما ينقص مخططك" : "Discover what your plan is missing"}</div>
+                </div>
+              </button>
             </div>
 
             {/* Stats */}
@@ -371,14 +380,14 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <div className="font-black text-xl text-white">{lang === "ar" ? "مجاني" : "Free"}</div>
-                  <div className="text-2xl font-black text-foreground mt-1">$0</div>
+                  <div className="text-2xl font-black text-foreground mt-1">{lang === "ar" ? "مجاناً" : "Free"}</div>
                 </div>
                 <div className="status-free px-3 py-1 rounded-full text-xs font-bold">FREE</div>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {(lang === "ar"
-                  ? ["3 مخططات شهرياً", "5 مشاريع", "تحليل الأرض", "توليد 6 مفاهيم"]
-                  : ["3 blueprints/month", "5 projects", "Land analysis", "6 concept generation"]
+                  ? ["مشروعان فقط", "مخططان يومياً", "تحليل الأرض", "توليد 6 مفاهيم"]
+                  : ["2 projects only", "2 blueprints/day", "Land analysis", "6 concept generation"]
                 ).map(item => (
                   <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
@@ -406,7 +415,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <div className="font-black text-xl text-white">{lang === "ar" ? "احترافي" : "Pro"}</div>
-                  <div className="text-2xl font-black text-primary mt-1">$29<span className="text-sm text-muted-foreground font-normal">/{lang === "ar" ? "شهر" : "mo"}</span></div>
+                  <div className="text-2xl font-black text-primary mt-1">{lang === "ar" ? "٥٠٠ ريال" : "SAR 500"}<span className="text-sm text-muted-foreground font-normal">/{lang === "ar" ? "شهر" : "mo"}</span></div>
                 </div>
                 <div className="status-pro px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                   <Crown className="w-3 h-3" />PRO
@@ -414,8 +423,8 @@ export default function Home() {
               </div>
               <ul className="space-y-2.5 mb-6">
                 {(lang === "ar"
-                  ? ["مخططات غير محدودة", "مشاريع غير محدودة", "ملف مشاريع خاص", "تصدير Revit & AutoCAD", "مراجعة رسمية من SOAR", "أولوية الدعم الفني"]
-                  : ["Unlimited blueprints", "Unlimited projects", "Private project portfolio", "Revit & AutoCAD export", "Official SOAR review", "Priority support"]
+                  ? ["مخططات غير محدودة", "مشاريع غير محدودة", "محرر المخططات التفاعلي", "تصدير DXF لـ AutoCAD", "نظام التعلم الذاتي", "دعم فني ذو أولوية"]
+                  : ["Unlimited blueprints", "Unlimited projects", "Interactive editor", "DXF export for AutoCAD", "Self-learning AI", "Priority support"]
                 ).map(item => (
                   <li key={item} className="flex items-center gap-2 text-sm text-foreground">
                     <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
@@ -428,7 +437,7 @@ export default function Home() {
                 onClick={() => navigate("/pricing")}
               >
                 <Crown className="w-4 h-4" />
-                {lang === "ar" ? "ترقية إلى Pro" : "Upgrade to Pro"}
+                {lang === "ar" ? "اشترك الآن" : "Subscribe Now"}
               </Button>
             </div>
           </div>

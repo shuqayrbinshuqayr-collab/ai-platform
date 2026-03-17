@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home, LayoutDashboard, FolderPlus, Images, User, LogOut,
-  Globe, Menu, X, ChevronDown, Crown, Zap, Map
+  Globe, Menu, X, ChevronDown, Crown, Zap, Map, Upload
 } from "lucide-react";
 import { useState } from "react";
 
@@ -37,6 +37,7 @@ export default function NavBar() {
       { href: "/dashboard", label: t(lang, "dashboard"), icon: LayoutDashboard },
       { href: "/projects/new", label: t(lang, "newProject"), icon: FolderPlus },
       { href: "/gallery", label: t(lang, "gallery"), icon: Images },
+      { href: "/analyze", label: lang === "ar" ? "رفع مخطط" : "Analyze", icon: Upload },
     ] : []),
   ];
 

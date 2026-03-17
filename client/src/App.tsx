@@ -17,6 +17,7 @@ import UploadDocuments from "./pages/UploadDocuments";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Roadmap from "./pages/Roadmap";
+import BlueprintAnalyzer from "./pages/BlueprintAnalyzer";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/projects/:id/requirements" component={ProjectDetail} />
       <Route path="/blueprints/:id" component={BlueprintView} />
       <Route path="/blueprints/:id/edit" component={BlueprintEditor} />
+      <Route path="/analyze" component={BlueprintAnalyzer} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />
       <Route path="/pricing" component={Pricing} />

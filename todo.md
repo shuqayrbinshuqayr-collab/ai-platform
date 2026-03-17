@@ -167,3 +167,10 @@
 - [x] تحديث subscription procedures في routers.ts
 - [x] تقييد ميزة التعديل التفاعلي للمشتركين فقط
 - [ ] اختبار وحفظ Checkpoint
+
+## Phase 23: الخيارات الثلاثة + تحليل المخطط
+- [x] إضافة 3 خيارات رئيسية في Home.tsx (ابدأ مشروع / معرض / رفع مخطط)
+- [x] تحويل الأرقام في Home.tsx للريال السعودي
+- [x] بناء صفحة BlueprintAnalyzer.tsx لرفع وتحليل المخطط
+- [x] إضافة procedure blueprints.analyze في routers.ts
+- [x] تسجيل مسار /analyze في App.tsx

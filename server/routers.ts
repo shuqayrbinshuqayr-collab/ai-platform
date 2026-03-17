@@ -411,6 +411,44 @@ export const appRouter = router({
         };
       }),
 
+    // ─── Analyze uploaded blueprint image ───────────────────────────────
+    analyze: publicProcedure
+      .input(z.object({
+        imageUrl: z.string().url(),
+        lang: z.enum(["ar", "en"]).default("ar"),
+      }))
+      .mutation(async ({ input }) => {
+        const systemPrompt = input.lang === "ar"
+          ? `أنت خبير معماري ومهندس متخصص في الكود السعودي للبناء. مهمتك تحليل المخططات المعمارية المرفوعة وتقديم تقرير شامل يتضمن:
+1. **وصف المخطط**: نوع المبنى، عدد الغرف، التوزيع العام
+2. **نقاط القوة**: ما هو جيد في المخطط
+3. **النواقص المعمارية**: ما ينقص من ناحية التصميم المعماري (إضاءة، تهوية، توزيع الفراغات، مداخل، خصوصية)
+4. **التعارضات مع الكود السعودي**: مخالفات كود البناء السعودي (نظام BCSA) مثل: الارتدادات، الارتفاعات، نسب البناء، متطلبات الإطفاء، المداخل، مواقف السيارات
+5. **التوصيات**: اقتراحات عملية للتحسين مرتبة حسب الأولوية
+قدم التقرير بشكل منظم ومفصل باللغة العربية.`
+          : `You are an architectural expert and engineer specializing in Saudi Building Code. Your task is to analyze uploaded architectural blueprints and provide a comprehensive report including:
+1. **Blueprint Description**: Building type, room count, general layout
+2. **Strengths**: What is good about the blueprint
+3. **Architectural Deficiencies**: What is missing architecturally (lighting, ventilation, space distribution, entrances, privacy)
+4. **Saudi Building Code Conflicts**: Violations of Saudi Building Code (BCSA) such as: setbacks, heights, FAR ratios, fire safety requirements, entrances, parking
+5. **Recommendations**: Practical improvement suggestions ordered by priority
+Provide the report in a structured and detailed format.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "image_url", image_url: { url: input.imageUrl, detail: "high" } },
+                { type: "text", text: input.lang === "ar" ? "حلل هذا المخطط المعماري وقدم تقريراً شاملاً." : "Analyze this architectural blueprint and provide a comprehensive report." },
+              ],
+            },
+          ],
+        });
+        const content = response.choices?.[0]?.message?.content ?? "";
+        return { report: content };
+      }),
     // ─── Generate 6 concepts at once ───────────────────────────────────
     generate6: protectedProcedure
       .input(z.object({
