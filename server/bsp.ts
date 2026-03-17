@@ -1,8 +1,9 @@
 /**
- * SOAR.AI — Binary Space Partitioning Layout Engine
- * Based on real Saudi architectural blueprints analysis
+ * SOAR.AI — Layout Engine
+ * Uses Zoned Layout (Saudi pattern: Left/Center/Right zones) instead of random BSP.
  * Reference: Ground floor + First floor villa blueprints (10.5m × 22m)
  */
+import { zonedLayoutFloor, ZonedRoom } from "./zonedLayout";
 
 export interface Room {
   id: string;
@@ -329,78 +330,41 @@ export function generateBSPLayout(params: {
     const floorRooms = roomProgram.filter(r => r.floor === f);
     if (floorRooms.length === 0) continue;
 
-    // BSP for this floor
-    // CRITICAL: iterations must equal exactly floorRooms.length - 1
-    // so we get exactly floorRooms.length leaves — no empty cells, no gaps
-    const root: BSPNode = { x: 0, y: 0, w: buildingWidth, h: buildingDepth };
-    const targetLeaves = floorRooms.length;
-    const minSize = 1.8;
-    // Split exactly (targetLeaves - 1) times to get targetLeaves leaves
-    buildBSP(root, targetLeaves - 1, minSize);
+    // ─── ZONED LAYOUT ENGINE (Saudi pattern: Left | Center | Right) ──────────
+    // Replaces random BSP with deterministic zone-based layout matching real blueprints
+    const zonedRooms: ZonedRoom[] = floorRooms.map((r, idx) => ({
+      id: `${r.type}-f${f}-${idx}`,
+      type: r.type,
+      nameAr: r.nameAr,
+      name: r.nameEn,
+      minArea: r.minArea,
+      floor: f,
+    }));
 
-    const leaves = getLeaves(root);
-    leaves.sort((a, b) => (b.w * b.h) - (a.w * a.h));
-    const sortedRooms = [...floorRooms].sort((a, b) => b.minArea - a.minArea);
+    const zonedResult = zonedLayoutFloor({
+      plotW: buildingWidth,
+      plotH: buildingDepth,
+      rooms: zonedRooms,
+      floor: f,
+    });
 
-    const rooms: Room[] = [];
-
-    // Assign each room to a leaf — if more leaves than rooms, merge extras into last room
-    // If more rooms than leaves, split the largest leaf
-    const assignCount = Math.max(leaves.length, sortedRooms.length);
-
-    for (let i = 0; i < Math.min(leaves.length, sortedRooms.length); i++) {
-      const leaf = leaves[i];
-      const roomDef = sortedRooms[i];
-
-      // Room fills the ENTIRE leaf cell — walls are drawn as borders by SVG renderer
-      // This eliminates all gaps between rooms
-      const rw = parseFloat(Math.max(leaf.w, 1.8).toFixed(2));
-      const rh = parseFloat(Math.max(leaf.h, 1.8).toFixed(2));
-
-      const room: Room = {
-        id: `${roomDef.type}-f${f}-${i}`,
-        nameAr: roomDef.nameAr,
-        nameEn: roomDef.nameEn,
-        type: roomDef.type,
-        x: parseFloat(leaf.x.toFixed(2)),
-        y: parseFloat(leaf.y.toFixed(2)),
-        width: rw,
-        height: rh,
-        area: parseFloat((rw * rh).toFixed(1)),
-        floor: f,
-        hasWindow: ["bedroom", "master_bedroom", "living", "family_living", "majlis", "kitchen", "dining", "balcony", "office"].includes(roomDef.type),
-        hasDoor: roomDef.type !== "balcony",
-        doorWall: ["majlis", "living", "family_living"].includes(roomDef.type) ? "south" :
-                  ["bedroom", "master_bedroom"].includes(roomDef.type) ? "west" :
-                  i % 2 === 0 ? "south" : "east",
-      };
-      rooms.push(room);
-    }
-
-    // If there are leftover leaves (more leaves than rooms), assign them as storage/corridor
-    // to fill the building completely with no empty cells
-    for (let i = sortedRooms.length; i < leaves.length; i++) {
-      const leaf = leaves[i];
-      const rw = parseFloat(Math.max(leaf.w, 1.8).toFixed(2));
-      const rh = parseFloat(Math.max(leaf.h, 1.8).toFixed(2));
-      const fillType: RoomType = rw * rh < 6 ? "storage" : "corridor";
-      rooms.push({
-        id: `${fillType}-f${f}-fill-${i}`,
-        nameAr: fillType === "storage" ? "مخزن" : "ممر",
-        nameEn: fillType === "storage" ? "Storage" : "Corridor",
-        type: fillType,
-        x: parseFloat(leaf.x.toFixed(2)),
-        y: parseFloat(leaf.y.toFixed(2)),
-        width: rw,
-        height: rh,
-        area: parseFloat((rw * rh).toFixed(1)),
-        floor: f,
-        hasWindow: false,
-        hasDoor: true,
-        doorWall: "south",
-      });
-    }
-    void assignCount;
+    const rooms: Room[] = zonedResult.rooms.map(r => ({
+      id: r.id,
+      nameAr: r.nameAr,
+      nameEn: r.name,
+      type: r.type as RoomType,
+      x: r.x,
+      y: r.y,
+      width: r.width,
+      height: r.height,
+      area: r.area,
+      floor: r.floor,
+      hasWindow: ["bedroom", "master_bedroom", "living", "family_living", "majlis",
+                  "kitchen", "dining", "balcony", "office"].includes(r.type),
+      hasDoor: r.type !== "balcony",
+      doorWall: ["majlis", "living", "family_living"].includes(r.type) ? "south" as const :
+                ["bedroom", "master_bedroom"].includes(r.type) ? "west" as const : "south" as const,
+    }));
 
     floors.push({
       floor: f,
