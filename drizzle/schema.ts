@@ -125,14 +125,34 @@ export type InsertBlueprint = typeof blueprints.$inferInsert;
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
-  plan: mysqlEnum("plan", ["free", "pro"]).default("free").notNull(),
+  // Plans: free | solo (500 SAR/month) | office (2000 SAR/month, up to 4 seats)
+  plan: mysqlEnum("plan", ["free", "solo", "office"]).default("free").notNull(),
   blueprintsUsed: int("blueprintsUsed").default(0).notNull(),
-  blueprintsLimit: int("blueprintsLimit").default(3).notNull(), // free=3/month, pro=unlimited(-1)
-  projectsLimit: int("projectsLimit").default(5).notNull(), // free=5, pro=unlimited(-1)
+  blueprintsLimit: int("blueprintsLimit").default(2).notNull(), // free=2/day, solo/office=unlimited(-1)
+  blueprintsUsedToday: int("blueprintsUsedToday").default(0).notNull(), // resets daily for free plan
+  blueprintsResetDate: timestamp("blueprintsResetDate"), // last daily reset timestamp
+  projectsLimit: int("projectsLimit").default(2).notNull(), // free=2 total, solo/office=unlimited(-1)
+  // Office plan: seat management
+  seats: int("seats").default(1).notNull(), // 1 for free/solo, up to 4 for office
+  officeId: int("officeId"), // links members to the office owner's subscription
+  isOfficeOwner: int("isOfficeOwner").default(0).notNull(), // 1 if this user owns the office plan
+  // Pricing
+  pricePerMonth: int("pricePerMonth").default(0).notNull(), // SAR: 0=free, 500=solo, 2000=office
   expiresAt: timestamp("expiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+// Office members table: links users to an office plan
+export const officeMembers = mysqlTable("officeMembers", {
+  id: int("id").autoincrement().primaryKey(),
+  officeOwnerId: int("officeOwnerId").notNull(), // userId of the office plan owner
+  memberId: int("memberId").notNull(), // userId of the member
+  inviteEmail: varchar("inviteEmail", { length: 320 }),
+  status: mysqlEnum("status", ["pending", "active", "removed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OfficeMember = typeof officeMembers.$inferSelect;
+export type InsertOfficeMember = typeof officeMembers.$inferInsert;

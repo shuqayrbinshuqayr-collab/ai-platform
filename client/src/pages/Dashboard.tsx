@@ -25,7 +25,7 @@ export default function Dashboard() {
   const { data: projects, isLoading } = trpc.projects.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: stats } = trpc.stats.overview.useQuery(undefined, { enabled: isAuthenticated });
   const { data: subscription } = trpc.subscription.get.useQuery(undefined, { enabled: isAuthenticated });
-  const isPro = subscription?.plan === "pro";
+  const isPro = subscription?.plan === "solo" || subscription?.plan === "office";
 
   const deleteProject = trpc.projects.delete.useMutation({
     onSuccess: () => {
@@ -64,8 +64,8 @@ export default function Dashboard() {
     archived: "status-archived",
   }[status] ?? "status-draft");
 
-  const blueprintsUsed = subscription?.blueprintsUsed ?? 0;
-  const blueprintsLimit = isPro ? null : 3;
+  const blueprintsUsed = subscription?.blueprintsUsedToday ?? 0;
+  const blueprintsLimit = isPro ? null : 2;
 
   return (
     <div className="min-h-screen pt-16 bg-background" dir={isRTL ? "rtl" : "ltr"}>
@@ -97,7 +97,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/pricing")}
               >
                 <Crown className="w-3.5 h-3.5" />
-                {lang === "ar" ? "ترقية إلى Pro" : "Upgrade to Pro"}
+                {lang === "ar" ? "ترقية الخطة" : "Upgrade Plan"}
               </Button>
             )}
             <Button
@@ -116,14 +116,14 @@ export default function Dashboard() {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-foreground font-semibold">
-                  {lang === "ar" ? "المخططات المستخدمة هذا الشهر" : "Blueprints used this month"}
+                  {lang === "ar" ? "المخططات المستخدمة اليوم" : "Blueprints used today"}
                 </span>
-                <span className="text-sm font-mono text-primary">{blueprintsUsed} / {blueprintsLimit}</span>
+                  <span className="text-sm font-mono text-primary">{blueprintsUsed} / {blueprintsLimit ?? "∞"}</span>
               </div>
               <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${Math.min((blueprintsUsed / (blueprintsLimit ?? 3)) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((blueprintsUsed / (blueprintsLimit ?? 2)) * 100, 100)}%` }}
                 />
               </div>
             </div>

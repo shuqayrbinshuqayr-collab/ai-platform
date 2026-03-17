@@ -16,7 +16,7 @@ export default function Gallery() {
 
   const { data: blueprints, isLoading } = trpcClient.blueprints.listAll.useQuery(undefined, { enabled: isAuthenticated });
   const { data: subscription } = trpcClient.subscription.get.useQuery(undefined, { enabled: isAuthenticated });
-  const isPro = subscription?.plan === "pro";
+  const isPro = subscription?.plan === "solo" || subscription?.plan === "office";
 
   if (!isAuthenticated) {
     return (

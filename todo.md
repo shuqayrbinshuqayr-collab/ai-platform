@@ -153,9 +153,17 @@
 
 ## Phase 21: محرر مخططات تفاعلي مع التعلم من التعديلات
 - [ ] تحديث drizzle schema لحفظ editedSpaces في جدول blueprints
-- [ ] pnpm db:push لتحديث قاعدة البيانات
+- [x] pnpm db:push لتحديث قاعدة البيانات
 - [ ] إضافة tRPC procedures: blueprints.saveEdits, blueprints.submitFeedback
 - [ ] بناء واجهة المحرر التفاعلي في BlueprintEditor.tsx (سحب + تغيير أبعاد + تسمية)
 - [ ] إضافة زر "تعديل المخطط" في BlueprintView.tsx
 - [ ] نظام التعلم: حفظ المخططات المعدّلة كمرجع جديد في RAG عند الموافقة
 - [ ] حفظ Checkpoint
+
+## Phase 22: نظام الاشتراكات المحدّث (500 ريال فردي / 2000 ريال مكتب)
+- [x] تحديث drizzle/schema.ts: إضافة خطط solo/office وجدول officeMembers
+- [x] pnpm db:push لتحديث قاعدة البيانات
+- [x] تحديث صفحة Pricing.tsx بالأسعار السعودية الجديدة
+- [x] تحديث subscription procedures في routers.ts
+- [x] تقييد ميزة التعديل التفاعلي للمشتركين فقط
+- [ ] اختبار وحفظ Checkpoint

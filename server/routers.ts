@@ -6,12 +6,13 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { buildEnhancedArchPrompt } from "./saudiArchRules";
 import { generateRAGContext, generateLearnedContext } from "./blueprintRAG";
-import { getLearnedBlueprints } from "./db";
+import { getLearnedBlueprints, canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import {
@@ -202,6 +203,12 @@ export const appRouter = router({
         extractedBuildingCodeData: z.any().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Check project limit for free plan
+        const userProjects = await getProjectsByUser(ctx.user.id);
+        const canCreate = await canCreateProject(ctx.user.id, userProjects.length);
+        if (!canCreate.allowed) {
+          throw new TRPCError({ code: "FORBIDDEN", message: canCreate.reason ?? "Project limit reached. Please upgrade your plan." });
+        }
         const isLarge = (input.landArea ?? 0) > 5000 || (input.numberOfFloors ?? 0) > 10;
         const id = await createProject({
           ...input,
@@ -411,10 +418,14 @@ export const appRouter = router({
         lang: z.enum(["ar", "en"]).default("ar"),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Check daily blueprint limit for free plan
+        const canGenerate = await canGenerateBlueprint(ctx.user.id);
+        if (!canGenerate.allowed) {
+          throw new TRPCError({ code: "FORBIDDEN", message: canGenerate.reason ?? "Blueprint limit reached. Please upgrade your plan." });
+        }
         const project = await getProjectById(input.projectId, ctx.user.id);
         if (!project) throw new Error("Project not found");
-
-        // Step 1: Auto-check Saudi Building Code
+        // Step 1: Auto-check Saudi Building Codee
         const codeCheck = checkSaudiBuildingCode(project);
 
         // Step 2: Apply auto-corrections silently
@@ -960,21 +971,26 @@ Return ONLY valid JSON, no extra text.`,
       return getOrCreateSubscription(ctx.user.id);
     }),
     upgrade: protectedProcedure
-      .input(z.object({ plan: z.enum(["free", "pro"]) }))
+      .input(z.object({ plan: z.enum(["free", "solo", "office"]) }))
       .mutation(async ({ ctx, input }) => {
         const sub = await getOrCreateSubscription(ctx.user.id);
-        const limit = input.plan === "pro" ? -1 : 3;
-        const projLimit = input.plan === "pro" ? -1 : 5;
+        // free: 2 projects, 2 blueprints/day | solo/office: unlimited
+        const blueprintLimit = input.plan === "free" ? 2 : -1;
+        const projLimit = input.plan === "free" ? 2 : -1;
+        const price = input.plan === "solo" ? 500 : input.plan === "office" ? 2000 : 0;
+        const seats = input.plan === "office" ? 4 : 1;
         await updateSubscription(sub.id, {
           plan: input.plan,
-          blueprintsLimit: limit,
+          blueprintsLimit: blueprintLimit,
           projectsLimit: projLimit,
-          expiresAt: input.plan === "pro" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
+          pricePerMonth: price,
+          seats,
+          expiresAt: input.plan !== "free" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
         });
-        if (input.plan === "pro") {
+        if (input.plan !== "free") {
           await notifyOwner({
-            title: "New Pro Subscription",
-            content: `User ${ctx.user.name} (${ctx.user.email}) upgraded to Pro plan.`,
+            title: `New ${input.plan === "solo" ? "Solo (500 SAR)" : "Office (2000 SAR)"} Subscription`,
+            content: `User ${ctx.user.name} (${ctx.user.email}) subscribed to ${input.plan} plan.`,
           });
         }
         return { success: true, plan: input.plan };

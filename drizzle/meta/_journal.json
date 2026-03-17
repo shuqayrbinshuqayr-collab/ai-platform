@@ -57,6 +57,20 @@
       "when": 1773756640091,
       "tag": "0007_wonderful_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1773785629283,
+      "tag": "0008_amusing_warpath",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1773785683732,
+      "tag": "0009_broken_wildside",
+      "breakpoints": true
     }
   ]
 }

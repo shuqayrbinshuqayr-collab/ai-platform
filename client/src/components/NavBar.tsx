@@ -24,7 +24,7 @@ export default function NavBar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: subscription } = trpc.subscription.get.useQuery(undefined, { enabled: isAuthenticated });
-  const isPro = subscription?.plan === "pro";
+  const isPro = subscription?.plan === "solo" || subscription?.plan === "office";
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => { logout(); window.location.href = "/"; },
