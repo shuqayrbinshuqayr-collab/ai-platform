@@ -100,7 +100,7 @@ export default function Home() {
             </p>
 
             {/* CTA — Three main actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16 max-w-3xl mx-auto w-full">
+            <div className="flex flex-col sm:flex-row gap-4 mb-16 max-w-2xl mx-auto w-full justify-center">
               {/* 1. Start new project */}
               <button
                 onClick={() => isAuthenticated ? navigate("/projects/new") : (window.location.href = getLoginUrl())}
@@ -168,14 +168,7 @@ export default function Home() {
               <div key={v} className={`soar-card p-5 relative overflow-hidden ${
                 status === "live" ? "border-primary/50" : status === "soon" ? "border-white/10" : "border-white/5"
               }`}>
-                {status === "live" && (
-                  <div className="absolute top-3 right-3">
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 border border-primary/30 rounded-full px-2 py-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      {lang === "ar" ? "متاح" : "LIVE"}
-                    </span>
-                  </div>
-                )}
+
                 <div className={`text-2xl font-black mb-2 ${
                   status === "live" ? "text-primary" : status === "soon" ? "text-gray-500" : "text-gray-700"
                 }`}>{v}</div>
