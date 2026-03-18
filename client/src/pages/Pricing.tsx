@@ -41,8 +41,8 @@ const PLANS = {
     limitedIndexes: [0, 1],
   },
   solo: {
-    nameAr: "فردي",
-    nameEn: "Solo",
+    nameAr: "احترافي",
+    nameEn: "Professional",
     priceLabel: { ar: "٥٠٠ ريال / شهر", en: "SAR 500 / month" },
     tagAr: "للمهندس الفرد",
     tagEn: "For individual engineers",
@@ -70,17 +70,17 @@ const PLANS = {
     limitedIndexes: [],
   },
   office: {
-    nameAr: "مكتب هندسي",
-    nameEn: "Engineering Office",
+    nameAr: "مختص",
+    nameEn: "Specialist",
     priceLabel: { ar: "٢٠٠٠ ريال / شهر", en: "SAR 2,000 / month" },
-    tagAr: "للمكاتب الهندسية — حتى ٤ مستخدمين",
-    tagEn: "For engineering offices — up to 4 users",
+    tagAr: "للمكاتب الهندسية — حتى ٣ مستخدمين",
+    tagEn: "For engineering offices — up to 3 users",
     icon: Building2,
     borderClass: "border-purple-500/50",
     accentClass: "text-purple-400",
     featuresAr: [
       "كل مزايا الخطة الفردية",
-      "حتى ٤ مستخدمين في نفس الحساب",
+      "حتى ٣ مستخدمين في نفس الحساب",
       "لوحة إدارة المكتب",
       "ملف مشاريع مشترك للفريق",
       "تقارير الامتثال التفصيلية",
@@ -89,7 +89,7 @@ const PLANS = {
     ],
     featuresEn: [
       "All Solo plan features",
-      "Up to 4 users per account",
+      "Up to 3 users per account",
       "Office management dashboard",
       "Shared team project portfolio",
       "Detailed compliance reports",
@@ -111,7 +111,7 @@ export default function Pricing() {
     onSuccess: ({ plan }) => {
       toast.success(
         lang === "ar"
-          ? `تم الترقية إلى خطة ${plan === "solo" ? "الفردي" : plan === "office" ? "المكتب الهندسي" : "المجانية"} بنجاح! 🎉`
+          ? `تم الترقية إلى خطة ${plan === "solo" ? "الاحترافي" : plan === "office" ? "المختص" : "المجانية"} بنجاح! 🎉`
           : `Successfully switched to ${plan} plan! 🎉`
       );
     },
@@ -163,8 +163,8 @@ export default function Pricing() {
               <Crown className="w-3.5 h-3.5 text-primary" />
               <span className="text-primary font-semibold">
                 {lang === "ar"
-                  ? `خطتك الحالية: ${currentPlan === "free" ? "مجاني" : currentPlan === "solo" ? "فردي" : "مكتب هندسي"}`
-                  : `Current plan: ${currentPlan === "free" ? "Free" : currentPlan === "solo" ? "Solo" : "Office"}`}
+                  ? `خطتك الحالية: ${currentPlan === "free" ? "مجاني" : currentPlan === "solo" ? "احترافي" : "مختص"}`
+                  : `Current plan: ${currentPlan === "free" ? "Free" : currentPlan === "solo" ? "Professional" : "Specialist"}`}
               </span>
             </div>
           </div>
@@ -293,10 +293,10 @@ export default function Pricing() {
                     {lang === "ar" ? "مجاني" : "Free"}
                   </th>
                   <th className="px-4 py-3 text-center text-orange-400 font-medium">
-                    {lang === "ar" ? "فردي" : "Solo"}
+                    {lang === "ar" ? "احترافي" : "Professional"}
                   </th>
                   <th className="px-4 py-3 text-center text-purple-400 font-medium">
-                    {lang === "ar" ? "مكتب" : "Office"}
+                    {lang === "ar" ? "مختص" : "Specialist"}
                   </th>
                 </tr>
               </thead>
@@ -317,7 +317,7 @@ export default function Pricing() {
                   {
                     ar: "عدد المستخدمين", en: "Users",
                     free: "1", solo: "1",
-                    office: lang === "ar" ? "حتى ٤" : "Up to 4",
+                    office: lang === "ar" ? "حتى ٣" : "Up to 3",
                   },
                   {
                     ar: "تصدير DXF (AutoCAD)", en: "DXF Export",

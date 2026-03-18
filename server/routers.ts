@@ -1016,7 +1016,7 @@ Return ONLY valid JSON, no extra text.`,
         const blueprintLimit = input.plan === "free" ? 2 : -1;
         const projLimit = input.plan === "free" ? 2 : -1;
         const price = input.plan === "solo" ? 500 : input.plan === "office" ? 2000 : 0;
-        const seats = input.plan === "office" ? 4 : 1;
+        const seats = input.plan === "office" ? 3 : 1;
         await updateSubscription(sub.id, {
           plan: input.plan,
           blueprintsLimit: blueprintLimit,
@@ -1027,7 +1027,7 @@ Return ONLY valid JSON, no extra text.`,
         });
         if (input.plan !== "free") {
           await notifyOwner({
-            title: `New ${input.plan === "solo" ? "Solo (500 SAR)" : "Office (2000 SAR)"} Subscription`,
+            title: `New ${input.plan === "solo" ? "Professional (500 SAR)" : "Specialist (2000 SAR)"} Subscription`,
             content: `User ${ctx.user.name} (${ctx.user.email}) subscribed to ${input.plan} plan.`,
           });
         }
