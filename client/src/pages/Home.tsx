@@ -155,69 +155,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Welcome / Action Cards (shown when logged in) ─── */}
-      {isAuthenticated && (
-        <section className="py-16 border-t border-border/30">
-          <div className="container">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl font-black text-white">
-                {lang === "ar" ? `مرحباً، ${user?.name?.split(" ")[0]}` : `Welcome, ${user?.name?.split(" ")[0]}`}
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {lang === "ar" ? "ماذا تريد أن تفعل اليوم؟" : "What would you like to do today?"}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
-              {/* Create Plan */}
-              <button
-                onClick={() => navigate("/projects/new")}
-                className="soar-card p-6 flex flex-col items-center gap-3 hover:border-primary/50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
-                  <LayoutGrid className="w-6 h-6 text-primary" />
-                </div>
-                <div className="text-center">
-                  <div className="font-bold text-sm text-foreground">{lang === "ar" ? "إنشاء مخطط" : "Create Plan"}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "مخطط معماري جديد" : "New floor plan"}</div>
-                </div>
-              </button>
-
-              {/* Create Image */}
-              <button
-                onClick={() => navigate("/gallery")}
-                className="soar-card p-6 flex flex-col items-center gap-3 hover:border-primary/50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-secondary/50 border border-border flex items-center justify-center group-hover:bg-secondary transition-colors">
-                  <Image className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div className="text-center">
-                  <div className="font-bold text-sm text-foreground">{lang === "ar" ? "إنشاء صورة" : "Create Image"}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "تصور معماري" : "Architectural render"}</div>
-                </div>
-              </button>
-
-              {/* Create Project (Pro) */}
-              <button
-                onClick={() => navigate("/pricing")}
-                className="soar-card p-6 flex flex-col items-center gap-3 hover:border-primary/50 transition-all group relative"
-              >
-                <div className="absolute top-2 right-2">
-                  <span className="pro-badge">PRO</span>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-secondary/50 border border-border flex items-center justify-center group-hover:bg-secondary transition-colors">
-                  <FolderOpen className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div className="text-center">
-                  <div className="font-bold text-sm text-foreground">{lang === "ar" ? "إنشاء مشروع" : "Create Project"}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "ملف مشروع كامل" : "Full project file"}</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ─── How It Works ─── */}
       {/* ─── 4 Versions Roadmap Preview ─── */}
       <section className="py-20 border-t border-border/30">
