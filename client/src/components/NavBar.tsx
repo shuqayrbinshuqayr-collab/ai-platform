@@ -62,9 +62,9 @@ export default function NavBar() {
                 <path d="M9 21V15h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-primary"/>
               </svg>
             </div>
-            <div className="flex flex-col leading-none">
+            <div className="flex items-baseline leading-none">
               <span className="font-black text-white text-lg tracking-tight">SOAR</span>
-              <span className="text-primary text-[10px] font-bold tracking-widest -mt-0.5">.AI</span>
+              <span className="text-primary text-sm font-black tracking-tight">.AI</span>
             </div>
           </Link>
 
