@@ -63,8 +63,8 @@ export default function NavBar() {
               </svg>
             </div>
             <div className="flex items-baseline leading-none">
-              <span className="font-black text-white text-lg tracking-tight">SOAR</span>
               <span className="text-primary text-sm font-black tracking-tight">.AI</span>
+              <span className="font-black text-white text-lg tracking-tight">SOAR</span>
             </div>
           </Link>
 
