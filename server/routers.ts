@@ -1009,28 +1009,28 @@ Return ONLY valid JSON, no extra text.`,
       return getOrCreateSubscription(ctx.user.id);
     }),
     upgrade: protectedProcedure
-      .input(z.object({ plan: z.enum(["free", "solo", "office"]) }))
+      .input(z.object({ plan: z.enum(["student", "solo", "office"]) }))
       .mutation(async ({ ctx, input }) => {
         const sub = await getOrCreateSubscription(ctx.user.id);
-        // free: 2 projects, 2 blueprints/day | solo/office: unlimited
-        const blueprintLimit = input.plan === "free" ? 2 : -1;
-        const projLimit = input.plan === "free" ? 2 : -1;
-        const price = input.plan === "solo" ? 500 : input.plan === "office" ? 2000 : 0;
+        // student: 1 project/day (20 SAR) | solo/office: unlimited
+        const blueprintLimit = input.plan === "student" ? 1 : -1;
+        const projLimit = -1; // all plans have unlimited projects
+        const price = input.plan === "student" ? 20 : input.plan === "solo" ? 500 : 2000;
         const seats = input.plan === "office" ? 3 : 1;
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         await updateSubscription(sub.id, {
           plan: input.plan,
           blueprintsLimit: blueprintLimit,
           projectsLimit: projLimit,
           pricePerMonth: price,
           seats,
-          expiresAt: input.plan !== "free" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
+          expiresAt,
         });
-        if (input.plan !== "free") {
-          await notifyOwner({
-            title: `New ${input.plan === "solo" ? "Professional (500 SAR)" : "Specialist (2000 SAR)"} Subscription`,
-            content: `User ${ctx.user.name} (${ctx.user.email}) subscribed to ${input.plan} plan.`,
-          });
-        }
+        const planNames: Record<string, string> = { student: "طلاب (20 ريال)", solo: "احترافي (500 ريال)", office: "مختص (2000 ريال)" };
+        await notifyOwner({
+          title: `اشتراك جديد: ${planNames[input.plan]}`,
+          content: `المستخدم ${ctx.user.name} (${ctx.user.email}) اشترك في خطة ${planNames[input.plan]}.`,
+        });
         return { success: true, plan: input.plan };
       }),
   }),

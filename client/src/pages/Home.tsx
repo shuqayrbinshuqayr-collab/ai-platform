@@ -292,31 +292,33 @@ export default function Home() {
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {/* Free */}
-            <div className="soar-card p-7">
+            {/* طلاب */}
+            <div className="soar-card p-7 border-blue-500/30 relative" style={{boxShadow: "0 0 20px rgba(59,130,246,0.08)"}}>
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <div className="font-black text-xl text-white">{lang === "ar" ? "مجاني" : "Free"}</div>
-                  <div className="text-2xl font-black text-foreground mt-1">{lang === "ar" ? "مجاناً" : "Free"}</div>
+                  <div className="font-black text-xl text-white">{lang === "ar" ? "طلاب" : "Student"}</div>
+                  <div className="text-2xl font-black text-blue-400 mt-1">{lang === "ar" ? "٢٠ ريال" : "SAR 20"}<span className="text-sm text-muted-foreground font-normal">/{lang === "ar" ? "شهر" : "mo"}</span></div>
                 </div>
-                <div className="status-free px-3 py-1 rounded-full text-xs font-bold">FREE</div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {lang === "ar" ? "طالب" : "STUDENT"}
+                </div>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {(lang === "ar"
-                  ? ["مشروعان فقط", "مخططان يومياً", "تحليل الأرض", "توليد 6 مفاهيم"]
-                  : ["2 projects only", "2 blueprints/day", "Land analysis", "6 concept generation"]
+                  ? ["مشروع واحد يومياً", "تحليل الأرض", "توليد 6 مفاهيم", "تصدير SVG"]
+                  : ["1 project per day", "Land analysis", "6 concept generation", "SVG export"]
                 ).map(item => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle className="w-4 h-4 text-white/30 flex-shrink-0" />
+                  <li key={item} className="flex items-center gap-2 text-sm text-foreground">
+                    <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
               <Button
-                className="w-full border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5"
-                variant="outline"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2"
+                onClick={() => navigate("/pricing")}
               >
-                {isAuthenticated ? (lang === "ar" ? "خطتك الحالية" : "Current Plan") : (lang === "ar" ? "ابدأ مجاناً" : "Start Free")}
+                {lang === "ar" ? "اشترك الآن" : "Subscribe Now"}
               </Button>
             </div>
             {/* احترافي */}

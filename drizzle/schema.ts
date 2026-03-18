@@ -125,19 +125,19 @@ export type InsertBlueprint = typeof blueprints.$inferInsert;
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
-  // Plans: free | solo (500 SAR/month) | office (2000 SAR/month, up to 4 seats)
-  plan: mysqlEnum("plan", ["free", "solo", "office"]).default("free").notNull(),
-  blueprintsUsed: int("blueprintsUsed").default(0).notNull(),
-  blueprintsLimit: int("blueprintsLimit").default(2).notNull(), // free=2/day, solo/office=unlimited(-1)
-  blueprintsUsedToday: int("blueprintsUsedToday").default(0).notNull(), // resets daily for free plan
-  blueprintsResetDate: timestamp("blueprintsResetDate"), // last daily reset timestamp
-  projectsLimit: int("projectsLimit").default(2).notNull(), // free=2 total, solo/office=unlimited(-1)
+  // Plans: student (20 SAR/month, 1 project/day) | solo (500 SAR/month) | office (2000 SAR/month, up to 3 seats)
+  plan: mysqlEnum("plan", ["free", "student", "solo", "office"]).default("student").notNull(),
+  blueprintsLimit: int("blueprintsLimit").default(1).notNull(), // student=1/day, solo/office=unlimited(-1)
+  blueprintsUsedToday: int("blueprintsUsedToday").default(0).notNull(), // resets daily for student plan
+  
+  projectsLimit: int("projectsLimit").default(-1).notNull(), // student=-1 (unlimited), solo/office=unlimited(-1)
   // Office plan: seat management
-  seats: int("seats").default(1).notNull(), // 1 for free/solo, up to 4 for office
+  seats: int("seats").default(1).notNull(), // 1 for student/solo, up to 3 for office
   officeId: int("officeId"), // links members to the office owner's subscription
   isOfficeOwner: int("isOfficeOwner").default(0).notNull(), // 1 if this user owns the office plan
-  // Pricing
-  pricePerMonth: int("pricePerMonth").default(0).notNull(), // SAR: 0=free, 500=solo, 2000=office
+
+  pricePerMonth: int("pricePerMonth").default(20).notNull(), // SAR: 20=student, 500=solo, 2000=office
+  blueprintsResetDate: timestamp("blueprintsResetDate"),
   expiresAt: timestamp("expiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

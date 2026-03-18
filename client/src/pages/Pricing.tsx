@@ -8,37 +8,38 @@ import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
   CheckCircle, Crown, Zap, ArrowRight, Lock,
-  Building2, Sparkles, Edit3, Users
+  Building2, Sparkles, GraduationCap
 } from "lucide-react";
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
 const PLANS = {
-  free: {
-    nameAr: "مجاني",
-    nameEn: "Free",
-    priceLabel: { ar: "مجاناً", en: "Free" },
-    tagAr: "للتجربة والاستكشاف",
-    tagEn: "Try & explore",
-    icon: Sparkles,
-    borderClass: "border-white/10",
-    accentClass: "text-white/50",
+  student: {
+    nameAr: "طلاب",
+    nameEn: "Student",
+    priceLabel: { ar: "٢٠ ريال / شهر", en: "SAR 20 / month" },
+    tagAr: "للطلاب والمتدربين",
+    tagEn: "For students & learners",
+    icon: GraduationCap,
+    borderClass: "border-blue-500/30",
+    accentClass: "text-blue-400",
+    bgClass: "bg-blue-500/10",
     featuresAr: [
-      "مشروعان فقط",
-      "مخططان يومياً",
+      "مشروع واحد يومياً",
+      "مشاريع غير محدودة",
       "6 مفاهيم معمارية لكل مشروع",
       "تحليل الأرض بالذكاء الاصطناعي",
-      "تحميل PNG",
+      "تحميل SVG",
       "دعم عبر البريد الإلكتروني",
     ],
     featuresEn: [
-      "2 projects only",
-      "2 blueprints per day",
+      "1 project per day",
+      "Unlimited projects",
       "6 architectural concepts per project",
       "AI land analysis",
-      "PNG download",
+      "SVG download",
       "Email support",
     ],
-    limitedIndexes: [0, 1],
+    limitedIndexes: [0],
   },
   solo: {
     nameAr: "احترافي",
@@ -49,6 +50,7 @@ const PLANS = {
     icon: Zap,
     borderClass: "border-orange-500/50",
     accentClass: "text-orange-400",
+    bgClass: "bg-orange-500/10",
     featuresAr: [
       "مشاريع غير محدودة",
       "مخططات غير محدودة",
@@ -78,8 +80,9 @@ const PLANS = {
     icon: Building2,
     borderClass: "border-purple-500/50",
     accentClass: "text-purple-400",
+    bgClass: "bg-purple-500/10",
     featuresAr: [
-      "كل مزايا الخطة الفردية",
+      "كل مزايا الخطة الاحترافية",
       "حتى ٣ مستخدمين في نفس الحساب",
       "لوحة إدارة المكتب",
       "ملف مشاريع مشترك للفريق",
@@ -88,7 +91,7 @@ const PLANS = {
       "دعم فني ٢٤/٧",
     ],
     featuresEn: [
-      "All Solo plan features",
+      "All Professional plan features",
       "Up to 3 users per account",
       "Office management dashboard",
       "Shared team project portfolio",
@@ -111,27 +114,28 @@ export default function Pricing() {
     onSuccess: ({ plan }) => {
       toast.success(
         lang === "ar"
-          ? `تم الترقية إلى خطة ${plan === "solo" ? "الاحترافي" : plan === "office" ? "المختص" : "المجانية"} بنجاح! 🎉`
-          : `Successfully switched to ${plan} plan! 🎉`
+          ? `تم الاشتراك في خطة ${plan === "student" ? "الطلاب" : plan === "solo" ? "الاحترافي" : "المختص"} بنجاح! 🎉`
+          : `Successfully subscribed to ${plan} plan! 🎉`
       );
     },
     onError: (err) => toast.error(err.message),
   });
 
-  const currentPlan = (subscription?.plan ?? "free") as "free" | "solo" | "office";
+  const currentPlan = (subscription?.plan ?? "student") as "student" | "solo" | "office";
 
-  const handleAction = (planKey: "free" | "solo" | "office") => {
+  const handleAction = (planKey: "student" | "solo" | "office") => {
     if (!isAuthenticated) {
       window.location.href = getLoginUrl();
-      return;
-    }
-    if (planKey === "free") {
-      navigate("/dashboard");
       return;
     }
     if (planKey === currentPlan) return;
     upgradeMutation.mutate({ plan: planKey });
   };
+
+  const planLabel = (p: string) =>
+    p === "student" ? (lang === "ar" ? "طلاب" : "Student")
+    : p === "solo" ? (lang === "ar" ? "احترافي" : "Professional")
+    : (lang === "ar" ? "مختص" : "Specialist");
 
   return (
     <div className="min-h-screen bg-background pt-16" dir={isRTL ? "rtl" : "ltr"}>
@@ -151,8 +155,8 @@ export default function Pricing() {
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
             {lang === "ar"
-              ? "ابدأ مجاناً وجرّب المنصة، ثم قم بالترقية عندما تحتاج إلى إمكانيات احترافية"
-              : "Start free and explore the platform, then upgrade for professional capabilities"}
+              ? "ابدأ بخطة الطلاب بـ ٢٠ ريال فقط، ثم قم بالترقية عندما تحتاج إلى إمكانيات احترافية"
+              : "Start with the Student plan at SAR 20, then upgrade when you need professional capabilities"}
           </p>
         </div>
 
@@ -163,8 +167,8 @@ export default function Pricing() {
               <Crown className="w-3.5 h-3.5 text-primary" />
               <span className="text-primary font-semibold">
                 {lang === "ar"
-                  ? `خطتك الحالية: ${currentPlan === "free" ? "مجاني" : currentPlan === "solo" ? "احترافي" : "مختص"}`
-                  : `Current plan: ${currentPlan === "free" ? "Free" : currentPlan === "solo" ? "Professional" : "Specialist"}`}
+                  ? `خطتك الحالية: ${planLabel(currentPlan)}`
+                  : `Current plan: ${planLabel(currentPlan)}`}
               </span>
             </div>
           </div>
@@ -172,7 +176,7 @@ export default function Pricing() {
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {(["free", "solo", "office"] as const).map((planKey) => {
+          {(["student", "solo", "office"] as const).map((planKey) => {
             const plan = PLANS[planKey];
             const Icon = plan.icon;
             const isCurrent = currentPlan === planKey;
@@ -198,10 +202,7 @@ export default function Pricing() {
                 {/* Plan header */}
                 <div className="mb-5 mt-1">
                   <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2 rounded-lg ${
-                      planKey === "free" ? "bg-white/5" :
-                      planKey === "solo" ? "bg-orange-500/10" : "bg-purple-500/10"
-                    }`}>
+                    <div className={`p-2 rounded-lg ${plan.bgClass}`}>
                       <Icon className={`w-5 h-5 ${plan.accentClass}`} />
                     </div>
                     {isCurrent && (
@@ -216,7 +217,7 @@ export default function Pricing() {
                   <p className={`text-xs ${plan.accentClass} mb-3`}>
                     {lang === "ar" ? plan.tagAr : plan.tagEn}
                   </p>
-                  <div className={`text-2xl font-black ${planKey === "free" ? "text-white/50" : plan.accentClass}`}>
+                  <div className={`text-2xl font-black ${plan.accentClass}`}>
                     {lang === "ar" ? plan.priceLabel.ar : plan.priceLabel.en}
                   </div>
                 </div>
@@ -233,10 +234,7 @@ export default function Pricing() {
                         {isLimited ? (
                           <Lock className="w-3.5 h-3.5 text-yellow-500/70 mt-0.5 shrink-0" />
                         ) : (
-                          <CheckCircle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
-                            planKey === "free" ? "text-white/30" :
-                            planKey === "solo" ? "text-orange-400" : "text-purple-400"
-                          }`} />
+                          <CheckCircle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${plan.accentClass}`} />
                         )}
                         <span className={isLimited ? "text-yellow-500/70" : "text-muted-foreground"}>
                           {feature}
@@ -249,24 +247,21 @@ export default function Pricing() {
                 {/* CTA */}
                 <Button
                   className={`w-full font-bold ${
-                    planKey === "free"
-                      ? "border border-white/20 bg-transparent text-white/60 hover:bg-white/5"
+                    planKey === "student"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
                       : planKey === "solo"
                       ? "bg-orange-500 hover:bg-orange-600 text-white"
                       : "bg-purple-600 hover:bg-purple-700 text-white"
                   } ${isCurrent ? "opacity-60 cursor-default" : ""}`}
-                  variant={planKey === "free" ? "outline" : "default"}
-                  disabled={(isCurrent && planKey !== "free") || upgradeMutation.isPending}
+                  disabled={isCurrent || upgradeMutation.isPending}
                   onClick={() => handleAction(planKey)}
                 >
-                  {isCurrent && planKey !== "free"
+                  {isCurrent
                     ? (lang === "ar" ? "خطتك الحالية ✓" : "Current Plan ✓")
-                    : planKey === "free"
-                    ? (lang === "ar" ? "ابدأ مجاناً" : "Start Free")
                     : upgradeMutation.isPending
-                    ? (lang === "ar" ? "جاري الترقية..." : "Upgrading...")
+                    ? (lang === "ar" ? "جاري الاشتراك..." : "Processing...")
                     : (lang === "ar" ? "اشترك الآن" : "Subscribe Now")}
-                  {!isCurrent && planKey !== "free" && !upgradeMutation.isPending && (
+                  {!isCurrent && !upgradeMutation.isPending && (
                     <ArrowRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""} ms-1`} />
                   )}
                 </Button>
@@ -278,83 +273,56 @@ export default function Pricing() {
         {/* Comparison Table */}
         <div className="bg-card border border-white/10 rounded-2xl overflow-hidden mb-10">
           <div className="px-6 py-4 border-b border-white/10">
-            <h3 className="font-bold text-white text-sm">
-              {lang === "ar" ? "مقارنة تفصيلية بين الخطط" : "Detailed Plan Comparison"}
+            <h3 className="text-white font-bold text-lg">
+              {lang === "ar" ? "مقارنة تفصيلية" : "Detailed Comparison"}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5">
-                  <th className="text-start px-6 py-3 text-muted-foreground font-medium w-2/5">
+                  <th className="text-start px-6 py-3 text-muted-foreground font-medium">
                     {lang === "ar" ? "الميزة" : "Feature"}
                   </th>
-                  <th className="px-4 py-3 text-center text-white/40 font-medium">
-                    {lang === "ar" ? "مجاني" : "Free"}
+                  <th className="text-center px-4 py-3 text-blue-400 font-bold">
+                    {lang === "ar" ? "طلاب" : "Student"}
                   </th>
-                  <th className="px-4 py-3 text-center text-orange-400 font-medium">
+                  <th className="text-center px-4 py-3 text-orange-400 font-bold">
                     {lang === "ar" ? "احترافي" : "Professional"}
                   </th>
-                  <th className="px-4 py-3 text-center text-purple-400 font-medium">
+                  <th className="text-center px-4 py-3 text-purple-400 font-bold">
                     {lang === "ar" ? "مختص" : "Specialist"}
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5">
                 {[
-                  {
-                    ar: "عدد المشاريع", en: "Projects",
-                    free: lang === "ar" ? "٢ فقط" : "2 only",
-                    solo: lang === "ar" ? "غير محدود" : "Unlimited",
-                    office: lang === "ar" ? "غير محدود" : "Unlimited",
-                  },
-                  {
-                    ar: "المخططات", en: "Blueprints",
-                    free: lang === "ar" ? "٢ / يوم" : "2 / day",
-                    solo: lang === "ar" ? "غير محدود" : "Unlimited",
-                    office: lang === "ar" ? "غير محدود" : "Unlimited",
-                  },
-                  {
-                    ar: "عدد المستخدمين", en: "Users",
-                    free: "1", solo: "1",
-                    office: lang === "ar" ? "حتى ٣" : "Up to 3",
-                  },
-                  {
-                    ar: "تصدير DXF (AutoCAD)", en: "DXF Export",
-                    free: "✗", solo: "✓", office: "✓",
-                  },
-                  {
-                    ar: "محرر المخططات التفاعلي", en: "Interactive editor",
-                    free: "✗", solo: "✓", office: "✓",
-                  },
-                  {
-                    ar: "نظام التعلم الذاتي", en: "Self-learning AI",
-                    free: "✗", solo: "✓", office: "✓",
-                  },
-                  {
-                    ar: "لوحة إدارة المكتب", en: "Office dashboard",
-                    free: "✗", solo: "✗", office: "✓",
-                  },
-                  {
-                    ar: "السعر الشهري", en: "Monthly price",
-                    free: lang === "ar" ? "مجاناً" : "Free",
-                    solo: lang === "ar" ? "٥٠٠ ريال" : "SAR 500",
-                    office: lang === "ar" ? "٢٠٠٠ ريال" : "SAR 2,000",
-                  },
+                  { ar: "السعر الشهري", en: "Monthly Price", vals: ["٢٠ ريال", "٥٠٠ ريال", "٢٠٠٠ ريال"] },
+                  { ar: "المشاريع اليومية", en: "Daily Projects", vals: ["١ مشروع/يوم", "غير محدود", "غير محدود"] },
+                  { ar: "المستخدمون", en: "Users", vals: ["١", "١", "حتى ٣"] },
+                  { ar: "تصدير DXF", en: "DXF Export", vals: [false, true, true] },
+                  { ar: "المحرر التفاعلي", en: "Interactive Editor", vals: [false, true, true] },
+                  { ar: "نظام التعلم الذاتي", en: "Self-Learning", vals: [false, true, true] },
+                  { ar: "لوحة إدارة المكتب", en: "Office Dashboard", vals: [false, false, true] },
+                  { ar: "دعم فني ٢٤/٧", en: "24/7 Support", vals: [false, false, true] },
                 ].map((row, i) => (
-                  <tr key={i} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
+                  <tr key={i} className="hover:bg-white/2">
                     <td className="px-6 py-3 text-muted-foreground">
                       {lang === "ar" ? row.ar : row.en}
                     </td>
-                    <td className={`px-4 py-3 text-center text-xs font-mono ${
-                      row.free === "✗" ? "text-red-400/50" : "text-white/40"
-                    }`}>{row.free}</td>
-                    <td className={`px-4 py-3 text-center text-xs font-mono ${
-                      row.solo === "✗" ? "text-red-400/50" : "text-orange-400"
-                    }`}>{row.solo}</td>
-                    <td className={`px-4 py-3 text-center text-xs font-mono ${
-                      row.office === "✗" ? "text-red-400/50" : "text-purple-400"
-                    }`}>{row.office}</td>
+                    {row.vals.map((val, j) => (
+                      <td key={j} className="text-center px-4 py-3">
+                        {typeof val === "boolean" ? (
+                          val
+                            ? <CheckCircle className="w-4 h-4 text-green-400 mx-auto" />
+                            : <span className="text-white/20 text-lg">—</span>
+                        ) : (
+                          <span className={`font-semibold ${j === 0 ? "text-blue-400" : j === 1 ? "text-orange-400" : "text-purple-400"}`}>
+                            {val}
+                          </span>
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -362,30 +330,12 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Self-learning note */}
-        <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-5 text-center mb-6">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Edit3 className="w-4 h-4 text-orange-400" />
-            <span className="text-orange-400 font-bold text-sm">
-              {lang === "ar" ? "نظام التعلم الذاتي" : "Self-Learning System"}
-            </span>
-          </div>
-          <p className="text-sm text-orange-300/70">
-            {lang === "ar"
-              ? "كلما عدّل المهندس على مخطط، يتعلم النظام من هذا التعديل ويُحسّن التوليد في المشاريع القادمة تلقائياً."
-              : "Every time an engineer edits a blueprint, the system learns from that edit and automatically improves future generations."}
-          </p>
-        </div>
-
-        {/* Enterprise contact */}
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">
-            {lang === "ar" ? "تحتاج أكثر من ٤ مستخدمين؟ " : "Need more than 4 users? "}
-            <a href="mailto:info@soar.ai" className="text-primary hover:underline">
-              {lang === "ar" ? "تواصل معنا للحصول على عرض مخصص" : "Contact us for a custom enterprise quote"}
-            </a>
-          </p>
-        </div>
+        {/* FAQ note */}
+        <p className="text-center text-muted-foreground text-xs">
+          {lang === "ar"
+            ? "جميع الأسعار بالريال السعودي. يمكن الإلغاء في أي وقت."
+            : "All prices in Saudi Riyals. Cancel anytime."}
+        </p>
       </div>
     </div>
   );

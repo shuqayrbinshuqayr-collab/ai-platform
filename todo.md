@@ -174,3 +174,10 @@
 - [x] بناء صفحة BlueprintAnalyzer.tsx لرفع وتحليل المخطط
 - [x] إضافة procedure blueprints.analyze في routers.ts
 - [x] تسجيل مسار /analyze في App.tsx
+
+## Phase 24: تحديث خطط الاشتراك (إزالة مجاني + إضافة طلاب 20 ريال)
+- [ ] تحديث schema.ts: تغيير plan enum (إزالة free، إضافة student)
+- [ ] تحديث db.ts: منطق student (مشروع واحد يومياً)
+- [ ] تحديث routers.ts: subscription procedures بالخطط الجديدة
+- [ ] تحديث Pricing.tsx: 3 خطط (student/solo/office)
+- [ ] تحديث Home.tsx: قسم خطط الاشتراك بالخطط الجديدة

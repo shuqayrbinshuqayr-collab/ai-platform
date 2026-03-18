@@ -163,8 +163,8 @@ export async function getOrCreateSubscription(userId: number): Promise<Subscript
   const existing = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   if (existing.length > 0) {
     const sub = existing[0];
-    // Reset daily counter for free plan if it's a new day
-    if (sub.plan === "free" && sub.blueprintsResetDate) {
+    // Reset daily counter for student plan if it's a new day
+    if ((sub.plan === "student" || sub.plan === "free") && sub.blueprintsResetDate) {
       const lastReset = new Date(sub.blueprintsResetDate);
       const now = new Date();
       const isNewDay = lastReset.toDateString() !== now.toDateString();
@@ -178,38 +178,33 @@ export async function getOrCreateSubscription(userId: number): Promise<Subscript
     }
     return sub;
   }
-  // Create default free subscription: 2 projects, 2 blueprints/day
+  // Create default student subscription: 1 project/day, 20 SAR/month
   const now = new Date();
   await db.insert(subscriptions).values({
-    userId, plan: "free",
-    blueprintsUsed: 0, blueprintsUsedToday: 0, blueprintsResetDate: now,
-    blueprintsLimit: 2, projectsLimit: 2,
-    pricePerMonth: 0, seats: 1,
+    userId, plan: "student",
+    blueprintsUsedToday: 0, blueprintsResetDate: now,
+    blueprintsLimit: 1, projectsLimit: -1,
+    pricePerMonth: 20, seats: 1,
   });
   const created = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   return created[0];
 }
 
-// Check if user can generate a blueprint (respects daily limit for free plan)
+// Check if user can generate a blueprint (respects daily limit for student plan)
 export async function canGenerateBlueprint(userId: number): Promise<{ allowed: boolean; reason?: string }> {
   const sub = await getOrCreateSubscription(userId);
-  if (sub.plan !== "free") return { allowed: true };
+  // solo and office have unlimited blueprints
+  if (sub.plan === "solo" || sub.plan === "office") return { allowed: true };
   const usedToday = sub.blueprintsUsedToday ?? 0;
-  const dailyLimit = sub.blueprintsLimit ?? 2;
+  const dailyLimit = sub.blueprintsLimit ?? 1;
   if (usedToday >= dailyLimit) {
-    return { allowed: false, reason: `Daily limit reached (${dailyLimit} blueprints/day on free plan). Upgrade to Solo or Office for unlimited blueprints.` };
+    return { allowed: false, reason: `وصلت للحد اليومي (${dailyLimit} مخطط/يوم). ترقّ لخطة احترافي أو مختص لتوليد غير محدود.` };
   }
   return { allowed: true };
 }
-
-// Check if user can create a new project
+// Check if user can create a new project (all plans have unlimited projects)
 export async function canCreateProject(userId: number, currentProjectCount: number): Promise<{ allowed: boolean; reason?: string }> {
-  const sub = await getOrCreateSubscription(userId);
-  if (sub.plan !== "free") return { allowed: true };
-  const projectLimit = sub.projectsLimit ?? 2;
-  if (currentProjectCount >= projectLimit) {
-    return { allowed: false, reason: `Project limit reached (${projectLimit} projects on free plan). Upgrade to Solo or Office for unlimited projects.` };
-  }
+  // All plans have unlimited projects
   return { allowed: true };
 }
 
@@ -223,7 +218,7 @@ export async function incrementBlueprintsUsed(userId: number) {
   const db = await getDb();
   if (!db) return;
   const sub = await getOrCreateSubscription(userId);
-  await db.update(subscriptions).set({ blueprintsUsed: sub.blueprintsUsed + 1 }).where(eq(subscriptions.id, sub.id));
+  await db.update(subscriptions).set({ blueprintsUsedToday: (sub.blueprintsUsedToday ?? 0) + 1 }).where(eq(subscriptions.id, sub.id));
 }
 
 // ─── Learning System: Get blueprints added to RAG ────────────────────────────
