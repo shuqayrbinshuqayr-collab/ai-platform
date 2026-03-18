@@ -114,20 +114,7 @@ export default function Home() {
                   <div className="text-xs text-muted-foreground mt-1">{lang === "ar" ? "توليد مخططات بالذكاء الاصطناعي" : "AI-powered blueprint generation"}</div>
                 </div>
               </button>
-              {/* 2. Gallery */}
-              <button
-                onClick={() => navigate("/gallery")}
-                className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-all">
-                  <LayoutGrid className="w-6 h-6 text-white/70" />
-                </div>
-                <div className="text-center">
-                  <div className="font-black text-white text-sm">{lang === "ar" ? "معرض المخططات" : "Blueprint Gallery"}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{lang === "ar" ? "استعرض المشاريع السابقة" : "Browse previous projects"}</div>
-                </div>
-              </button>
-              {/* 3. Upload & Analyze */}
+              {/* 2. Upload & Analyze */}
               <button
                 onClick={() => navigate("/analyze")}
                 className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500/60 transition-all cursor-pointer"
