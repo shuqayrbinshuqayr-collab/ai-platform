@@ -340,8 +340,8 @@ export default function Home() {
               </div>
               <ul className="space-y-2.5 mb-6">
                 {(lang === "ar"
-                  ? ["مخططات غير محدودة", "مشاريع غير محدودة", "محرر المخططات التفاعلي", "تصدير DXF لـ AutoCAD", "نظام التعلم الذاتي", "دعم فني ذو أولوية"]
-                  : ["Unlimited blueprints", "Unlimited projects", "Interactive editor", "DXF export for AutoCAD", "Self-learning AI", "Priority support"]
+                  ? ["مخططات غير محدودة", "مشاريع غير محدودة", "محرر المخططات التفاعلي", "تصدير DXF لـ AutoCAD", "دعم فني ذو أولوية"]
+                  : ["Unlimited blueprints", "Unlimited projects", "Interactive editor", "DXF export for AutoCAD", "Priority support"]
                 ).map(item => (
                   <li key={item} className="flex items-center gap-2 text-sm text-foreground">
                     <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />

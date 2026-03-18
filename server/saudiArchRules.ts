@@ -668,41 +668,32 @@ export function buildEnhancedArchPrompt(params: {
   // اختيار المرجع الأقرب من المخططات الحقيقية
   const refSimilarity = landArea <= 300 ? "EXACT MATCH" : landArea <= 500 ? "CLOSE MATCH" : "SCALED MATCH";
 
-  return `You are an expert Saudi residential architect with 20+ years experience in Riyadh.
-Generate a REAL, BUILDABLE floor plan concept #${conceptIndex} with style: "${conceptStyle.en}" (${conceptStyle.ar}).
-Focus: ${conceptStyle.focus}
+  return `You are a licensed Saudi residential architect (SBC-certified) with 25+ years designing villas in Riyadh, Jeddah, and Dammam.
+Generate CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}).
+Design philosophy: ${conceptStyle.focus}
 
-═══════════════════════════════════════════════════════
-REAL SAUDI VILLA REFERENCE (${refSimilarity} - Use as template):
-═══════════════════════════════════════════════════════
-Land: 10.5m × 22m = 231m² | Building: 10.5m × 22m | 2 floors
+══════════════════════════════════════════════════════════════
+ REAL SAUDI VILLA BLUEPRINTS — USE AS EXACT REFERENCE
+══════════════════════════════════════════════════════════════
+Reference A (10.5×22m, 231m², 2 floors):
+  GROUND: Entrance(5.8×1.9) | Majlis(7.4×4.2) | Staircase(2.5×6.6)
+          Distributor(2.6×3.7) | Family Hall(5.46×5.0) | Kitchen(3.14×4.0)
+          Bathroom(3.14×1.5) | Maid Room(3.1×2.1) | Storage(1.8×2.4)
+          Bedroom1(3.1×3.9) | Bedroom2(4.3×3.6) | Master BR(4.6×3.6)
+  UPPER:  Balcony(5.6×1.8) | Majlis2(7.4×3.9) | Staircase(2.5×6.0)
+          Family Living(4.3×3.6) | Master BR(4.6×3.6) | Master Bath(1.9×2.0)
+          Bedroom1(3.07×3.0) | Bedroom2(4.2×3.0) | Bedroom3(4.0×5.0)
+          Kitchen(2.9×4.0) | Dining(4.24×3.0) | Balcony(5.1×1.0)
 
-GROUND FLOOR (exact room positions from real blueprint):
-┌─────────────────────────────────────────────────────┐
-│ NORTH (Street side)                                  │
-│ [Entrance Hall 5.8×1.9m] [Staircase 2.5×6.6m]      │
-│ [Men's Majlis 7.4×4.2m]  [Distributor 2.6×3.7m]    │
-│ [Family Hall 5.46×5.0m]  [Kitchen 3.14×4.0m]        │
-│                           [Bathroom 3.14×1.5m]       │
-│ [Storage 1.8×2.4m]        [Maid Room 3.1×2.1m]      │
-│ [Distributor 2.3×6.6m]   [Bedroom 1: 3.1×3.9m]     │
-│ [Bedroom 2: 4.3×3.6m]    [Master BR: 4.6×3.6m]     │
-│ SOUTH (Back)                                         │
-└─────────────────────────────────────────────────────┘
-
-FIRST FLOOR (exact room positions from real blueprint):
-┌─────────────────────────────────────────────────────┐
-│ NORTH                                                │
-│ [Balcony 5.6×1.8m]        [Staircase 2.5×6.0m]     │
-│ [Men's Majlis 7.4×3.9m]   [Family Hall 2.7×4.2m]   │
-│ [Family Living 4.3×3.6m]  [Toilet 1.0×1.2m]        │
-│ [Master BR 4.6×3.6m]      [Distributor 2.8×5.0m]   │
-│ [Master Bath 1.9×2.0m]    [Bedroom 1: 3.07×3.0m]   │
-│ [Kitchen 2.9×4.0m]        [Bedroom 2: 4.2×3.0m]    │
-│ [Bedroom 3: 4.0×5.0m]     [Dining 4.24×3.0m]       │
-│ [Bedroom 4: 4.0×4.2m]     [Balcony 5.1×1.0m]       │
-│ SOUTH                                                │
-└─────────────────────────────────────────────────────┘
+Reference B (12×20m, 240m², 2 floors):
+  GROUND: Entrance(4.0×2.5) | Majlis(6.0×5.0) | Parking(6.0×3.0)
+          Staircase(2.8×5.5) | Distributor(2.5×4.0) | Kitchen(3.5×4.5)
+          Dining(3.5×3.5) | Bathroom(2.0×2.5) | Toilet(1.5×2.0)
+          Maid Room(3.0×2.8) | Storage(2.0×2.5) | Bedroom1(4.0×4.0)
+  UPPER:  Staircase(2.8×5.5) | Corridor(1.8×6.0) | Family Living(5.0×4.5)
+          Master BR(5.0×4.5) | Master Bath(2.2×2.8) | Bedroom2(3.8×4.0)
+          Bedroom3(3.8×4.0) | Bedroom4(4.0×4.2) | Bathroom(2.0×2.5)
+          Toilet(1.5×2.0) | Prayer Room(3.0×3.0) | Balcony(4.0×1.8)
 
 ═══════════════════════════════════════════════════════
 CRITICAL ARCHITECTURAL RULES (MUST FOLLOW):

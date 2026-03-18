@@ -57,7 +57,6 @@ const PLANS = {
       "6 مفاهيم معمارية لكل مشروع",
       "تصدير DXF لـ AutoCAD",
       "محرر المخططات التفاعلي",
-      "نظام التعلم الذاتي",
       "دعم فني ذو أولوية",
     ],
     featuresEn: [
@@ -66,7 +65,6 @@ const PLANS = {
       "6 architectural concepts per project",
       "DXF export for AutoCAD",
       "Interactive blueprint editor",
-      "Self-learning system",
       "Priority technical support",
     ],
     limitedIndexes: [],
@@ -302,7 +300,7 @@ export default function Pricing() {
                   { ar: "المستخدمون", en: "Users", vals: ["١", "١", "حتى ٣"] },
                   { ar: "تصدير DXF", en: "DXF Export", vals: [false, true, true] },
                   { ar: "المحرر التفاعلي", en: "Interactive Editor", vals: [false, true, true] },
-                  { ar: "نظام التعلم الذاتي", en: "Self-Learning", vals: [false, true, true] },
+                  { ar: "نظام التعلم الذاتي", en: "Self-Learning", vals: [false, false, true] },
                   { ar: "لوحة إدارة المكتب", en: "Office Dashboard", vals: [false, false, true] },
                   { ar: "دعم فني ٢٤/٧", en: "24/7 Support", vals: [false, false, true] },
                 ].map((row, i) => (
