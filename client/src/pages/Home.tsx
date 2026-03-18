@@ -8,7 +8,7 @@ import { useLocation } from "wouter";
 import {
   Zap, ArrowRight, LayoutGrid, Image, FolderOpen,
   MapPin, Brain, Download, CheckCircle, Crown,
-  Building2, Home as HomeIcon, Star, Upload, Search
+  Building2, Home as HomeIcon, Star, Upload, Search, Users
 } from "lucide-react";
 
 export default function Home() {
@@ -311,7 +311,7 @@ export default function Home() {
               {lang === "ar" ? "خطط الاشتراك" : "Subscription Plans"}
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {/* Free */}
             <div className="soar-card p-7">
               <div className="flex items-center justify-between mb-5">
@@ -327,7 +327,7 @@ export default function Home() {
                   : ["2 projects only", "2 blueprints/day", "Land analysis", "6 concept generation"]
                 ).map(item => (
                   <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-white/30 flex-shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -335,13 +335,11 @@ export default function Home() {
               <Button
                 className="w-full border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5"
                 variant="outline"
-                onClick={() => !isAuthenticated && (window.location.href = getLoginUrl())}
               >
                 {isAuthenticated ? (lang === "ar" ? "خطتك الحالية" : "Current Plan") : (lang === "ar" ? "ابدأ مجاناً" : "Start Free")}
               </Button>
             </div>
-
-            {/* Pro */}
+            {/* احترافي */}
             <div className="soar-card p-7 border-primary/40 glow-orange-sm relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="pro-badge flex items-center gap-1">
@@ -351,7 +349,7 @@ export default function Home() {
               </div>
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <div className="font-black text-xl text-white">{lang === "ar" ? "احترافي" : "Pro"}</div>
+                  <div className="font-black text-xl text-white">{lang === "ar" ? "احترافي" : "Professional"}</div>
                   <div className="text-2xl font-black text-primary mt-1">{lang === "ar" ? "٥٠٠ ريال" : "SAR 500"}<span className="text-sm text-muted-foreground font-normal">/{lang === "ar" ? "شهر" : "mo"}</span></div>
                 </div>
                 <div className="status-pro px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
@@ -377,10 +375,39 @@ export default function Home() {
                 {lang === "ar" ? "اشترك الآن" : "Subscribe Now"}
               </Button>
             </div>
+            {/* مختص */}
+            <div className="soar-card p-7 border-purple-500/40 relative" style={{boxShadow: "0 0 20px rgba(168,85,247,0.08)"}}>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <div className="font-black text-xl text-white">{lang === "ar" ? "مختص" : "Specialist"}</div>
+                  <div className="text-2xl font-black text-purple-400 mt-1">{lang === "ar" ? "٢٠٠٠ ريال" : "SAR 2,000"}<span className="text-sm text-muted-foreground font-normal">/{lang === "ar" ? "شهر" : "mo"}</span></div>
+                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                  <Users className="w-3 h-3" />{lang === "ar" ? "٣ مستخدمين" : "3 Users"}
+                </div>
+              </div>
+              <ul className="space-y-2.5 mb-6">
+                {(lang === "ar"
+                  ? ["كل مزايا الاحترافي", "حتى ٣ مستخدمين", "لوحة إدارة المكتب", "مشاريع مشتركة للفريق", "تقارير امتثال تفصيلية", "دعم فني ٢٤/٧"]
+                  : ["All Professional features", "Up to 3 users", "Office management dashboard", "Shared team projects", "Detailed compliance reports", "24/7 priority support"]
+                ).map(item => (
+                  <li key={item} className="flex items-center gap-2 text-sm text-foreground">
+                    <CheckCircle className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2"
+                onClick={() => navigate("/pricing")}
+              >
+                <Users className="w-4 h-4" />
+                {lang === "ar" ? "اشترك الآن" : "Subscribe Now"}
+              </Button>
+            </div>
           </div>
         </div>
       </section>
-
       {/* ─── CTA ─── */}
       {!isAuthenticated && (
         <section className="py-20 border-t border-border/30">
