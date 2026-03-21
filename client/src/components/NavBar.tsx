@@ -54,13 +54,13 @@ export default function NavBar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <svg viewBox="0 0 160 90" className="h-10 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Open rooftop — two thick diagonal lines, no walls */}
-              <polyline points="10,48 80,8 150,48" stroke="#F97316" strokeWidth="14" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
-              {/* SOAR text */}
-              <text x="4" y="84" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="34" fill="#F97316" letterSpacing="2">SOAR</text>
-              {/* .AI text */}
-              <text x="107" y="84" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="34" fill="white" letterSpacing="1">.AI</text>
+            <svg viewBox="0 0 180 88" className="h-10 w-auto" xmlns="http://www.w3.org/2000/svg">
+              {/* Open rooftop: two diagonal lines, no walls */}
+              <polyline points="8,46 90,6 172,46" stroke="#F97316" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter" fill="none"/>
+              {/* SOAR.AI — single text element, tspan for colour split */}
+              <text y="82" fontFamily="'Arial Black', 'Arial Bold', Arial, sans-serif" fontWeight="900" fontSize="32" fill="#F97316">
+                <tspan x="2">SOAR</tspan><tspan fill="white">.AI</tspan>
+              </text>
             </svg>
           </Link>
 
