@@ -881,11 +881,15 @@ POSITION RULES:
         "type": "entrance_hall|majlis|kitchen|bathroom|toilet|bedroom|master_bedroom|family_hall|staircase|distributor|maid_room|storage|parking|laundry|prayer|dining",
         "nameAr": "اسم الغرفة",
         "nameEn": "Room Name",
-        "width": <meters>,
-        "length": <meters>,
-        "area": <m²>,
-        "x": <position from west wall in meters>,
-        "y": <position from north wall in meters>,
+        "x": <distance from left/west edge of buildable area in meters>,
+        "y": <distance from bottom/south edge of buildable area in meters>,
+        "width": <horizontal dimension in meters>,
+        "length": <vertical dimension in meters>,
+        "area": <width × length>,
+        "floor": 0,
+        "zone": "public|private|service|circulation",
+        "adjacentTo": ["<type of adjacent room>"],
+        "hasExteriorWall": <true/false>,
         "hasWindow": <true/false>,
         "doorWall": "north|south|east|west",
         "notes": "brief architectural note"
@@ -895,7 +899,25 @@ POSITION RULES:
   "upperFloors": [
     {
       "floorNumber": 1,
-      "rooms": [ <same structure> ]
+      "rooms": [
+        {
+          "type": "bedroom|master_bedroom|bathroom|toilet|family_hall|staircase|corridor|balcony|kitchen|dining|storage|laundry|prayer",
+          "nameAr": "اسم الغرفة",
+          "nameEn": "Room Name",
+          "x": <distance from left/west edge of buildable area in meters>,
+          "y": <distance from bottom/south edge of buildable area in meters>,
+          "width": <horizontal dimension in meters>,
+          "length": <vertical dimension in meters>,
+          "area": <width × length>,
+          "floor": 1,
+          "zone": "public|private|service|circulation",
+          "adjacentTo": ["<type of adjacent room>"],
+          "hasExteriorWall": <true/false>,
+          "hasWindow": <true/false>,
+          "doorWall": "north|south|east|west",
+          "notes": "brief architectural note"
+        }
+      ]
     }
   ],
   "summary": {
@@ -928,11 +950,15 @@ POSITION RULES:
         "type": "entrance_hall|staircase|elevator|parking|storage|guard_room",
         "nameAr": "اسم الفراغ",
         "nameEn": "Space Name",
-        "width": <meters>,
-        "length": <meters>,
-        "area": <m²>,
-        "x": <position from west wall in meters>,
-        "y": <position from north wall in meters>,
+        "x": <distance from left/west edge of buildable area in meters>,
+        "y": <distance from bottom/south edge of buildable area in meters>,
+        "width": <horizontal dimension in meters>,
+        "length": <vertical dimension in meters>,
+        "area": <width × length>,
+        "floor": 0,
+        "zone": "public|service|circulation",
+        "adjacentTo": ["<type of adjacent room>"],
+        "hasExteriorWall": <true/false>,
         "hasWindow": <true/false>,
         "doorWall": "north|south|east|west",
         "notes": "brief note"
@@ -949,11 +975,15 @@ POSITION RULES:
           "nameAr": "اسم الغرفة",
           "nameEn": "Room Name",
           "apartment": "A|B|shared",
-          "width": <meters>,
-          "length": <meters>,
-          "area": <m²>,
-          "x": <position from west wall in meters>,
-          "y": <position from north wall in meters>,
+          "x": <distance from left/west edge of buildable area in meters>,
+          "y": <distance from bottom/south edge of buildable area in meters>,
+          "width": <horizontal dimension in meters>,
+          "length": <vertical dimension in meters>,
+          "area": <width × length>,
+          "floor": 1,
+          "zone": "public|private|service|circulation",
+          "adjacentTo": ["<type of adjacent room>"],
+          "hasExteriorWall": <true/false>,
           "hasWindow": <true/false>,
           "doorWall": "north|south|east|west",
           "notes": "brief note"
@@ -983,48 +1013,134 @@ POSITION RULES:
 
   const jsonSchema = isVilla ? villaJsonSchema : residentialJsonSchema;
 
-  return `You are a licensed Saudi residential architect (SBC-certified) with 25+ years designing ${isVilla ? "villas" : "residential buildings (عمارات)"} in Riyadh, Jeddah, and Dammam.
-Generate CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}).
-Design philosophy: ${conceptStyle.focus}
+  const streetFacing = "north"; // default — street always north unless specified
+
+  return `You are a licensed Saudi residential architect with 25+ years of experience designing ${isVilla ? "villas" : "residential buildings (عمارات)"}. You think and work exactly like a real architect — in a strict sequence. Never skip a step. Never draw before you understand.
+
+Follow this exact pipeline for CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}) — ${conceptStyle.focus}
 ${najdiBlock}
 ${referenceBlueprints}
-
 ${architecturalRules}
 
-SAUDI BUILDING CODE SBC 1101 COMPLIANCE (National Minimums — uniform across all Saudi cities):
-• Front setback: ${setbacks.front}m | Back: ${setbacks.back}m | Side: ${setbacks.side}m
-• Max coverage: ${Math.min(buildingRatio, Math.round(SBC_COVERAGE.groundFloorMax * 100))}% (SBC 1101 national max: ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}% — DO NOT exceed this)
-• Min ceiling height: ${CEILING_HEIGHTS.habitableMin}m (prefer 3.2m, max ${CEILING_HEIGHTS.habitableMax}m per SBC R305.1)
-• Min bedroom: ${MIN_ROOM_WIDTHS.bedroom}m width, ${MIN_ROOM_AREAS.bedroom}m² area (SBC R304.1)
-• Min bathroom: ${MIN_ROOM_WIDTHS.bathroom}m width, ${MIN_ROOM_AREAS.bathroom}m² area
-• Min corridor: ${MIN_ROOM_WIDTHS.corridor}m width
-• Natural light: min ${Math.round(VENTILATION.minWindowAreaFraction * 100)}% of room floor area (SBC R303.1)
-• Natural ventilation: min ${Math.round(VENTILATION.minVentilationFraction * 100)}% of room floor area (SBC R303.1)
-• All bedrooms MUST have external windows
-• Kitchen MUST have external window (ventilation)
-• Bathrooms MUST have ventilation
+══════════════════════════════════════════════
+STEP 1 — READ THE PLOT BOUNDARY
+══════════════════════════════════════════════
+Before anything else, internalize the plot:
+- Plot dimensions: ${landWidth ? `${landWidth}m × ${landLength}m` : `~${Math.sqrt(landArea).toFixed(1)}m × ${Math.sqrt(landArea).toFixed(1)}m`}
+- Total area: ${landArea}m²
+- Street direction: ${streetFacing} (this is the front)
+- Setbacks: front ${setbacks.front}m, back ${setbacks.back}m, sides ${setbacks.side}m each
+- Buildable footprint: ${bldWidth.toFixed(2)}m × ${bldDepth.toFixed(2)}m = ${bldArea}m²
+- Max coverage: ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}% per SBC 2025
 
-═══════════════════════════════════════════════════════
-PROJECT SPECIFICATIONS:
-═══════════════════════════════════════════════════════
-Building Type: ${isVilla ? "Residential Villa (فيلا سكنية)" : "Residential Building / عمارة (Multi-Unit)"}
-Land: ${landWidth ? `${landWidth}m × ${landLength}m` : "N/A"} = ${landArea}m² | Shape: ${landShape}
-Building Footprint: ~${bldWidth.toFixed(1)}m × ${bldDepth.toFixed(1)}m = ${bldArea}m²
-Floors: ${numberOfFloors + 1} (Ground + ${numberOfFloors} upper)
-Total Built Area: ~${totalArea}m²
+RULE: Every room must fit inside the buildable footprint.
+Nothing crosses the setback lines.
 
-ROOMS REQUIRED:
-• Bedrooms: ${bedrooms}${isVilla ? " (include 1 Master Bedroom)" : " per apartment"}
-• Bathrooms: ${bathrooms}${isVilla ? " (1 en-suite with Master)" : " per apartment"}
-${isVilla ? `• Majlis: ${majlis} (ground floor required)` : `• Living Rooms: ${majlis > 0 ? majlis : 1} per apartment (NOT Majlis)`}
-${isVilla && maidRooms > 0 ? `• Maid Rooms: ${maidRooms}` : ""}
-• Balconies: ${balconies}
-• Parking: ${garages} car(s)
-${additionalRequirements ? `• Additional: ${additionalRequirements}` : ""}
+══════════════════════════════════════════════
+STEP 2 — READ THE USER BRIEF
+══════════════════════════════════════════════
+The client requires:
+- Building type: ${isVilla ? "Residential Villa (فيلا سكنية)" : "Residential Building / عمارة"}
+- Floors: ${numberOfFloors + 1} total (ground + ${numberOfFloors} upper)
+- Bedrooms: ${bedrooms}${isVilla ? " (include 1 Master Bedroom)" : " per apartment"}
+- Bathrooms: ${bathrooms}${isVilla ? " (1 en-suite with Master Bedroom)" : " per apartment"}
+- ${isVilla ? `Majlis (men's reception): ${majlis} (ground floor, faces street)` : `Living Rooms: ${majlis > 0 ? majlis : 1} per apartment (NOT Majlis)`}
+${isVilla && maidRooms > 0 ? `- Maid rooms: ${maidRooms}` : ""}
+- Parking: ${garages} car(s)
+- Balconies: ${balconies}
+${additionalRequirements ? `- Additional: ${additionalRequirements}` : ""}
 
-═══════════════════════════════════════════════════════
-RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
-═══════════════════════════════════════════════════════
+RULE: Every requested room must appear in the output.
+Do not add rooms that were not requested.
+
+══════════════════════════════════════════════
+STEP 3 — PLACE ROOM NODES (topology first)
+══════════════════════════════════════════════
+Before assigning dimensions, place abstract room nodes in zones:
+
+PUBLIC ZONE (near ${streetFacing} street / front setback line):
+  → Entrance Hall, ${isVilla ? "Majlis (men's reception)" : "Shared Lobby"}, Parking/Garage
+
+PRIVATE ZONE (away from street — back or side):
+  → Master Bedroom, Bedrooms, ${isVilla ? "Ladies' Sitting / Family Hall" : "Living Room per apartment"}
+
+SERVICE ZONE (back corner, separate access):
+  → Kitchen, Dining, Maid Room, Storage, Laundry, WC
+
+CIRCULATION (connecting all zones):
+  → Corridors (min ${MIN_ROOM_WIDTHS.corridor}m wide), Stairs (min 1.1m wide), Distributor
+
+RULE: Never mix public and private zones.
+Bedrooms must never be visible from the entrance.
+
+══════════════════════════════════════════════
+STEP 4 — APPLY ADJACENCY RULES
+══════════════════════════════════════════════
+REQUIRED adjacencies (shared wall preferred):
+  Kitchen → Dining Room
+  Master Bedroom → Master Bathroom (en-suite)
+  ${isVilla ? "Majlis → Entrance Hall" : "Lobby → Staircase/Elevator"}
+  Maid Room → Kitchen (service zone)
+  Staircase → Corridor/Distributor
+
+FORBIDDEN adjacencies (never share a wall):
+  Kitchen ≠ Bathroom
+  ${isVilla ? "Majlis ≠ Master Bedroom" : "Lobby ≠ Bedrooms"}
+  Prayer Room ≠ Bathroom
+  Bedrooms ≠ Entrance (not visible or directly connected)
+  Garage ≠ Bedrooms (buffer required)
+
+ORIENTATION RULES:
+  ${isVilla ? "Majlis → faces street (north)" : "Lobby → faces street (north)"}
+  Kitchen → west or east side (never south — Riyadh heat)
+  Master Bedroom → south or away from street (privacy)
+  Prayer Room → west wall (Qibla direction)
+  Parking/Garage → attached to north/street side
+
+══════════════════════════════════════════════
+STEP 5 — ASSIGN GEOMETRY (SBC 1101 minimums)
+══════════════════════════════════════════════
+Use these EXACT minimum dimensions per SBC 1101:
+
+  Master Bedroom:  min ${MIN_ROOM_AREAS.masterBedroom}m², min width ${MIN_ROOM_WIDTHS.bedroom}m
+  Bedroom:         min ${MIN_ROOM_AREAS.bedroom}m²,  min width 2.5m
+  ${isVilla ? `Majlis:          min 20m², min width 4.0m` : `Living Room:     min ${MIN_ROOM_AREAS.livingRoom}m², min width 3.5m`}
+  Kitchen:         min ${MIN_ROOM_AREAS.kitchen}m²,  min width 1.8m
+  Bathroom:        min ${MIN_ROOM_AREAS.bathroom}m²,  min width ${MIN_ROOM_WIDTHS.bathroom}m
+  WC:              min ${MIN_ROOM_AREAS.wc}m²,  min width ${MIN_ROOM_WIDTHS.wc}m
+  Maid Room:       min ${MIN_ROOM_AREAS.maidRoom}m²,  min width 2.5m
+  Corridor:        min width ${MIN_ROOM_WIDTHS.corridor}m
+  Stairs:          min width 1.1m, min depth 3.0m
+
+PROPORTION RULE: No room's length:width ratio may exceed 1:2.5
+  (a 3m wide room cannot be longer than 7.5m)
+
+CEILING HEIGHT: min ${CEILING_HEIGHTS.habitableMin}m all habitable rooms (SBC R305.1)
+NATURAL LIGHT: min ${Math.round(VENTILATION.minWindowAreaFraction * 100)}% of floor area as glazing (SBC R303.1)
+NATURAL VENTILATION: min ${Math.round(VENTILATION.minVentilationFraction * 100)}% of floor area openable (SBC R303.1)
+
+ALL ROOMS MUST FILL THE BUILDABLE FOOTPRINT WITH NO GAPS.
+Total room areas must sum to ≥ 90% of buildable footprint per floor (${Math.round(bldArea * 0.9)}m² minimum per floor).
+
+══════════════════════════════════════════════
+STEP 6 — VALIDATE AGAINST SBC
+══════════════════════════════════════════════
+Before outputting JSON, check every room:
+  ✓ Area ≥ SBC minimum
+  ✓ Width ≥ SBC minimum
+  ✓ Aspect ratio ≤ 1:2.5
+  ✓ Habitable rooms have exterior wall exposure (for windows)
+  ✓ Wet rooms grouped together (shared plumbing wall)
+  ✓ No room exceeds buildable boundary (x+width ≤ ${bldWidth.toFixed(2)}, y+length ≤ ${bldDepth.toFixed(2)})
+  ✓ Total coverage ≤ ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}% of plot area (${Math.round(landArea * SBC_COVERAGE.groundFloorMax)}m² max)
+
+If any check fails, adjust room dimensions before outputting.
+Never output a layout with SBC violations.
+
+══════════════════════════════════════════════
+STEP 7 — OUTPUT FORMAT
+══════════════════════════════════════════════
+Respond with VALID JSON ONLY. No markdown. No explanation.
 ${jsonSchema}`;
 }
 
