@@ -55,8 +55,11 @@ export default function NavBar() {
           {/* Logo */}
           <Link href="/" className="flex flex-col items-center leading-none group">
             {/* Rooftop icon */}
-            <svg viewBox="0 0 100 38" className="w-16 h-auto" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="4,34 50,4 96,34" stroke="#F97316" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
+            <svg viewBox="0 0 80 36" className="w-14 h-auto" xmlns="http://www.w3.org/2000/svg">
+              {/* Left slope: bottom-left to peak */}
+              <line x1="2" y1="34" x2="40" y2="2" stroke="#F97316" strokeWidth="7" strokeLinecap="round"/>
+              {/* Right slope: peak to bottom-right */}
+              <line x1="40" y1="2" x2="78" y2="34" stroke="#F97316" strokeWidth="7" strokeLinecap="round"/>
             </svg>
             {/* Text below roof */}
             <div dir="ltr" className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.25rem", lineHeight: 1 }}>
