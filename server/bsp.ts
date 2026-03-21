@@ -539,119 +539,149 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   // Inner wall line (creates double-wall effect)
   svg += `<rect x="${ox+WT/2}" y="${oy+WT/2}" width="${bw*SCALE-WT}" height="${bd*SCALE-WT}" fill="none" stroke="#334155" stroke-width="0.5"/>`;
 
-  // ── Room fills and internal walls ─────────────────────────────────────────
+  // ── Room rendering: double-rect walls + doors + windows + stairs ──────────
+  const WI = 10;            // wall inset in px (≈0.24m interior wall)
+  const DOOR_PX = Math.round(0.9 * SCALE);   // 90cm door opening
+  const WIN_MIN = Math.round(1.2 * SCALE);   // 120cm min window
+
   rooms.forEach(room => {
     const rx = ox + room.x * SCALE;
     const ry = oy + room.y * SCALE;
-    const rw = room.width * SCALE;
+    const rw = room.width  * SCALE;
     const rh = room.height * SCALE;
-    const fill = ROOM_FILL[room.type] ?? "#FAFAFA";
+    const fill = ROOM_FILL[room.type] ?? "#F8FAFC";
+    const onTop    = room.y < 0.3;
+    const onLeft   = room.x < 0.3;
+    const onRight  = room.x + room.width  > bw - 0.3;
+    const onBottom = room.y + room.height > bd - 0.3;
 
+    // ── LAYER 1: Outer rect (wall fill #2d2d2d) + Inner rect (room fill) ───
+    svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#2d2d2d" stroke="#1a1a1a" stroke-width="2"/>`;
+    if (rw > WI * 2 + 4 && rh > WI * 2 + 4) {
+      svg += `<rect x="${rx+WI}" y="${ry+WI}" width="${rw-WI*2}" height="${rh-WI*2}" fill="${fill}"/>`;
+    }
+
+    // ── LAYER 2: Staircase steps (25cm per step) + up arrow ────────────────
     if (room.type === "staircase") {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#475569" stroke-width="1.5"/>`;
-      // Staircase step lines (horizontal only, no hatch)
-      const stepCount = Math.max(4, Math.floor(rh / 10));
-      for (let s = 1; s <= stepCount; s++) {
-        svg += `<line x1="${rx+2}" y1="${ry+s*(rh/stepCount)}" x2="${rx+rw-2}" y2="${ry+s*(rh/stepCount)}" stroke="#6B7280" stroke-width="0.7"/>`;
+      const stepPx   = Math.round(0.25 * SCALE);
+      const stepsN   = Math.max(3, Math.floor((rh - WI * 2) / stepPx));
+      const ix = rx + WI + 1, iw = rw - WI * 2 - 2;
+      for (let s = 1; s <= stepsN; s++) {
+        const sy = ry + WI + s * stepPx;
+        if (sy < ry + rh - WI) {
+          svg += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#555" stroke-width="1"/>`;
+        }
       }
-      svg += `<line x1="${rx+rw/2}" y1="${ry+rh*0.7}" x2="${rx+rw/2}" y2="${ry+rh*0.2}" stroke="#374151" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
-    } else if (room.type === "parking") {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#64748B" stroke-width="1.5"/>`;
-      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+6}" text-anchor="middle" fill="#475569" font-size="20" font-weight="bold" font-family="Arial" opacity="0.3">P</text>`;
-    } else {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#334155" stroke-width="1.5"/>`;
+      // Break line (zigzag) at mid height
+      const midy = ry + rh / 2;
+      svg += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#374151" stroke-width="1.5"/>`;
+      // Up arrow
+      const ax = rx + rw / 2;
+      svg += `<line x1="${ax}" y1="${ry+rh*0.78}" x2="${ax}" y2="${ry+rh*0.18}" stroke="#1E293B" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
+      svg += `<text x="${ax}" y="${ry+rh*0.9+4}" text-anchor="middle" fill="#374151" font-size="8" font-family="Arial">صعود ${stepsN} درجة</text>`;
     }
 
-    // ── Internal wall dividers (thin lines between rooms) ──────────────────
-    // Right edge wall
-    if (room.x + room.width < bw - 0.1) {
-      svg += `<line x1="${rx+rw}" y1="${ry}" x2="${rx+rw}" y2="${ry+rh}" stroke="#1E293B" stroke-width="2"/>`;
-    }
-    // Bottom edge wall
-    if (room.y + room.height < bd - 0.1) {
-      svg += `<line x1="${rx}" y1="${ry+rh}" x2="${rx+rw}" y2="${ry+rh}" stroke="#1E293B" stroke-width="2"/>`;
+    // ── LAYER 2b: Parking watermark ─────────────────────────────────────────
+    if (room.type === "parking" || room.type === "garage") {
+      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#64748B" font-size="${Math.min(rw,rh)*0.35}" font-weight="900" font-family="Arial" opacity="0.2">P</text>`;
     }
 
-    // ── Room label ─────────────────────────────────────────────────────────
+    // ── LAYER 3: Windows — three parallel lines on exterior wall ───────────
+    const needsWindow = !["corridor", "storage", "wc", "toilet"].includes(room.type ?? "");
+    if ((onTop || onLeft || onRight || onBottom) && needsWindow) {
+      const isMajlis = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("living");
+      // Majlis gets 2 windows; bathroom gets small one (60cm)
+      const isBath = (room.type ?? "").includes("bath") || room.type === "wc" || room.type === "toilet";
+      const winPx = isBath ? Math.round(0.6 * SCALE) : Math.min(Math.max(WIN_MIN, 50), onTop || onBottom ? rw * 0.5 : rh * 0.5);
+
+      const drawWin = (wx: number, wy: number, horiz: boolean) => {
+        if (horiz) {
+          svg += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${WI}" fill="white"/>`;
+          svg += `<line x1="${wx}" y1="${wy}"         x2="${wx+winPx}" y2="${wy}"         stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx}" y1="${wy+WI/2}"    x2="${wx+winPx}" y2="${wy+WI/2}"    stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx}" y1="${wy+WI}"       x2="${wx+winPx}" y2="${wy+WI}"       stroke="#4a90d9" stroke-width="1.5"/>`;
+        } else {
+          svg += `<rect x="${wx}" y="${wy}" width="${WI}" height="${winPx}" fill="white"/>`;
+          svg += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
+        }
+      };
+
+      if (onTop) {
+        drawWin(rx + (rw - winPx) / 2, ry, true);
+        if (isMajlis && rw - winPx > winPx + 20) drawWin(rx + rw * 0.65, ry, true);
+      } else if (onBottom) {
+        drawWin(rx + (rw - winPx) / 2, ry + rh - WI, true);
+      } else if (onLeft) {
+        drawWin(rx, ry + (rh - winPx) / 2, false);
+      } else if (onRight) {
+        drawWin(rx + rw - WI, ry + (rh - winPx) / 2, false);
+      }
+    }
+
+    // ── LAYER 4: Doors — gap + leaf + quarter-arc swing ────────────────────
+    if (rw > WI * 2 + 12 && rh > WI * 2 + 12) {
+      const isLarge = (room.area ?? 0) > 20 &&
+        ((room.type ?? "").includes("majlis") || (room.type ?? "").includes("living"));
+      const doorLen = isLarge ? Math.round(0.75 * SCALE) : Math.min(DOOR_PX, Math.min(rw, rh) * 0.38);
+      const wall = room.doorWall ?? (onTop ? "north" : onBottom ? "south" : onLeft ? "west" : "east");
+
+      const drawDoor = (dwLen: number, offsetFactor: number) => {
+        switch (wall) {
+          case "north": {
+            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
+            svg += `<rect x="${dx}" y="${ry}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
+            svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+            svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            break;
+          }
+          case "south": {
+            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
+            svg += `<rect x="${dx}" y="${ry+rh-WI}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
+            svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+            svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            break;
+          }
+          case "east": {
+            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
+            svg += `<rect x="${rx+rw-WI}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
+            svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+            svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            break;
+          }
+          default: { // west
+            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
+            svg += `<rect x="${rx}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
+            svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+            svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+          }
+        }
+      };
+
+      if (isLarge) {
+        // Double door: two leaves
+        drawDoor(doorLen, 0.2);
+        drawDoor(doorLen, 0.6);
+      } else {
+        drawDoor(doorLen, 0.25);
+      }
+    }
+
+    // ── LAYER 5: Room labels — Arabic bold + area + dims ───────────────────
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
     const labelColor = ROOM_STROKE[room.type] ?? "#1E293B";
-    const fontSize = Math.min(Math.max(Math.min(rw, rh) / 5.5, 7), 13);
+    const minSide = Math.min(rw, rh);
 
-    if (rw > 40 && rh > 30) {
-      // Arabic name
-      svg += `<text x="${cx}" y="${cy - fontSize/2 - 1}" text-anchor="middle" fill="${labelColor}" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      // Dimensions
-      svg += `<text x="${cx}" y="${cy + fontSize + 2}" text-anchor="middle" fill="#64748B" font-size="${Math.max(fontSize - 2, 6)}" font-family="Arial, sans-serif">${room.width.toFixed(1)} × ${room.height.toFixed(1)} م</text>`;
-      // Area
-      svg += `<text x="${cx}" y="${cy + fontSize*2 + 4}" text-anchor="middle" fill="#94A3B8" font-size="${Math.max(fontSize - 3, 6)}" font-family="Arial, sans-serif">${room.area.toFixed(0)} م²</text>`;
-    } else if (rw > 25 && rh > 20) {
-      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${labelColor}" font-size="${Math.max(fontSize - 1, 6)}" font-weight="bold" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-    }
-
-    // ── Window (blue parallel lines on exterior wall) ──────────────────────
-    if (room.hasWindow) {
-      const winLen = Math.min(rw * 0.45, 40);
-      const winX = rx + (rw - winLen) / 2;
-      // Window on top wall (north-facing rooms get windows on top)
-      if (room.y < 0.5) {
-        // Top exterior wall
-        svg += `<rect x="${winX}" y="${ry}" width="${winLen}" height="4" fill="white" stroke="#3B82F6" stroke-width="1"/>`;
-        svg += `<line x1="${winX+3}" y1="${ry+1}" x2="${winX+winLen-3}" y2="${ry+1}" stroke="#93C5FD" stroke-width="1"/>`;
-        svg += `<line x1="${winX+3}" y1="${ry+3}" x2="${winX+winLen-3}" y2="${ry+3}" stroke="#93C5FD" stroke-width="1"/>`;
-      } else if (room.x < 0.5) {
-        // Left exterior wall
-        const winY = ry + (rh - winLen) / 2;
-        svg += `<rect x="${rx}" y="${winY}" width="4" height="${winLen}" fill="white" stroke="#3B82F6" stroke-width="1"/>`;
-        svg += `<line x1="${rx+1}" y1="${winY+3}" x2="${rx+1}" y2="${winY+winLen-3}" stroke="#93C5FD" stroke-width="1"/>`;
-        svg += `<line x1="${rx+3}" y1="${winY+3}" x2="${rx+3}" y2="${winY+winLen-3}" stroke="#93C5FD" stroke-width="1"/>`;
-      } else if (room.x + room.width > bw - 0.5) {
-        // Right exterior wall
-        const winY = ry + (rh - winLen) / 2;
-        svg += `<rect x="${rx+rw-4}" y="${winY}" width="4" height="${winLen}" fill="white" stroke="#3B82F6" stroke-width="1"/>`;
-        svg += `<line x1="${rx+rw-3}" y1="${winY+3}" x2="${rx+rw-3}" y2="${winY+winLen-3}" stroke="#93C5FD" stroke-width="1"/>`;
-        svg += `<line x1="${rx+rw-1}" y1="${winY+3}" x2="${rx+rw-1}" y2="${winY+winLen-3}" stroke="#93C5FD" stroke-width="1"/>`;
-      } else {
-        // Bottom exterior wall
-        svg += `<rect x="${winX}" y="${ry+rh-4}" width="${winLen}" height="4" fill="white" stroke="#3B82F6" stroke-width="1"/>`;
-        svg += `<line x1="${winX+3}" y1="${ry+rh-3}" x2="${winX+winLen-3}" y2="${ry+rh-3}" stroke="#93C5FD" stroke-width="1"/>`;
-        svg += `<line x1="${winX+3}" y1="${ry+rh-1}" x2="${winX+winLen-3}" y2="${ry+rh-1}" stroke="#93C5FD" stroke-width="1"/>`;
-      }
-    }
-
-    // ── Door (arc + line) ──────────────────────────────────────────────────
-    if (room.hasDoor && rw > 22 && rh > 18) {
-      const doorW = Math.min(Math.min(rw, rh) * 0.28, 22);
-      let dx: number, dy: number, arcX: number, arcY: number;
-      let sweepFlag = 0;
-
-      switch (room.doorWall) {
-        case "south":
-          dx = rx + rw * 0.2;
-          dy = ry + rh;
-          svg += `<rect x="${dx}" y="${dy-3}" width="${doorW}" height="3" fill="white" stroke="#1E293B" stroke-width="1"/>`;
-          svg += `<path d="M ${dx} ${dy} A ${doorW} ${doorW} 0 0 1 ${dx+doorW} ${dy-doorW}" fill="none" stroke="#64748B" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-          break;
-        case "north":
-          dx = rx + rw * 0.2;
-          dy = ry;
-          svg += `<rect x="${dx}" y="${dy}" width="${doorW}" height="3" fill="white" stroke="#1E293B" stroke-width="1"/>`;
-          svg += `<path d="M ${dx} ${dy} A ${doorW} ${doorW} 0 0 0 ${dx+doorW} ${dy+doorW}" fill="none" stroke="#64748B" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-          break;
-        case "east":
-          dx = rx + rw;
-          dy = ry + rh * 0.2;
-          svg += `<rect x="${dx-3}" y="${dy}" width="3" height="${doorW}" fill="white" stroke="#1E293B" stroke-width="1"/>`;
-          svg += `<path d="M ${dx} ${dy} A ${doorW} ${doorW} 0 0 0 ${dx-doorW} ${dy+doorW}" fill="none" stroke="#64748B" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-          break;
-        case "west":
-        default:
-          dx = rx;
-          dy = ry + rh * 0.2;
-          svg += `<rect x="${dx}" y="${dy}" width="3" height="${doorW}" fill="white" stroke="#1E293B" stroke-width="1"/>`;
-          svg += `<path d="M ${dx} ${dy} A ${doorW} ${doorW} 0 0 1 ${dx+doorW} ${dy+doorW}" fill="none" stroke="#64748B" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-          break;
-      }
+    if (minSide > 38) {
+      const fs = Math.min(Math.max(minSide / 5.5, 8), 11);
+      svg += `<text x="${cx}" y="${cy - fs - 1}"  text-anchor="middle" fill="${labelColor}" font-size="${fs}" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 4}"        text-anchor="middle" fill="#64748B"      font-size="9"    font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
+      svg += `<text x="${cx}" y="${cy + 15}"       text-anchor="middle" fill="#94A3B8"      font-size="8"    font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
+    } else if (minSide > 24) {
+      const fs = Math.max(minSide / 6, 7);
+      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${labelColor}" font-size="${fs}" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
     }
   });
 
@@ -687,8 +717,8 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#94A3B8" stroke-width="0.5" stroke-dasharray="4,3"/>`;
   });
 
-  // ── North arrow (clean minimal architectural style) ───────────────────────
-  const nax = ox + 20, nay = oy + 20;
+  // ── North arrow — top-right corner ──────────────────────────────────────
+  const nax = ox + bw*SCALE - 22, nay = oy + 24;
   // Thin circle
   svg += `<circle cx="${nax}" cy="${nay}" r="14" fill="none" stroke="#374151" stroke-width="0.8"/>`;
   // Arrow shaft pointing up
@@ -708,18 +738,53 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   }
   svg += `<text x="${sbX+40+5*SCALE}" y="${sbY+16}" fill="#475569" font-size="7" font-family="Arial">5م</text>`;
 
-  // ── Legend ────────────────────────────────────────────────────────────────
-  const legX = ox;
-  const legY = oy + bd*SCALE + dimOffset + 18;
-  const legendItems = [
-    { color: "#93C5FD", label: "نافذة" },
-    { color: "#1E293B", label: "جدار" },
-    { color: "#F97316", label: "SOAR.AI" },
-  ];
-  legendItems.forEach((item, i) => {
-    svg += `<rect x="${legX + i*70}" y="${legY}" width="12" height="8" fill="${item.color}" stroke="#94A3B8" stroke-width="0.5"/>`;
-    svg += `<text x="${legX + i*70 + 15}" y="${legY+8}" fill="#475569" font-size="8" font-family="Arial">${item.label}</text>`;
-  });
+  // ── Full architectural legend box — bottom-right, outside building ───────
+  const legBoxW = 160, legBoxH = 118;
+  const legX = ox + bw*SCALE - legBoxW;
+  const legY = oy + bd*SCALE + dimOffset + 14;
+  // Box border
+  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="${legBoxH}" fill="white" stroke="#334155" stroke-width="1"/>`;
+  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="14" fill="#0F172A"/>`;
+  svg += `<text x="${legX+legBoxW/2}" y="${legY+10}" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">مفتاح الرموز — Legend</text>`;
+
+  const li = legY + 20; // first item y
+  const lRow = 16;      // row height
+  const lSx = legX + 6; // symbol x
+  const lTx = legX + 30; // text x
+
+  // 1. Exterior wall (thick dark rect)
+  svg += `<rect x="${lSx}" y="${li+0*lRow}" width="20" height="8" fill="#2d2d2d"/>`;
+  svg += `<rect x="${lSx+2}" y="${li+0*lRow+2}" width="16" height="4" fill="#E2E8F0"/>`;
+  svg += `<text x="${lTx}" y="${li+0*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">جدار خارجي / Ext. Wall</text>`;
+
+  // 2. Interior wall (thinner dark rect)
+  svg += `<rect x="${lSx}" y="${li+1*lRow}" width="20" height="5" fill="#374151"/>`;
+  svg += `<rect x="${lSx+1}" y="${li+1*lRow+1}" width="18" height="3" fill="#F0F4FF"/>`;
+  svg += `<text x="${lTx}" y="${li+1*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">جدار داخلي / Int. Wall</text>`;
+
+  // 3. Single door (leaf + arc)
+  svg += `<line x1="${lSx}" y1="${li+2*lRow}" x2="${lSx+12}" y2="${li+2*lRow}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+  svg += `<path d="M ${lSx} ${li+2*lRow} A 12 12 0 0 1 ${lSx+12} ${li+2*lRow+12}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>`;
+  svg += `<text x="${lTx}" y="${li+2*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">باب / Single Door</text>`;
+
+  // 4. Window (3 parallel lines)
+  svg += `<line x1="${lSx}" y1="${li+3*lRow}"   x2="${lSx+20}" y2="${li+3*lRow}"   stroke="#4a90d9" stroke-width="1.5"/>`;
+  svg += `<line x1="${lSx}" y1="${li+3*lRow+3}" x2="${lSx+20}" y2="${li+3*lRow+3}" stroke="#4a90d9" stroke-width="1.5"/>`;
+  svg += `<line x1="${lSx}" y1="${li+3*lRow+6}" x2="${lSx+20}" y2="${li+3*lRow+6}" stroke="#4a90d9" stroke-width="1.5"/>`;
+  svg += `<text x="${lTx}" y="${li+3*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">نافذة / Window</text>`;
+
+  // 5. Staircase (step lines + up arrow)
+  for (let s = 0; s < 4; s++) {
+    svg += `<line x1="${lSx}" y1="${li+4*lRow+s*2}" x2="${lSx+18}" y2="${li+4*lRow+s*2}" stroke="#555" stroke-width="1"/>`;
+  }
+  svg += `<line x1="${lSx+9}" y1="${li+4*lRow+10}" x2="${lSx+9}" y2="${li+4*lRow+2}" stroke="#1E293B" stroke-width="1" marker-end="url(#dim_arrow)"/>`;
+  svg += `<text x="${lTx}" y="${li+4*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">درج UP / Staircase</text>`;
+
+  // 6. Opening/passage (diagonal threshold marks)
+  svg += `<line x1="${lSx}" y1="${li+5*lRow}" x2="${lSx+20}" y2="${li+5*lRow}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,2"/>`;
+  svg += `<line x1="${lSx}" y1="${li+5*lRow-3}" x2="${lSx}" y2="${li+5*lRow+3}" stroke="#374151" stroke-width="1.5"/>`;
+  svg += `<line x1="${lSx+20}" y1="${li+5*lRow-3}" x2="${lSx+20}" y2="${li+5*lRow+3}" stroke="#374151" stroke-width="1.5"/>`;
+  svg += `<text x="${lTx}" y="${li+5*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">فتحة / Opening</text>`;
 
   // ── Footer title block ────────────────────────────────────────────────────
   const footerY = svgH - FOOTER_H;
