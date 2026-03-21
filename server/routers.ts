@@ -544,6 +544,7 @@ Provide the report in a structured and detailed format.`;
         }
         const project = await getProjectById(input.projectId, ctx.user.id);
         if (!project) throw new Error("Project not found");
+        console.error("LAND INPUT:", project.landWidth, project.landLength, project.landArea);
         // Step 1: Auto-check Saudi Building Codee
         const codeCheck = checkSaudiBuildingCode(project);
 
@@ -600,6 +601,7 @@ Provide the report in a structured and detailed format.`;
             ? parseFloat((project.landLength - correctedSetbacks.front - correctedSetbacks.back).toFixed(2))
             : undefined;
 
+          console.error("BSP INPUT:", userBuildingWidth, userBuildingDepth, "setbacks:", correctedSetbacks);
           const bspLayout = generateBSPLayout({
             landArea: project.landArea ?? 300,
             buildingType: (project.buildingType === "villa" ? "villa" : "apartment") as "villa" | "apartment",

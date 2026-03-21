@@ -397,22 +397,21 @@ export function generateBSPLayout(params: {
   let bw: number;
   let bd: number;
   if (params.buildingWidth && params.buildingDepth && params.buildingWidth > 0 && params.buildingDepth > 0) {
-    bw = parseFloat(params.buildingWidth.toFixed(2));
-    bd = parseFloat(params.buildingDepth.toFixed(2));
+    // Use actual user land dimensions — apply only a safety floor, not an arbitrary minimum
+    bw = Math.max(parseFloat(params.buildingWidth.toFixed(2)), 6);
+    bd = Math.max(parseFloat(params.buildingDepth.toFixed(2)), 8);
   } else {
+    // Formula fallback — no user land shape provided
     const maxCoverage = SAUDI_CODE.maxCoverage;
     const maxBuildingArea = landArea * maxCoverage;
     const sqrtLand = Math.sqrt(landArea);
     bw = Math.min(Math.max(sqrtLand * 0.55, 9), 14);
     bd = Math.min(maxBuildingArea / bw, 22);
     if (bd < 12) { bd = 12; bw = Math.min(maxBuildingArea / bd, 14); }
-    bw = parseFloat(bw.toFixed(2));
-    bd = parseFloat(bd.toFixed(2));
+    bw = Math.max(parseFloat(bw.toFixed(2)), 10);
+    bd = Math.max(parseFloat(bd.toFixed(2)), 15);
   }
-
-  // Hard minimums — layout engine cannot function below these
-  bw = Math.max(bw, 10);
-  bd = Math.max(bd, 15);
+  console.error("BSP COMPUTED bw/bd:", bw, bd, "from params:", params.buildingWidth, params.buildingDepth);
 
   const buildingArea = parseFloat((bw * bd).toFixed(1));
   const floors = Math.max(1, numberOfFloors);

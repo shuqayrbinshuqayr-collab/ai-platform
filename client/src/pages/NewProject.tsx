@@ -210,6 +210,7 @@ export default function NewProject() {
       `facadeStyle:${form.facadeStyle}`,
     ].filter(Boolean).join("|");
 
+    console.error("SUBMIT LAND:", { landWidth: form.landWidth, landLength: form.landLength, landArea: form.landArea });
     createProject.mutate({
       name: form.name,
       description: form.description || undefined,
