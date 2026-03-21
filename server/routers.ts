@@ -147,29 +147,64 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
   }) + ragContext + learnedContext;
 }
 
-// ─── Snap AI rooms to 0.5m grid and clamp to building boundary ────────────────
+// ─── Snap AI rooms to 0.5m grid, enforce wall rules, fill empty space ─────────
 function snapRoomsToGrid(
   rooms: any[],
   buildingWidth: number,
   buildingDepth: number,
 ): any[] {
-  // Sort top-to-bottom, left-to-right so clamping is deterministic
-  const sorted = [...rooms].sort((a, b) => a.y - b.y || a.x - b.x);
-  return sorted.map((r) => {
-    const GRID = 0.5;
-    // Snap position to nearest 0.5m
-    const x = Math.round(r.x / GRID) * GRID;
-    const y = Math.round(r.y / GRID) * GRID;
-    // Snap size to nearest 0.5m (minimum 1.5m)
-    const w = Math.max(1.5, Math.round(r.width / GRID) * GRID);
-    const h = Math.max(1.5, Math.round(r.height / GRID) * GRID);
-    // Clamp so room never exceeds building boundary
-    const clampedX = Math.max(0, Math.min(x, buildingWidth - 1.5));
-    const clampedY = Math.max(0, Math.min(y, buildingDepth - 1.5));
-    const clampedW = Math.min(w, buildingWidth - clampedX);
-    const clampedH = Math.min(h, buildingDepth - clampedY);
-    return { ...r, x: clampedX, y: clampedY, width: clampedW, height: clampedH };
-  });
+  const GRID = 0.5;
+  const bW = buildingWidth;
+  const bD = buildingDepth;
+
+  // 1. Sort top-to-bottom, left-to-right for deterministic clamping
+  let snapped = [...rooms]
+    .sort((a, b) => a.y - b.y || a.x - b.x)
+    .map((r) => {
+      // Snap position and size to 0.5m grid
+      let x = Math.round(r.x / GRID) * GRID;
+      let y = Math.round(r.y / GRID) * GRID;
+      let w = Math.max(1.5, Math.round(r.width / GRID) * GRID);
+      let h = Math.max(1.5, Math.round(r.height / GRID) * GRID);
+
+      const type: string = (r.type ?? "").toLowerCase();
+
+      // 2. Wall-snapping rules for specific room types
+      if (type.includes("parking") || type.includes("garage")) {
+        // Parking must hug left or right wall — pick whichever side is closer
+        x = x < bW / 2 ? 0 : Math.round((bW - w) / GRID) * GRID;
+      } else if (type.includes("stair")) {
+        // Staircase must touch left or right wall
+        x = x < bW / 2 ? 0 : Math.round((bW - w) / GRID) * GRID;
+      } else if (x > bW * 0.7) {
+        // Any room too far right — pull it back so it fits
+        x = Math.round((bW - w) / GRID) * GRID;
+      }
+
+      // 3. Clamp to building boundary
+      x = Math.max(0, Math.min(x, bW - 1.5));
+      y = Math.max(0, Math.min(y, bD - 1.5));
+      w = Math.min(w, bW - x);
+      h = Math.min(h, bD - y);
+
+      return { ...r, x, y, width: w, height: h };
+    });
+
+  // 4. Coverage check — if rooms cover < 85% of floor area, scale up proportionally
+  const buildingArea = bW * bD;
+  const coveredArea = snapped.reduce((sum, r) => sum + r.width * r.height, 0);
+  if (coveredArea < buildingArea * 0.85 && coveredArea > 0) {
+    const scale = Math.sqrt((buildingArea * 0.85) / coveredArea);
+    snapped = snapped.map((r) => {
+      const w = Math.min(Math.round(r.width * scale / GRID) * GRID, bW);
+      const h = Math.min(Math.round(r.height * scale / GRID) * GRID, bD);
+      const x = Math.min(r.x, bW - w);
+      const y = Math.min(r.y, bD - h);
+      return { ...r, x, y, width: w, height: h };
+    });
+  }
+
+  return snapped;
 }
 
 export const appRouter = router({
