@@ -53,19 +53,15 @@ export default function NavBar() {
       <div className="container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-9 h-9 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-lg border border-primary/40 bg-primary/10 group-hover:bg-primary/20 transition-colors" />
-              {/* SOAR house icon */}
-              <svg viewBox="0 0 24 24" className="w-5 h-5 relative z-10" fill="none">
-                <path d="M3 10.5L12 3l9 7.5V21H3V10.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-primary"/>
-                <path d="M9 21V15h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-primary"/>
-              </svg>
-            </div>
-            <div className="flex items-baseline leading-none">
-              <span className="text-primary text-sm font-black tracking-tight">.AI</span>
-              <span className="font-black text-white text-lg tracking-tight">SOAR</span>
-            </div>
+          <Link href="/" className="flex items-center group">
+            <svg viewBox="0 0 160 90" className="h-10 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Open rooftop — two thick diagonal lines, no walls */}
+              <polyline points="10,48 80,8 150,48" stroke="#F97316" strokeWidth="14" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
+              {/* SOAR text */}
+              <text x="4" y="84" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="34" fill="#F97316" letterSpacing="2">SOAR</text>
+              {/* .AI text */}
+              <text x="107" y="84" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="34" fill="white" letterSpacing="1">.AI</text>
+            </svg>
           </Link>
 
           {/* Desktop Nav */}
