@@ -422,13 +422,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border/30 py-8">
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none">
-                <path d="M3 10.5L12 3l9 7.5V21H3V10.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" className="text-primary"/>
-              </svg>
-            </div>
-            <span className="font-black text-sm text-white">SOAR<span className="text-primary">.AI</span></span>
+          <div className="flex items-center">
+            <img src="/soar-logo.png" alt="SOAR.AI" style={{ height: "36px", width: "auto", mixBlendMode: "screen" }} />
           </div>
           <p className="text-xs text-muted-foreground">
             © 2025 SOAR.AI — {lang === "ar" ? "جميع الحقوق محفوظة" : "All rights reserved"}

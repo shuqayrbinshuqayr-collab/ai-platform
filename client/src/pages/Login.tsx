@@ -35,10 +35,9 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">
-            <span className="text-orange-400">.AI</span>
-            <span className="text-white">SOAR</span>
-          </h1>
+          <div className="flex justify-center">
+            <img src="/soar-logo.png" alt="SOAR.AI" style={{ height: "60px", width: "auto", mixBlendMode: "screen" }} />
+          </div>
           <p className="text-gray-400 mt-2 text-sm">منصة التصميم المعماري الذكي</p>
         </div>
 
