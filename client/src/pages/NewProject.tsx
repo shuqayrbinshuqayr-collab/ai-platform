@@ -12,11 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import NavBar from "@/components/NavBar";
-import VoiceInput from "@/components/VoiceInput";
 import { MapView } from "@/components/Map";
 import {
   MapPin, Building2, Ruler, ChevronRight, ChevronLeft,
-  Zap, CheckCircle, Mic, Home as HomeIcon,
+  Zap, CheckCircle, Home as HomeIcon,
   Plus, Minus, Brain, ArrowRight, Upload, FileText, X
 } from "lucide-react";
 
@@ -181,10 +180,6 @@ export default function NewProject() {
     { id: 3, label: lang === "ar" ? "الواجهة والتفاصيل" : "Facade & Details", icon: HomeIcon },
   ];
 
-  const handleVoiceParsed = (parsed: Partial<FormData>) => {
-    setForm(f => ({ ...f, ...parsed }));
-    toast.success(lang === "ar" ? "تم تعبئة البيانات من الصوت!" : "Data filled from voice!");
-  };
 
   const handleMapReady = (map: google.maps.Map) => {
     mapRef.current = map;
@@ -306,19 +301,6 @@ export default function NewProject() {
           />
         </div>
 
-        {/* Voice Input */}
-        <div className="soar-card rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Mic className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <div className="text-foreground font-semibold text-sm">{t(lang, "voiceInput")}</div>
-              <div className="text-muted-foreground text-xs">{t(lang, "voiceHint")}</div>
-            </div>
-          </div>
-          <VoiceInput lang={lang} onParsed={handleVoiceParsed} />
-        </div>
 
         {/* Step indicator */}
         <div className="flex items-center gap-1.5 mb-6">
