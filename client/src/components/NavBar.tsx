@@ -54,12 +54,8 @@ export default function NavBar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1 group">
-            {/* PNG logo in a white rounded pill to match its background */}
-            <div className="rounded-lg overflow-hidden" style={{ background: "white", padding: "2px 6px", height: "38px", display: "flex", alignItems: "center" }}>
-              <img src="/soar-logo.png" alt="SOAR" style={{ height: "30px", width: "auto" }} />
-            </div>
-            {/* .AI in white */}
-            <span dir="ltr" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.3rem", color: "white", lineHeight: 1 }}>.AI</span>
+            {/* PNG logo — mix-blend-mode: screen makes black transparent */}
+            <img src="/soar-logo.png" alt="SOAR.AI" style={{ height: "40px", width: "auto", mixBlendMode: "screen" }} />
           </Link>
 
           {/* Desktop Nav */}
