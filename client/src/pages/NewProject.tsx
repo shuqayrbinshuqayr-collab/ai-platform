@@ -438,7 +438,7 @@ export default function NewProject() {
                       <button type="button" onClick={() => deedInputRef.current?.click()}
                         className={`w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                           deedUploaded
-                            ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400"
+                            ? "border-primary bg-primary/10 text-primary"
                             : "border-dashed border-border/50 bg-secondary/20 text-muted-foreground hover:border-primary/50 hover:text-primary"
                         }`}>
                         {uploadingDeed ? (
@@ -470,7 +470,7 @@ export default function NewProject() {
                       <button type="button" onClick={() => codeInputRef.current?.click()}
                         className={`w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                           buildingCodeUploaded
-                            ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400"
+                            ? "border-primary bg-primary/10 text-primary"
                             : "border-dashed border-border/50 bg-secondary/20 text-muted-foreground hover:border-primary/50 hover:text-primary"
                         }`}>
                         {uploadingCode ? (
@@ -494,7 +494,7 @@ export default function NewProject() {
                   </div>
 
                   {(deedUploaded || buildingCodeUploaded) && (
-                    <div className="flex items-center gap-2 text-xs text-emerald-400 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 text-xs text-primary p-3 rounded-lg bg-primary/10 border border-primary/20">
                       <CheckCircle className="w-4 h-4 flex-shrink-0" />
                       {lang === "ar"
                         ? "سيتم استخراج البيانات تلقائياً وتطبيقها على المخطط في الخلفية"
