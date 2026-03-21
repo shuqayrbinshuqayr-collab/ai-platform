@@ -219,31 +219,41 @@ function buildFloorGrid(params: {
     };
   }
 
-  // ── LEFT COLUMN: service zone ─────────────────────────────────────────────
-  // Build a list of service rooms, then stack them to fill the column
+  // Fix 4: clamp wet room height so area stays within 4–8 m²
+  const clampWetH = (h: number) =>
+    parseFloat(Math.max(4 / leftW, Math.min(8 / leftW, h)).toFixed(2));
+
+  // Fix 1: distributor/corridor height capped at 2.0m (area ≤ centerW×2 ≤ 6m² for typical bw)
+  const distH = parseFloat(Math.min(rnd(1.5, 2.0), 6 / centerW).toFixed(2));
+
+  // ── LEFT COLUMN: service + staircase (Fix 2) + kitchen/dining together (Fix 5) ──
   interface SlotRoom { type: RoomType; nameAr: string; nameEn: string; prefH: number; hasWindow: boolean; doorWall: "north"|"south"|"east"|"west" }
   const leftSlots: SlotRoom[] = [];
 
   if (floor === 0) {
-    leftSlots.push({ type: "kitchen",  nameAr: "مطبخ",         nameEn: "Kitchen",   prefH: rnd(3.5, 5.0), hasWindow: true,  doorWall: "east" });
+    // Fix 2: staircase first → always touches left exterior wall and top/bottom walls
+    leftSlots.push({ type: "staircase",  nameAr: "درج",          nameEn: "Staircase",    prefH: rnd(4.5, 5.5), hasWindow: false, doorWall: "east" });
+    // Fix 5: kitchen then dining immediately after — same zone, no room between them
+    leftSlots.push({ type: "kitchen",    nameAr: "مطبخ",         nameEn: "Kitchen",      prefH: rnd(3.5, 4.5), hasWindow: true,  doorWall: "east" });
+    leftSlots.push({ type: "dining",     nameAr: "غرفة طعام",   nameEn: "Dining Room",  prefH: rnd(3.0, 4.0), hasWindow: true,  doorWall: "east" });
     if (hasMaidRoom) {
-      leftSlots.push({ type: "maid_room", nameAr: "غرفة خادمة", nameEn: "Maid Room", prefH: rnd(2.5, 3.0), hasWindow: true,  doorWall: "east" });
+      leftSlots.push({ type: "maid_room", nameAr: "غرفة خادمة", nameEn: "Maid Room",    prefH: rnd(2.5, 3.0), hasWindow: true,  doorWall: "east" });
     }
-    leftSlots.push({ type: "laundry",  nameAr: "غسيل",         nameEn: "Laundry",   prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
-    leftSlots.push({ type: "storage",  nameAr: "مخزن",         nameEn: "Storage",   prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
-    // Bathrooms fill remaining
-    const bathH = rnd(2.0, 2.5);
-    leftSlots.push({ type: "bathroom", nameAr: "حمام",          nameEn: "Bathroom",  prefH: bathH,         hasWindow: false, doorWall: "east" });
-    leftSlots.push({ type: "toilet",   nameAr: "دورة مياه",    nameEn: "Toilet",    prefH: rnd(2.0, 2.2), hasWindow: false, doorWall: "east" });
+    leftSlots.push({ type: "laundry",   nameAr: "غسيل",         nameEn: "Laundry",      prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
+    // Fix 4: wet rooms grouped, clamped to 4–8 m²
+    leftSlots.push({ type: "bathroom",  nameAr: "حمام",          nameEn: "Bathroom",     prefH: clampWetH(rnd(2.0, 2.5)), hasWindow: false, doorWall: "east" });
+    leftSlots.push({ type: "toilet",    nameAr: "دورة مياه",    nameEn: "Toilet",       prefH: clampWetH(rnd(1.8, 2.2)), hasWindow: false, doorWall: "east" });
   } else {
-    // Upper floor left: bathrooms + storage
+    // Fix 2: staircase in left column on upper floors too
+    leftSlots.push({ type: "staircase", nameAr: "درج",           nameEn: "Staircase",    prefH: rnd(4.5, 5.5), hasWindow: false, doorWall: "east" });
+    // Fix 4: wet rooms grouped and clamped
     for (let b = 0; b < Math.min(bathrooms, 3); b++) {
-      leftSlots.push({ type: "bathroom", nameAr: `حمام ${b+1}`, nameEn: `Bathroom ${b+1}`, prefH: rnd(2.2, 2.8), hasWindow: false, doorWall: "east" });
+      leftSlots.push({ type: "bathroom", nameAr: `حمام ${b+1}`, nameEn: `Bathroom ${b+1}`, prefH: clampWetH(rnd(2.2, 2.8)), hasWindow: false, doorWall: "east" });
     }
-    leftSlots.push({ type: "toilet",  nameAr: "دورة مياه",    nameEn: "Toilet",    prefH: rnd(2.0, 2.2), hasWindow: false, doorWall: "east" });
-    leftSlots.push({ type: "storage", nameAr: "مخزن",         nameEn: "Storage",   prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
+    leftSlots.push({ type: "toilet",   nameAr: "دورة مياه",    nameEn: "Toilet",       prefH: clampWetH(rnd(2.0, 2.2)), hasWindow: false, doorWall: "east" });
+    leftSlots.push({ type: "storage",  nameAr: "مخزن",         nameEn: "Storage",      prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
     if (hasBalcony) {
-      leftSlots.push({ type: "balcony", nameAr: "بلكونة",      nameEn: "Balcony",   prefH: rnd(1.5, 2.0), hasWindow: true,  doorWall: "east" });
+      leftSlots.push({ type: "balcony", nameAr: "بلكونة",       nameEn: "Balcony",      prefH: rnd(1.5, 2.0), hasWindow: true,  doorWall: "east" });
     }
   }
 
@@ -260,27 +270,23 @@ function buildFloorGrid(params: {
     });
   }
 
-  // ── CENTER COLUMN: circulation + living ──────────────────────────────────
+  // ── CENTER COLUMN: living zone (no staircase — Fix 2; distributor capped — Fix 1) ──
   interface CenterSlot { type: RoomType; nameAr: string; nameEn: string; prefH: number; hasWindow: boolean; doorWall: "north"|"south"|"east"|"west" }
   const centerSlots: CenterSlot[] = [];
 
   if (floor === 0) {
-    // Corridor/distributor at top
-    centerSlots.push({ type: "distributor", nameAr: "موزع",          nameEn: "Distributor",  prefH: rnd(2.5, 3.5), hasWindow: false, doorWall: "south" });
-    centerSlots.push({ type: "staircase",   nameAr: "درج",           nameEn: "Staircase",    prefH: rnd(4.5, 5.5), hasWindow: false, doorWall: "south" });
+    // Fix 1: distributor capped at 2.0m depth
+    centerSlots.push({ type: "distributor", nameAr: "موزع",          nameEn: "Distributor",  prefH: distH,        hasWindow: false, doorWall: "south" });
     centerSlots.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living",prefH: rnd(4.0, 5.0), hasWindow: true,  doorWall: "south" });
-    // Ground floor bedrooms
     const gndBeds = Math.min(1, bedrooms);
     for (let b = 0; b < gndBeds; b++) {
       centerSlots.push({ type: "bedroom", nameAr: `غرفة نوم ${b+1}`, nameEn: `Bedroom ${b+1}`, prefH: rnd(3.6, 4.5), hasWindow: true, doorWall: "west" });
     }
+    leftSlots.push({ type: "storage",  nameAr: "مخزن",         nameEn: "Storage",      prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
   } else {
-    // Upper floor: staircase + bedrooms
-    centerSlots.push({ type: "staircase",   nameAr: "درج",           nameEn: "Staircase",    prefH: rnd(4.5, 5.5), hasWindow: false, doorWall: "south" });
-    centerSlots.push({ type: "corridor",    nameAr: "ممر",           nameEn: "Corridor",     prefH: rnd(1.5, 2.0), hasWindow: false, doorWall: "south" });
-    // Master bedroom
+    // Fix 1: corridor capped at 2.0m depth
+    centerSlots.push({ type: "corridor",    nameAr: "ممر",           nameEn: "Corridor",     prefH: distH,        hasWindow: false, doorWall: "south" });
     centerSlots.push({ type: "master_bedroom", nameAr: "غرفة نوم ماستر", nameEn: "Master Bedroom", prefH: rnd(4.0, 5.0), hasWindow: true, doorWall: "west" });
-    // Remaining bedrooms
     const upperBeds = Math.max(0, bedrooms - 1);
     for (let b = 0; b < upperBeds; b++) {
       centerSlots.push({ type: "bedroom", nameAr: `غرفة نوم ${b+2}`, nameEn: `Bedroom ${b+2}`, prefH: rnd(3.6, 4.5), hasWindow: true, doorWall: "west" });
@@ -302,7 +308,7 @@ function buildFloorGrid(params: {
     });
   }
 
-  // ── RIGHT COLUMN: reception zone ─────────────────────────────────────────
+  // ── RIGHT COLUMN: reception zone (Fix 5: no dining; Fix 6: garage fixed dims) ──
   interface RightSlot { type: RoomType; nameAr: string; nameEn: string; prefH: number; hasWindow: boolean; doorWall: "north"|"south"|"east"|"west" }
   const rightSlots: RightSlot[] = [];
 
@@ -311,19 +317,18 @@ function buildFloorGrid(params: {
     if (hasMajlis) {
       rightSlots.push({ type: "majlis", nameAr: "مجلس رجال", nameEn: "Men's Majlis", prefH: rnd(4.5, 6.0), hasWindow: true, doorWall: "west" });
     }
-    rightSlots.push({ type: "dining", nameAr: "غرفة طعام", nameEn: "Dining Room", prefH: rnd(3.5, 4.5), hasWindow: true, doorWall: "west" });
+    // Fix 6: parking fixed at right edge, width=rightW (already right edge), height=6.0m fixed
     if (hasParking) {
-      rightSlots.push({ type: "parking", nameAr: "موقف سيارة", nameEn: "Parking", prefH: rnd(3.0, 3.5), hasWindow: false, doorWall: "south" });
+      rightSlots.push({ type: "parking", nameAr: "موقف سيارة", nameEn: "Parking", prefH: 6.0, hasWindow: false, doorWall: "south" });
     }
   } else {
-    // Upper floor right: family living + prayer + office
     rightSlots.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living", prefH: rnd(4.5, 5.5), hasWindow: true, doorWall: "west" });
     if (conceptIndex % 2 === 0) {
       rightSlots.push({ type: "prayer", nameAr: "غرفة صلاة", nameEn: "Prayer Room", prefH: rnd(2.5, 3.5), hasWindow: true, doorWall: "west" });
     } else {
       rightSlots.push({ type: "office", nameAr: "مكتب", nameEn: "Office", prefH: rnd(3.0, 4.0), hasWindow: true, doorWall: "west" });
     }
-    rightSlots.push({ type: "bathroom", nameAr: "حمام", nameEn: "Bathroom", prefH: rnd(2.2, 2.8), hasWindow: false, doorWall: "west" });
+    rightSlots.push({ type: "bathroom", nameAr: "حمام", nameEn: "Bathroom", prefH: clampWetH(rnd(2.2, 2.8)), hasWindow: false, doorWall: "west" });
     if (hasBalcony) {
       rightSlots.push({ type: "balcony", nameAr: "بلكونة", nameEn: "Balcony", prefH: rnd(1.5, 2.0), hasWindow: true, doorWall: "south" });
     }
@@ -341,7 +346,17 @@ function buildFloorGrid(params: {
     });
   }
 
-  return rooms;
+  // Fix 3: enforce aspect ratio ≤ 1:2.5 for non-circulation rooms
+  return rooms.map(room => {
+    if (room.type === "corridor" || room.type === "parking" || room.type === "staircase" || room.type === "balcony") return room;
+    const ratio = Math.max(room.width, room.height) / Math.min(room.width, room.height);
+    if (ratio > 2.5) {
+      // Clamp the height to maintain max 1:2.5 ratio
+      const maxH = room.width * 2.5;
+      return { ...room, height: parseFloat(maxH.toFixed(2)), area: parseFloat((room.width * maxH).toFixed(1)) };
+    }
+    return room;
+  });
 }
 
 // ─── Main Layout Generator ────────────────────────────────────────────────────
