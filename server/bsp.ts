@@ -264,7 +264,8 @@ function buildFloorGrid(params: {
     let curY = 0;
     leftSlots.forEach((slot, i) => {
       const isLast = i === leftSlots.length - 1;
-      const h = isLast ? bd - curY : Math.max(2.0, slot.prefH * scale);
+      const minH = (slot.type === "corridor" || slot.type === "distributor" || slot.type === "toilet") ? 1.2 : 2.0;
+      const h = isLast ? Math.max(minH, bd - curY) : Math.max(minH, slot.prefH * scale);
       rooms.push(placeRoom(slot.type, slot.nameAr, slot.nameEn, leftX, curY, leftW, h, slot.hasWindow, slot.doorWall));
       curY += h;
     });
@@ -302,7 +303,8 @@ function buildFloorGrid(params: {
     let curY = 0;
     centerSlots.forEach((slot, i) => {
       const isLast = i === centerSlots.length - 1;
-      const h = isLast ? bd - curY : Math.max(1.5, slot.prefH * scale);
+      const minH = (slot.type === "corridor" || slot.type === "distributor") ? 1.2 : 2.0;
+      const h = isLast ? Math.max(minH, bd - curY) : Math.max(minH, slot.prefH * scale);
       rooms.push(placeRoom(slot.type, slot.nameAr, slot.nameEn, centerX, curY, centerW, h, slot.hasWindow, slot.doorWall));
       curY += h;
     });
@@ -340,22 +342,39 @@ function buildFloorGrid(params: {
     let curY = 0;
     rightSlots.forEach((slot, i) => {
       const isLast = i === rightSlots.length - 1;
-      const h = isLast ? bd - curY : Math.max(1.5, slot.prefH * scale);
+      const minH = (slot.type === "corridor" || slot.type === "distributor") ? 1.2 : 2.0;
+      const h = isLast ? Math.max(minH, bd - curY) : Math.max(minH, slot.prefH * scale);
       rooms.push(placeRoom(slot.type, slot.nameAr, slot.nameEn, rightX, curY, rightW, h, slot.hasWindow, slot.doorWall));
       curY += h;
     });
   }
 
-  // Fix 3: enforce aspect ratio ≤ 1:2.5 for non-circulation rooms
+  // Fix 3 + Fix 4: enforce aspect ratio ≤ 1:2.5 AND area caps
+  const MAX_AREA: Partial<Record<RoomType, number>> = {
+    bedroom: 20, master_bedroom: 25, family_living: 25, living: 28,
+    kitchen: 18, dining: 16, maid_room: 10, storage: 8, laundry: 8,
+    prayer: 12, office: 18, bathroom: 8, toilet: 4,
+  };
+  const MAJLIS_MAX = 30;
+
   return rooms.map(room => {
-    if (room.type === "corridor" || room.type === "parking" || room.type === "staircase" || room.type === "balcony") return room;
-    const ratio = Math.max(room.width, room.height) / Math.min(room.width, room.height);
+    if (room.type === "corridor" || room.type === "parking" || room.type === "staircase" || room.type === "balcony" || room.type === "distributor") return room;
+
+    // Aspect ratio cap
+    let { width, height } = room;
+    const ratio = Math.max(width, height) / Math.min(width, height);
     if (ratio > 2.5) {
-      // Clamp the height to maintain max 1:2.5 ratio
-      const maxH = room.width * 2.5;
-      return { ...room, height: parseFloat(maxH.toFixed(2)), area: parseFloat((room.width * maxH).toFixed(1)) };
+      height = parseFloat((width * 2.5).toFixed(2));
     }
-    return room;
+
+    // Area cap
+    const maxArea = room.type === "majlis" ? MAJLIS_MAX : (MAX_AREA[room.type] ?? 30);
+    if (width * height > maxArea) {
+      height = parseFloat((maxArea / width).toFixed(2));
+    }
+
+    const area = parseFloat((width * height).toFixed(1));
+    return { ...room, width, height, area };
   });
 }
 
@@ -466,15 +485,6 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
 
   // ── Defs ──────────────────────────────────────────────────────────────────
   svg += `<defs>`;
-  // Staircase diagonal hatch
-  svg += `<pattern id="stair_hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`;
-  svg += `<line x1="0" y1="0" x2="0" y2="6" stroke="#9CA3AF" stroke-width="0.8"/>`;
-  svg += `</pattern>`;
-  // Parking diagonal hatch
-  svg += `<pattern id="park_hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">`;
-  svg += `<line x1="0" y1="0" x2="0" y2="8" stroke="#CBD5E1" stroke-width="1"/>`;
-  svg += `</pattern>`;
-  // Wall fill (solid dark)
   svg += `<marker id="dim_arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">`;
   svg += `<polygon points="0,0 6,3 0,6" fill="#1e293b"/>`;
   svg += `</marker>`;
@@ -530,17 +540,15 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const fill = ROOM_FILL[room.type] ?? "#FAFAFA";
 
     if (room.type === "staircase") {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="url(#stair_hatch)" stroke="#475569" stroke-width="1.5"/>`;
-      // Staircase step lines
-      const stepCount = Math.floor(rh / 10);
+      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#475569" stroke-width="1.5"/>`;
+      // Staircase step lines (horizontal only, no hatch)
+      const stepCount = Math.max(4, Math.floor(rh / 10));
       for (let s = 1; s <= stepCount; s++) {
         svg += `<line x1="${rx+2}" y1="${ry+s*(rh/stepCount)}" x2="${rx+rw-2}" y2="${ry+s*(rh/stepCount)}" stroke="#6B7280" stroke-width="0.7"/>`;
       }
-      // Arrow direction
       svg += `<line x1="${rx+rw/2}" y1="${ry+rh*0.7}" x2="${rx+rw/2}" y2="${ry+rh*0.2}" stroke="#374151" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
     } else if (room.type === "parking") {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="url(#park_hatch)" stroke="#64748B" stroke-width="1.5"/>`;
-      // Parking P symbol
+      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#64748B" stroke-width="1.5"/>`;
       svg += `<text x="${rx+rw/2}" y="${ry+rh/2+6}" text-anchor="middle" fill="#475569" font-size="20" font-weight="bold" font-family="Arial" opacity="0.3">P</text>`;
     } else {
       svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#334155" stroke-width="1.5"/>`;
@@ -671,12 +679,16 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#94A3B8" stroke-width="0.5" stroke-dasharray="4,3"/>`;
   });
 
-  // ── North arrow ───────────────────────────────────────────────────────────
-  const nax = ox + 22, nay = oy + 22;
-  svg += `<circle cx="${nax}" cy="${nay}" r="18" fill="none" stroke="#1E293B" stroke-width="1.5"/>`;
-  svg += `<polygon points="${nax},${nay-16} ${nax-5},${nay+6} ${nax},${nay+2} ${nax+5},${nay+6}" fill="#1E293B"/>`;
-  svg += `<polygon points="${nax},${nay-16} ${nax-5},${nay+6} ${nax},${nay+2} ${nax+5},${nay+6}" fill="white" opacity="0.4"/>`;
-  svg += `<text x="${nax}" y="${nay+30}" text-anchor="middle" fill="#1E293B" font-size="10" font-weight="bold" font-family="Arial">N</text>`;
+  // ── North arrow (clean minimal architectural style) ───────────────────────
+  const nax = ox + 20, nay = oy + 20;
+  // Thin circle
+  svg += `<circle cx="${nax}" cy="${nay}" r="14" fill="none" stroke="#374151" stroke-width="0.8"/>`;
+  // Arrow shaft pointing up
+  svg += `<line x1="${nax}" y1="${nay+10}" x2="${nax}" y2="${nay-10}" stroke="#374151" stroke-width="1"/>`;
+  // Arrowhead (small, thin)
+  svg += `<polygon points="${nax},${nay-13} ${nax-3},${nay-6} ${nax+3},${nay-6}" fill="#374151"/>`;
+  // Letter N below
+  svg += `<text x="${nax}" y="${nay+26}" text-anchor="middle" fill="#374151" font-size="9" font-weight="600" font-family="Arial">N</text>`;
 
   // ── Scale bar ─────────────────────────────────────────────────────────────
   const sbX = ox + bw*SCALE - 5*SCALE - 10;

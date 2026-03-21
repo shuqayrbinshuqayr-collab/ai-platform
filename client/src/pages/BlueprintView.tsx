@@ -161,13 +161,20 @@ function FloorPlan({
     }
   }
 
-  // ─── Window symbol (3 parallel lines on wall) ────────────────────────────
-  function WindowSymbol({ x, y, w, h, type }: { x: number; y: number; w: number; h: number; type: string }) {
-    const ww = Math.min(w * 0.45, 45); // window width
-    const onTop = ["balcony", "majlis", "living", "family_living"].includes(type);
+  // ─── Window symbol — only on exterior walls ───────────────────────────────
+  // A wall is exterior only if it coincides with the building boundary.
+  function WindowSymbol({ x, y, w, h, space }: { x: number; y: number; w: number; h: number; space: any }) {
+    // Determine which building edges this room touches (in SVG pixels)
+    const atTop    = Math.abs(y - PAD_T) < 4;
+    const atBottom = Math.abs((y + h) - (PAD_T + innerH)) < 4;
+    const atLeft   = Math.abs(x - PAD_L) < 4;
+    const atRight  = Math.abs((x + w) - (PAD_L + innerW)) < 4;
 
-    if (onTop) {
-      // Window on top wall
+    // Pick the first available exterior wall
+    const ww = Math.min(w * 0.45, 45);
+    const wh = Math.min(h * 0.4, 40);
+
+    if (atTop) {
       const wx = x + w / 2 - ww / 2;
       const wy = y;
       return (
@@ -179,18 +186,44 @@ function FloorPlan({
         </g>
       );
     }
-    // Window on right wall
-    const wx = x + w;
-    const wy = y + h * 0.25;
-    const wh = Math.min(h * 0.4, 40);
-    return (
-      <g>
-        <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#FFFFFF" stroke="none"/>
-        <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
-        <line x1={wx} y1={wy} x2={wx} y2={wy + wh} stroke="#6B9AC4" strokeWidth="1.2"/>
-        <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
-      </g>
-    );
+    if (atBottom) {
+      const wx = x + w / 2 - ww / 2;
+      const wy = y + h;
+      return (
+        <g>
+          <rect x={wx} y={wy - HW} width={ww} height={WALL_T} fill="#FFFFFF" stroke="none"/>
+          <line x1={wx} y1={wy - HW} x2={wx + ww} y2={wy - HW} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx} y1={wy} x2={wx + ww} y2={wy} stroke="#6B9AC4" strokeWidth="1.2"/>
+          <line x1={wx} y1={wy + HW} x2={wx + ww} y2={wy + HW} stroke="#1A1A1A" strokeWidth="0.8"/>
+        </g>
+      );
+    }
+    if (atRight) {
+      const wy = y + h * 0.25;
+      const wx = x + w;
+      return (
+        <g>
+          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#FFFFFF" stroke="none"/>
+          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx} y1={wy} x2={wx} y2={wy + wh} stroke="#6B9AC4" strokeWidth="1.2"/>
+          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+        </g>
+      );
+    }
+    if (atLeft) {
+      const wy = y + h * 0.25;
+      const wx = x;
+      return (
+        <g>
+          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#FFFFFF" stroke="none"/>
+          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx} y1={wy} x2={wx} y2={wy + wh} stroke="#6B9AC4" strokeWidth="1.2"/>
+          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+        </g>
+      );
+    }
+    // Room has no exterior wall — skip window
+    return null;
   }
 
   // ─── Staircase symbol ─────────────────────────────────────────────────────
@@ -272,10 +305,6 @@ function FloorPlan({
         <pattern id={`grid-f${floor}`} width="10" height="10" patternUnits="userSpaceOnUse">
           <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#E5E7EB" strokeWidth="0.25"/>
         </pattern>
-        {/* Balcony hatch */}
-        <pattern id={`hatch-f${floor}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="6" stroke="#D1D5DB" strokeWidth="0.8"/>
-        </pattern>
       </defs>
 
       {/* White background */}
@@ -289,9 +318,7 @@ function FloorPlan({
         const { x, y, w, h } = toSVG(space);
         const { wm, hm } = getDims(space);
         const type = space.type ?? "other";
-        const fill = type === "balcony"
-          ? `url(#hatch-f${floor})`
-          : (ROOM_FILL[type] ?? ROOM_FILL.other);
+        const fill = ROOM_FILL[type] ?? ROOM_FILL.other;
         const nameAr = space.nameAr || space.name || "";
         const nameEn = space.name || "";
         const label = lang === "ar" ? nameAr : nameEn;
@@ -325,9 +352,9 @@ function FloorPlan({
             {/* ── Staircase pattern ── */}
             {type === "staircase" && <StaircaseSymbol x={x+2} y={y+2} w={w-4} h={h-4}/>}
 
-            {/* ── Window symbol ── */}
+            {/* ── Window symbol (exterior walls only) ── */}
             {HAS_WINDOW.has(type) && w > 30 && h > 20 && (
-              <WindowSymbol x={x} y={y} w={w} h={h} type={type}/>
+              <WindowSymbol x={x} y={y} w={w} h={h} space={space}/>
             )}
 
             {/* ── Door symbol ── */}
@@ -415,11 +442,12 @@ function FloorPlan({
       </g>
 
       {/* ── North arrow ── */}
-      <g transform={`translate(${SVG_W - 40}, ${PAD_T + 22})`}>
-        <circle cx="0" cy="0" r="16" fill="none" stroke="#374151" strokeWidth="1.2"/>
-        <polygon points="0,-14 -5,0 0,-4 5,0" fill="#1A1A1A"/>
-        <polygon points="0,14 -5,0 0,4 5,0" fill="#D1D5DB"/>
-        <text x="0" y="-19" textAnchor="middle" fill="#374151" fontSize="10" fontWeight="800"
+      {/* ── North arrow — clean minimal architectural style ── */}
+      <g transform={`translate(${SVG_W - 38}, ${PAD_T + 20})`}>
+        <circle cx="0" cy="0" r="14" fill="none" stroke="#374151" strokeWidth="0.8"/>
+        <line x1="0" y1="10" x2="0" y2="-10" stroke="#374151" strokeWidth="1"/>
+        <polygon points="0,-13 -3,-6 3,-6" fill="#374151"/>
+        <text x="0" y="24" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600"
           fontFamily="'Share Tech Mono',monospace">N</text>
       </g>
 
