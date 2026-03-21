@@ -919,7 +919,7 @@ Provide the report in a structured and detailed format.`;
             );
 
             // Use AI room positions when valid; fall back to BSP silently
-            const hasValidAIRooms = aiGroundRooms.length > 0 &&
+            let hasValidAIRooms = aiGroundRooms.length > 0 &&
               aiGroundRooms.every((r: any) =>
                 r.x != null && r.y != null &&
                 r.width != null && r.length != null &&
@@ -927,6 +927,35 @@ Provide the report in a structured and detailed format.`;
                 !isNaN(r.width) && !isNaN(r.length) &&
                 r.width > 0 && r.length > 0
               );
+
+            // Validate required rooms are present
+            if (hasValidAIRooms) {
+              const returnedTypes = aiGroundRooms.map((r: any) => (r.type ?? "").toLowerCase());
+              const has = (kw: string) => returnedTypes.some(t => t.includes(kw));
+              const requiredTypes = ['kitchen', 'bathroom', 'staircase'];
+              if (project.bedrooms > 0) requiredTypes.push('bedroom');
+              if ((project.majlis ?? 1) > 0) requiredTypes.push('majlis');
+              const missing = requiredTypes.filter(t => !has(t));
+              if (missing.length > 0) {
+                console.error("MISSING REQUIRED ROOMS:", missing, "— falling back to BSP");
+                hasValidAIRooms = false;
+              }
+              // Cap oversized parking (>18m²) to prevent it dominating the plan
+              if (hasValidAIRooms) {
+                for (const r of aiGroundRooms) {
+                  if ((r.type ?? "").includes("park") || (r.type ?? "").includes("garage")) {
+                    if (r.width * r.length > 20) {
+                      const scale = Math.sqrt(18 / (r.width * r.length));
+                      r.width = parseFloat((r.width * scale).toFixed(2));
+                      r.length = parseFloat((r.length * scale).toFixed(2));
+                      // Recalculate percentage coords
+                      r.w = (r.width / bspLayout.buildingWidth) * 100;
+                      r.h = (r.length / bspLayout.buildingDepth) * 100;
+                    }
+                  }
+                }
+              }
+            }
 
             const sanitizeRoom = (r: any) => ({
               ...r,

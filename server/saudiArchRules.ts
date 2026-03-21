@@ -1097,6 +1097,12 @@ ORIENTATION RULES:
   Prayer Room → west wall (Qibla direction)
   Parking/Garage → attached to north/street side
 
+GARAGE/PARKING PLACEMENT RULE (CRITICAL):
+  Parking must be at x=0 (left edge) OR x≈buildingWidth (right edge) of the footprint.
+  It must NOT occupy interior space that displaces habitable rooms.
+  Maximum area: 18m² (one car: 3m × 6m). Do NOT make it larger than this.
+  If 2 cars requested: place two 3m×6m spaces side by side along the north wall.
+
 ══════════════════════════════════════════════
 STEP 5 — ASSIGN GEOMETRY (SBC 1101 minimums)
 ══════════════════════════════════════════════
@@ -1136,6 +1142,29 @@ Before outputting JSON, check every room:
 
 If any check fails, adjust room dimensions before outputting.
 Never output a layout with SBC violations.
+
+══════════════════════════════════════════════
+STEP 6B — ROOM REQUIREMENTS ENFORCEMENT
+══════════════════════════════════════════════
+You MUST include every room from this list in your JSON output.
+If a room is requested, it MUST appear with valid x, y, width, length.
+Missing rooms = invalid response = system failure.
+
+REQUIRED ROOMS FOR THIS PROJECT (ground floor):
+${isVilla ? `• entrance (بهو المدخل) — 1 required
+• majlis (مجلس رجال) — ${majlis > 0 ? "1 required" : "NOT requested, omit"}
+• kitchen (مطبخ) — 1 required
+• dining (غرفة طعام) — 1 required
+• bathroom (حمام) — at least 1 on ground floor
+• staircase (درج) — 1 required
+• parking/garage — ${garages > 0 ? `${garages} car(s) required, max 18m² each, on building edge` : "NOT requested, omit"}
+• bedroom — ${bedrooms > 2 ? "at least 1 on ground floor" : "can be on upper floor only"}
+• maid_room (غرفة خادمة) — ${maidRooms > 0 ? "1 required, near kitchen" : "NOT requested, omit"}` : `• lobby/entrance — 1 required
+• staircase — 1 required
+• parking — ${garages > 0 ? `${garages} car(s), max 18m² each, on building edge` : "NOT requested, omit"}`}
+
+Before outputting JSON, count your rooms and verify every required room is present.
+If a room is missing from your layout, add it now before writing the JSON.
 
 ══════════════════════════════════════════════
 STEP 7 — OUTPUT FORMAT
