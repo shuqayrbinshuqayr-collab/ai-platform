@@ -757,7 +757,14 @@ export default function NewProject() {
                   const nextStep = step === 0 ? 2 : Math.min(3, step + 1);
                   setStep(nextStep);
                 }}
-                disabled={step === 0 && landInputMode === "choose"}
+                disabled={
+                  // Step 0: must select a mode, and fulfill that mode's requirements
+                  (step === 0 && landInputMode === "choose") ||
+                  (step === 0 && landInputMode === "manual" && (!form.landArea || !form.landWidth || !form.landLength)) ||
+                  (step === 0 && landInputMode === "documents" && !deedUploaded && !buildingCodeUploaded) ||
+                  // Step 2: must have at least 1 bedroom and 1 bathroom
+                  (step === 2 && (form.bedrooms < 1 || form.bathrooms < 1))
+                }
                 className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
               >
                 {t(lang, "next")}
