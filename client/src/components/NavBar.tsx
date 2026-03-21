@@ -53,19 +53,13 @@ export default function NavBar() {
       <div className="container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex flex-col items-center leading-none group" style={{ gap: "2px" }}>
-            {/* Rooftop icon — wide, thick, open at bottom with gap */}
-            <svg viewBox="0 0 120 44" style={{ width: "7rem" }} xmlns="http://www.w3.org/2000/svg">
-              {/* Left slope: from bottom-left (gap inset) up to peak */}
-              <line x1="4" y1="42" x2="60" y2="4" stroke="#F97316" strokeWidth="11" strokeLinecap="butt"/>
-              {/* Right slope: from peak down to bottom-right (gap inset) */}
-              <line x1="60" y1="4" x2="116" y2="42" stroke="#F97316" strokeWidth="11" strokeLinecap="butt"/>
-            </svg>
-            {/* Text — same width as roof */}
-            <div dir="ltr" className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.4rem", lineHeight: 1, width: "7rem", justifyContent: "center" }}>
-              <span style={{ color: "#F97316" }}>SOAR</span>
-              <span style={{ color: "white" }}>.AI</span>
+          <Link href="/" className="flex items-center gap-1 group">
+            {/* PNG logo in a white rounded pill to match its background */}
+            <div className="rounded-lg overflow-hidden" style={{ background: "white", padding: "2px 6px", height: "38px", display: "flex", alignItems: "center" }}>
+              <img src="/soar-logo.png" alt="SOAR" style={{ height: "30px", width: "auto" }} />
             </div>
+            {/* .AI in white */}
+            <span dir="ltr" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.3rem", color: "white", lineHeight: 1 }}>.AI</span>
           </Link>
 
           {/* Desktop Nav */}
