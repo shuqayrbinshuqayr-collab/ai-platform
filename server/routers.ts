@@ -1,4 +1,5 @@
 import { z } from "zod";
+import fs from "fs";
 import type { Response } from "express";
 import { getDb } from "./db";
 import { blueprints } from "../drizzle/schema";
@@ -147,6 +148,17 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
 }
 
 export const appRouter = router({
+  debug: router({
+    getLastResponse: publicProcedure.query(() => {
+      const readFile = (path: string) => {
+        try { return fs.readFileSync(path, "utf-8"); } catch { return null; }
+      };
+      return {
+        gptResponse: readFile("/tmp/gpt-response.json"),
+        spacesSource: readFile("/tmp/spaces-source.txt"),
+      };
+    }),
+  }),
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -629,6 +641,7 @@ Provide the report in a structured and detailed format.`;
 
             // ── DEBUG LOGGING (temporary) ────────────────────────────────
             console.error("GPT RAW RESPONSE:", JSON.stringify(content).slice(0, 500));
+            try { fs.writeFileSync("/tmp/gpt-response.json", JSON.stringify({ conceptIndex, rawContent: content, parsed: aiData }, null, 2)); } catch {};
 
             // Merge BSP layout with AI enrichment
             const conceptTitle = CONCEPT_TITLES[i];
@@ -716,6 +729,7 @@ Provide the report in a structured and detailed format.`;
             console.error("HAS VALID AI ROOMS:", hasValidAIRooms);
             console.error("FIRST ROOM SAMPLE:", JSON.stringify(aiGroundRooms?.[0]));
             console.error("FINAL SPACES SOURCE:", hasValidAIRooms ? "GPT-4o" : "BSP FALLBACK");
+            try { fs.writeFileSync("/tmp/spaces-source.txt", hasValidAIRooms ? "GPT-4o" : "BSP"); } catch {};
             // ── END DEBUG ────────────────────────────────────────────────
 
             const finalSpaces = hasValidAIRooms
