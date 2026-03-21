@@ -62,7 +62,7 @@ type FormData = {
 
 const defaultForm: FormData = {
   name: "", description: "",
-  landArea: "", landWidth: "", landLength: "", landCoordinates: "", landShape: "rectangular", neighborhoodName: "",
+  landArea: "", landWidth: "15", landLength: "20", landCoordinates: "", landShape: "rectangular", neighborhoodName: "",
   buildingRatio: "60", floorAreaRatio: "2", maxFloors: "4",
   frontSetback: "", backSetback: "", sideSetback: "",
   buildingType: "", numberOfFloors: "2",
@@ -180,6 +180,14 @@ export default function NewProject() {
   const handleSubmit = () => {
     if (!form.name.trim()) {
       toast.error(lang === "ar" ? "الرجاء إدخال اسم المشروع" : "Please enter a project name");
+      return;
+    }
+    const lw = form.landWidth ? parseFloat(form.landWidth) : 0;
+    const ll = form.landLength ? parseFloat(form.landLength) : 0;
+    if (lw > 0 && ll > 0 && (lw < 10 || ll < 15)) {
+      toast.error(lang === "ar"
+        ? "أبعاد الأرض صغيرة جداً — الحد الأدنى 10م عرض × 15م عمق"
+        : "Plot too small — minimum 10m width × 15m depth");
       return;
     }
     const additionalReqs = [

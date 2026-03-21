@@ -410,6 +410,10 @@ export function generateBSPLayout(params: {
     bd = parseFloat(bd.toFixed(2));
   }
 
+  // Hard minimums — layout engine cannot function below these
+  bw = Math.max(bw, 10);
+  bd = Math.max(bd, 15);
+
   const buildingArea = parseFloat((bw * bd).toFixed(1));
   const floors = Math.max(1, numberOfFloors);
 
