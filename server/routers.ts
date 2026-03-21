@@ -748,9 +748,9 @@ Provide the report in a structured and detailed format.`;
 
             const aiFloorsForSVG = hasValidAIRooms
               ? [
-                  { rooms: aiGroundRooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: r.width, height: r.length })) },
+                  { rooms: aiGroundRooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: (r.w / 100) * bspLayout.buildingWidth, height: (r.h / 100) * bspLayout.buildingDepth })) },
                   ...Object.values(aiUpperByFloor).map((rooms: any[]) => ({
-                    rooms: rooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: r.width, height: r.length })),
+                    rooms: rooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: (r.w / 100) * bspLayout.buildingWidth, height: (r.h / 100) * bspLayout.buildingDepth })),
                   })),
                 ]
               : null;
