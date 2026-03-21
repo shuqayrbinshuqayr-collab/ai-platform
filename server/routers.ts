@@ -626,6 +626,9 @@ Provide the report in a structured and detailed format.`;
               aiData = {};
             }
 
+            // ── DEBUG LOGGING (temporary) ────────────────────────────────
+            console.log("GPT RAW RESPONSE:", JSON.stringify(content).slice(0, 500));
+
             // Merge BSP layout with AI enrichment
             const conceptTitle = CONCEPT_TITLES[i];
 
@@ -707,6 +710,12 @@ Provide the report in a structured and detailed format.`;
               width: parseFloat((r.width ?? 3.0).toFixed(2)),
               length: parseFloat((r.length ?? 3.0).toFixed(2)),
             });
+
+            console.log("AI ROOMS PARSED:", aiGroundRooms?.length, aiUpperRooms?.length);
+            console.log("HAS VALID AI ROOMS:", hasValidAIRooms);
+            console.log("FIRST ROOM SAMPLE:", JSON.stringify(aiGroundRooms?.[0]));
+            console.log("FINAL SPACES SOURCE:", hasValidAIRooms ? "GPT-4o" : "BSP FALLBACK");
+            // ── END DEBUG ────────────────────────────────────────────────
 
             const finalSpaces = hasValidAIRooms
               ? [...aiGroundRooms, ...aiUpperRooms].map(sanitizeRoom)
