@@ -539,7 +539,7 @@ export default function NewProject() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{lang === "ar" ? "عرض الأرض (م)" : "Land Width (m)"}</Label>
-                  <Input type="number" value={form.landWidth}
+                  <Input type="number" min="1" value={form.landWidth}
                     onChange={e => {
                       const w = e.target.value;
                       const l = form.landLength;
@@ -550,7 +550,7 @@ export default function NewProject() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{lang === "ar" ? "طول الأرض (م)" : "Land Length (m)"}</Label>
-                  <Input type="number" value={form.landLength}
+                  <Input type="number" min="1" value={form.landLength}
                     onChange={e => {
                       const l = e.target.value;
                       const w = form.landWidth;
