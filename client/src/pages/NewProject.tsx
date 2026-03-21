@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import NavBar from "@/components/NavBar";
-import { MapView } from "@/components/Map";
 import {
   MapPin, Building2, Ruler, ChevronRight, ChevronLeft,
   Zap, CheckCircle, Home as HomeIcon,
@@ -28,6 +27,7 @@ type FormData = {
   landLength: string;
   landCoordinates: string;
   landShape: string;
+  neighborhoodName: string;
   // Regulatory
   buildingRatio: string;
   floorAreaRatio: string;
@@ -62,7 +62,7 @@ type FormData = {
 
 const defaultForm: FormData = {
   name: "", description: "",
-  landArea: "", landWidth: "", landLength: "", landCoordinates: "", landShape: "rectangular",
+  landArea: "", landWidth: "", landLength: "", landCoordinates: "", landShape: "rectangular", neighborhoodName: "",
   buildingRatio: "60", floorAreaRatio: "2", maxFloors: "4",
   frontSetback: "4", backSetback: "3", sideSetback: "2",
   buildingType: "residential", numberOfFloors: "2",
@@ -111,10 +111,6 @@ export default function NewProject() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(defaultForm);
-  const [mapReady, setMapReady] = useState(false);
-  const [landMarker, setLandMarker] = useState<{ lat: number; lng: number } | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
   const [landInputMode, setLandInputMode] = useState<"choose" | "documents" | "manual">("choose");
   const [deedFile, setDeedFile] = useState<File | null>(null);
   const [buildingCodeFile, setBuildingCodeFile] = useState<File | null>(null);
@@ -181,34 +177,6 @@ export default function NewProject() {
   ];
 
 
-  const handleMapReady = (map: google.maps.Map) => {
-    mapRef.current = map;
-    setMapReady(true);
-    // Add click listener to place marker
-    map.addListener("click", (e: google.maps.MapMouseEvent) => {
-      if (!e.latLng) return;
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      setLandMarker({ lat, lng });
-      set("landCoordinates", `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-      // Remove old marker
-      if (markerRef.current) markerRef.current.setMap(null);
-      markerRef.current = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: lang === "ar" ? "موقع الأرض" : "Land Location",
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: "oklch(0.70 0.19 45)",
-          fillOpacity: 1,
-          strokeColor: "#fff",
-          strokeWeight: 2,
-        },
-      });
-    });
-  };
-
   const handleSubmit = () => {
     if (!form.name.trim()) {
       toast.error(lang === "ar" ? "الرجاء إدخال اسم المشروع" : "Please enter a project name");
@@ -242,6 +210,7 @@ export default function NewProject() {
       landLength: form.landLength ? parseFloat(form.landLength) : undefined,
       landCoordinates: form.landCoordinates || undefined,
       landShape: (form.landShape as any) || undefined,
+      neighborhoodName: form.neighborhoodName || undefined,
       buildingRatio: form.buildingRatio ? parseFloat(form.buildingRatio) : undefined,
       floorAreaRatio: form.floorAreaRatio ? parseFloat(form.floorAreaRatio) : undefined,
       maxFloors: form.maxFloors ? parseInt(form.maxFloors) : undefined,
@@ -544,24 +513,17 @@ export default function NewProject() {
                 </div>
               </div>
 
-              {/* Google Map */}
-              <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">
-                  {lang === "ar" ? "حدد موقع الأرض على الخريطة (انقر للتحديد)" : "Pin land location on map (click to mark)"}
+              {/* Neighborhood / address */}
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-sm">
+                  {lang === "ar" ? "الحي أو العنوان" : "Neighborhood / Address"}
                 </Label>
-                <div className="rounded-xl overflow-hidden border border-border/50" style={{ height: 280 }}>
-                  <MapView
-                    onMapReady={handleMapReady}
-                    initialCenter={{ lat: 24.7136, lng: 46.6753 }}
-                    initialZoom={12}
-                  />
-                </div>
-                {landMarker && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-primary">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    {lang === "ar" ? "تم تحديد الموقع:" : "Location marked:"} {landMarker.lat.toFixed(5)}, {landMarker.lng.toFixed(5)}
-                  </div>
-                )}
+                <Input
+                  value={form.neighborhoodName ?? ""}
+                  onChange={e => set("neighborhoodName", e.target.value)}
+                  placeholder={lang === "ar" ? "مثال: حي النرجس، الرياض" : "e.g. Al-Narjis, Riyadh"}
+                  className="bg-input border-border text-foreground"
+                />
               </div>
 
               {/* Land dimensions */}
