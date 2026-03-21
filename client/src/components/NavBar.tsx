@@ -53,16 +53,16 @@ export default function NavBar() {
       <div className="container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex flex-col items-center leading-none group">
-            {/* Rooftop icon */}
-            <svg viewBox="0 0 80 36" className="w-14 h-auto" xmlns="http://www.w3.org/2000/svg">
-              {/* Left slope: bottom-left to peak */}
-              <line x1="2" y1="34" x2="40" y2="2" stroke="#F97316" strokeWidth="7" strokeLinecap="round"/>
-              {/* Right slope: peak to bottom-right */}
-              <line x1="40" y1="2" x2="78" y2="34" stroke="#F97316" strokeWidth="7" strokeLinecap="round"/>
+          <Link href="/" className="flex flex-col items-center leading-none group" style={{ gap: "2px" }}>
+            {/* Rooftop icon — wide, thick, open at bottom with gap */}
+            <svg viewBox="0 0 120 44" style={{ width: "7rem" }} xmlns="http://www.w3.org/2000/svg">
+              {/* Left slope: from bottom-left (gap inset) up to peak */}
+              <line x1="4" y1="42" x2="60" y2="4" stroke="#F97316" strokeWidth="11" strokeLinecap="butt"/>
+              {/* Right slope: from peak down to bottom-right (gap inset) */}
+              <line x1="60" y1="4" x2="116" y2="42" stroke="#F97316" strokeWidth="11" strokeLinecap="butt"/>
             </svg>
-            {/* Text below roof */}
-            <div dir="ltr" className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.25rem", lineHeight: 1 }}>
+            {/* Text — same width as roof */}
+            <div dir="ltr" className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.4rem", lineHeight: 1, width: "7rem", justifyContent: "center" }}>
               <span style={{ color: "#F97316" }}>SOAR</span>
               <span style={{ color: "white" }}>.AI</span>
             </div>
