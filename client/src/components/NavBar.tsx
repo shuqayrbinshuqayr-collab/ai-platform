@@ -59,7 +59,7 @@ export default function NavBar() {
               <polyline points="4,34 50,4 96,34" stroke="#F97316" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
             </svg>
             {/* Text below roof */}
-            <div className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.25rem", lineHeight: 1 }}>
+            <div dir="ltr" className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.25rem", lineHeight: 1 }}>
               <span style={{ color: "#F97316" }}>SOAR</span>
               <span style={{ color: "white" }}>.AI</span>
             </div>
