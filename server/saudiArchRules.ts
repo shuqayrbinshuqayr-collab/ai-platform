@@ -713,11 +713,11 @@ export function buildEnhancedArchPrompt(params: {
 
   const najdiBlock = facadeStyle === "arabic" ? NAJDI_ARCH_RULES : "";
 
-  return `You are a licensed Saudi residential architect (SBC-certified) with 25+ years designing villas in Riyadh, Jeddah, and Dammam.
-Generate CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}).
-Design philosophy: ${conceptStyle.focus}
-${najdiBlock}
+  // ── اختيار استراتيجية التخطيط بحسب نوع المبنى ──────────────────────────────
+  const isVilla = buildingType === "villa";
 
+  // ── مراجع حقيقية ومواصفات الغرف حسب نوع المبنى ──────────────────────────────
+  const villaReferences = `
 ══════════════════════════════════════════════════════════════
  REAL SAUDI VILLA BLUEPRINTS — USE AS EXACT REFERENCE
 ══════════════════════════════════════════════════════════════
@@ -726,28 +726,62 @@ Reference A (10.5×22m, 231m², 2 floors):
           Distributor(2.6×3.7) | Family Hall(5.46×5.0) | Kitchen(3.14×4.0)
           Bathroom(3.14×1.5) | Maid Room(3.1×2.1) | Storage(1.8×2.4)
           Bedroom1(3.1×3.9) | Bedroom2(4.3×3.6) | Master BR(4.6×3.6)
-  UPPER:  Balcony(5.6×1.8) | Majlis2(7.4×3.9) | Staircase(2.5×6.0)
-          Family Living(4.3×3.6) | Master BR(4.6×3.6) | Master Bath(1.9×2.0)
-          Bedroom1(3.07×3.0) | Bedroom2(4.2×3.0) | Bedroom3(4.0×5.0)
-          Kitchen(2.9×4.0) | Dining(4.24×3.0) | Balcony(5.1×1.0)
+  UPPER:  Balcony(5.6×1.8) | Family Living(4.3×3.6) | Master BR(4.6×3.6)
+          Master Bath(1.9×2.0) | Bedroom1(3.07×3.0) | Bedroom2(4.2×3.0)
+          Bedroom3(4.0×5.0) | Kitchen(2.9×4.0) | Dining(4.24×3.0)
 
 Reference B (12×20m, 240m², 2 floors):
   GROUND: Entrance(4.0×2.5) | Majlis(6.0×5.0) | Parking(6.0×3.0)
           Staircase(2.8×5.5) | Distributor(2.5×4.0) | Kitchen(3.5×4.5)
-          Dining(3.5×3.5) | Bathroom(2.0×2.5) | Toilet(1.5×2.0)
-          Maid Room(3.0×2.8) | Storage(2.0×2.5) | Bedroom1(4.0×4.0)
-  UPPER:  Staircase(2.8×5.5) | Corridor(1.8×6.0) | Family Living(5.0×4.5)
-          Master BR(5.0×4.5) | Master Bath(2.2×2.8) | Bedroom2(3.8×4.0)
-          Bedroom3(3.8×4.0) | Bedroom4(4.0×4.2) | Bathroom(2.0×2.5)
-          Toilet(1.5×2.0) | Prayer Room(3.0×3.0) | Balcony(4.0×1.8)
+          Dining(3.5×3.5) | Bathroom(2.0×2.5) | Maid Room(3.0×2.8)
+  UPPER:  Corridor(1.8×6.0) | Family Living(5.0×4.5) | Master BR(5.0×4.5)
+          Master Bath(2.2×2.8) | Bedroom2(3.8×4.0) | Bedroom3(3.8×4.0)
+          Prayer Room(3.0×3.0) | Balcony(4.0×1.8)`;
 
+  const residentialReferences = `
+══════════════════════════════════════════════════════════════
+ REAL SAUDI RESIDENTIAL BUILDING (عمارة) BLUEPRINTS — EXACT REFERENCE
+══════════════════════════════════════════════════════════════
+Reference A (12×20m, 240m², 4 floors, 2 apartments/floor):
+  GROUND: Shared Lobby/Entrance(4.0×3.0) | Elevator+Staircase Core(3.5×5.5)
+          Parking(12.0×5.0) | Guard Room(2.5×2.5) | Utilities(2.0×2.0)
+  TYPICAL FLOOR (repeat per floor, 2 apartments):
+    Apt-A: Door from Corridor | Living Room(4.5×4.0) | Kitchen(3.0×3.5)
+           Bedroom1(3.5×3.5) | Bedroom2(3.0×3.5) | Bathroom(2.0×2.5)
+           Balcony(3.5×1.5)
+    Apt-B: Door from Corridor | Living Room(4.5×4.0) | Kitchen(3.0×3.5)
+           Master BR(4.0×3.5) | Bedroom(3.0×3.5) | Bathroom(2.0×2.5)
+           Balcony(3.5×1.5)
+  CORRIDOR (shared): 1.5m wide, runs between apartments, connects to staircase
+
+Reference B (15×25m, 375m², 5 floors, 1 apartment/floor):
+  GROUND: Shared Lobby(5.0×4.0) | Elevator+Staircase(4.0×6.0)
+          Parking(15.0×6.0) | Storage Room(3.0×3.0)
+  TYPICAL FLOOR (1 large apartment per floor):
+    Private Entrance from elevator lobby | Living Room(6.0×5.0)
+    Kitchen(4.0×4.0) | Dining(4.0×3.5) | Master BR(5.0×4.5)
+    Master Bath(2.5×3.0) | Bedroom2(4.0×3.5) | Bedroom3(3.5×3.5)
+    Bedroom4(3.5×3.5) | Bathroom(2.0×2.5) | Balcony(5.0×2.0)
+    Laundry(2.5×2.0)`;
+
+  // ── قواعد التخطيط المعماري حسب نوع المبنى ────────────────────────────────────
+  const villaRules = `
 ═══════════════════════════════════════════════════════
-CRITICAL ARCHITECTURAL RULES (MUST FOLLOW):
+VILLA LAYOUT RULES — CRITICAL (MUST FOLLOW):
 ═══════════════════════════════════════════════════════
+ROOM PROGRAM (Villa — فيلا):
+• Private entrance directly from street (not shared)
+• Men's Majlis (مجلس رجال): large, NW corner, ground floor, direct from entrance — REQUIRED
+• Family Hall (صالة عائلية): internal, separate from Majlis, ground or upper floor
+• Master Bedroom: upper floor or south side, en-suite bathroom attached
+• Maid Room: ground floor, near kitchen, in service zone — if requested
+• Attached Garage/Parking: north side, direct street access
+• Privacy is TOP PRIORITY: bedrooms/private spaces never visible from entrance or Majlis
+
 ADJACENCY (required):
 ✓ Kitchen MUST be adjacent to Dining Room
-✓ Master Bedroom MUST have en-suite Bathroom adjacent
-✓ Majlis MUST be directly accessible from Entrance
+✓ Master Bedroom MUST have en-suite Bathroom directly adjacent
+✓ Majlis MUST be directly accessible from Entrance Hall (≤1 door separation)
 ✓ Staircase MUST connect to Distributor on each floor
 ✓ Maid Room NEAR Kitchen (service zone)
 
@@ -755,49 +789,57 @@ ADJACENCY (forbidden):
 ✗ Kitchen MUST NOT be adjacent to Bathroom/Toilet
 ✗ Majlis MUST NOT be adjacent to Master Bedroom
 ✗ Prayer Room MUST NOT be adjacent to Bathroom/Toilet
-✗ Bedrooms MUST NOT be visible from Entrance Hall
+✗ Bedrooms MUST NOT be visible/accessible from Entrance or Majlis
 
 POSITION RULES:
 • Entrance Hall → North side (street-facing)
 • Majlis → North-West corner, direct from entrance
+• Parking/Garage → North side with street access
 • Kitchen → West or East side, NOT facing street
-• Master Bedroom → South side (maximum privacy)
-• Parking → North side (street access)
-• Prayer Room → West side (Qibla direction from Riyadh)
+• Master Bedroom → South side (maximum privacy from street)
+• Maid Room → West/East side, away from entrance
+• Prayer Room → West side (Qibla from Riyadh)`;
 
-SAUDI BUILDING CODE (SBC) COMPLIANCE:
-• Front setback: ${setbacks.front}m | Back: ${setbacks.back}m | Side: ${setbacks.side}m
-• Max coverage: ${buildingRatio}%
-• Min ceiling height: 2.9m (prefer 3.2m)
-• Min bedroom: 3.0m width, 12m² area
-• Min bathroom: 1.5m width, 4m² area
-• Min corridor: 1.2m width
-• All bedrooms MUST have external windows
-• Kitchen MUST have external window (ventilation)
-• Bathrooms MUST have ventilation
+  const residentialRules = `
+═══════════════════════════════════════════════════════
+RESIDENTIAL BUILDING (عمارة) LAYOUT RULES — CRITICAL (MUST FOLLOW):
+═══════════════════════════════════════════════════════
+ROOM PROGRAM (Residential Building — عمارة):
+• GROUND FLOOR: Shared entrance lobby (not private), elevator + staircase CORE in center, parking/garage
+• TYPICAL UPPER FLOORS: ${bedrooms >= 4 ? "1 apartment per floor (large)" : "2 independent apartments per floor"}
+• Each apartment has: its OWN front door opening onto shared corridor
+• Each apartment contains: Living Room (NOT Majlis), Kitchen, ${bedrooms} Bedrooms total, Bathrooms, Balcony
+• NO Majlis in apartments (use "Living Room" / "صالة معيشة" instead)
+• NO Maid Room unless luxury specification requested
+• SHARED elements per floor: corridor (1.5m min), elevator lobby
+• Staircase + elevator shaft run vertically through ALL floors — same position on every floor
+• Shared parking on ground floor or basement
 
-═══════════════════════════════════════════════════════
-PROJECT SPECIFICATIONS:
-═══════════════════════════════════════════════════════
-Building Type: ${buildingType === "villa" ? "Residential Villa (فيلا سكنية)" : "Residential Building (مبنى سكني)"}
-Land: ${landWidth ? `${landWidth}m × ${landLength}m` : "N/A"} = ${landArea}m² | Shape: ${landShape}
-Building Footprint: ~${bldWidth.toFixed(1)}m × ${bldDepth.toFixed(1)}m = ${bldArea}m²
-Floors: ${numberOfFloors + 1} (Ground + ${numberOfFloors} upper)
-Total Built Area: ~${totalArea}m²
+ADJACENCY (required):
+✓ Each apartment: Living Room accessible directly from apartment entrance door
+✓ Kitchen adjacent to Living Room or Dining (if present)
+✓ Master Bedroom has en-suite Bathroom adjacent (if present)
+✓ Staircase + Elevator Core adjacent on EVERY floor
+✓ Corridor connects all apartment doors to elevator/staircase core
 
-ROOMS REQUIRED:
-• Bedrooms: ${bedrooms} (include 1 Master Bedroom)
-• Bathrooms: ${bathrooms} (1 en-suite with Master)
-• Majlis: ${majlis} (ground floor required)
-• Maid Rooms: ${maidRooms}
-• Balconies: ${balconies}
-• Parking: ${garages} car(s)
-${additionalRequirements ? `• Additional: ${additionalRequirements}` : ""}
+ADJACENCY (forbidden):
+✗ Kitchen MUST NOT be adjacent to Bathroom/Toilet
+✗ Bedroom doors MUST NOT open directly to shared corridor (must go through apartment entrance)
+✗ No private Majlis (use Living Room)
 
-═══════════════════════════════════════════════════════
-RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
-═══════════════════════════════════════════════════════
-{
+POSITION RULES:
+• Shared lobby/entrance → Ground floor, North side (street-facing)
+• Elevator + Staircase Core → Center of building footprint, all floors
+• Parking → Ground floor or basement, North side with street access
+• Living Rooms → Exterior walls (east or west), with windows
+• Balconies → Exterior walls only (never interior)
+• Kitchen + Bathrooms → Interior side or rear, NOT street-facing`;
+
+  const architecturalRules = isVilla ? villaRules : residentialRules;
+  const referenceBlueprints = isVilla ? villaReferences : residentialReferences;
+
+  // ── مخطط JSON المطلوب حسب نوع المبنى ────────────────────────────────────────
+  const villaJsonSchema = `{
   "title": "Concept ${conceptIndex}: ${conceptStyle.en}",
   "titleAr": "المفهوم ${conceptIndex}: ${conceptStyle.ar}",
   "conceptDescription": "Professional 2-paragraph description of this architectural concept",
@@ -808,8 +850,8 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
         "type": "entrance_hall|majlis|kitchen|bathroom|toilet|bedroom|master_bedroom|family_hall|staircase|distributor|maid_room|storage|parking|laundry|prayer|dining",
         "nameAr": "اسم الغرفة",
         "nameEn": "Room Name",
-        "width": <meters - use REAL dimensions from reference>,
-        "length": <meters - use REAL dimensions from reference>,
+        "width": <meters>,
+        "length": <meters>,
         "area": <m²>,
         "x": <position from west wall in meters>,
         "y": <position from north wall in meters>,
@@ -822,7 +864,7 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
   "upperFloors": [
     {
       "floorNumber": 1,
-      "rooms": [ <same structure as groundFloor.rooms> ]
+      "rooms": [ <same structure> ]
     }
   ],
   "summary": {
@@ -842,6 +884,115 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
   "complianceNotes": ["SBC compliant", "Setbacks verified"],
   "complianceNotesAr": ["متوافق مع الكود السعودي", "الإرتدادات مُراجَعة"]
 }`;
+
+  const residentialJsonSchema = `{
+  "title": "Concept ${conceptIndex}: ${conceptStyle.en}",
+  "titleAr": "المفهوم ${conceptIndex}: ${conceptStyle.ar}",
+  "conceptDescription": "Professional 2-paragraph description of this architectural concept",
+  "conceptDescriptionAr": "وصف مهني من فقرتين لهذا المفهوم المعماري",
+  "groundFloor": {
+    "label": "Ground Floor — Shared Lobby + Parking",
+    "rooms": [
+      {
+        "type": "entrance_hall|staircase|elevator|parking|storage|guard_room",
+        "nameAr": "اسم الفراغ",
+        "nameEn": "Space Name",
+        "width": <meters>,
+        "length": <meters>,
+        "area": <m²>,
+        "x": <position from west wall in meters>,
+        "y": <position from north wall in meters>,
+        "hasWindow": <true/false>,
+        "doorWall": "north|south|east|west",
+        "notes": "brief note"
+      }
+    ]
+  },
+  "upperFloors": [
+    {
+      "floorNumber": 1,
+      "label": "Floor 1 — Apartment(s)",
+      "rooms": [
+        {
+          "type": "living_room|kitchen|bedroom|master_bedroom|bathroom|toilet|balcony|corridor|staircase|elevator|dining",
+          "nameAr": "اسم الغرفة",
+          "nameEn": "Room Name",
+          "apartment": "A|B|shared",
+          "width": <meters>,
+          "length": <meters>,
+          "area": <m²>,
+          "x": <position from west wall in meters>,
+          "y": <position from north wall in meters>,
+          "hasWindow": <true/false>,
+          "doorWall": "north|south|east|west",
+          "notes": "brief note"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "totalFloors": ${numberOfFloors + 1},
+    "apartmentsPerFloor": ${bedrooms >= 4 ? 1 : 2},
+    "totalApartments": ${(bedrooms >= 4 ? 1 : 2) * numberOfFloors},
+    "totalRooms": <count>,
+    "totalBedrooms": ${bedrooms},
+    "totalBathrooms": ${bathrooms},
+    "totalArea": ${totalArea},
+    "buildingWidth": ${bldWidth.toFixed(1)},
+    "buildingDepth": ${bldDepth.toFixed(1)},
+    "buildingArea": ${bldArea},
+    "estimatedCost": "SAR X,XXX,XXX - X,XXX,XXX",
+    "constructionDuration": "X-X months"
+  },
+  "highlights": ["Key feature 1", "Key feature 2", "Key feature 3"],
+  "highlightsAr": ["الميزة الأولى", "الميزة الثانية", "الميزة الثالثة"],
+  "complianceNotes": ["SBC compliant", "Setbacks verified"],
+  "complianceNotesAr": ["متوافق مع الكود السعودي", "الإرتدادات مُراجَعة"]
+}`;
+
+  const jsonSchema = isVilla ? villaJsonSchema : residentialJsonSchema;
+
+  return `You are a licensed Saudi residential architect (SBC-certified) with 25+ years designing ${isVilla ? "villas" : "residential buildings (عمارات)"} in Riyadh, Jeddah, and Dammam.
+Generate CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}).
+Design philosophy: ${conceptStyle.focus}
+${najdiBlock}
+${referenceBlueprints}
+
+${architecturalRules}
+
+SAUDI BUILDING CODE (SBC) COMPLIANCE:
+• Front setback: ${setbacks.front}m | Back: ${setbacks.back}m | Side: ${setbacks.side}m
+• Max coverage: ${buildingRatio}%
+• Min ceiling height: 2.9m (prefer 3.2m)
+• Min bedroom: 3.0m width, 12m² area
+• Min bathroom: 1.5m width, 4m² area
+• Min corridor: 1.2m width
+• All bedrooms MUST have external windows
+• Kitchen MUST have external window (ventilation)
+• Bathrooms MUST have ventilation
+
+═══════════════════════════════════════════════════════
+PROJECT SPECIFICATIONS:
+═══════════════════════════════════════════════════════
+Building Type: ${isVilla ? "Residential Villa (فيلا سكنية)" : "Residential Building / عمارة (Multi-Unit)"}
+Land: ${landWidth ? `${landWidth}m × ${landLength}m` : "N/A"} = ${landArea}m² | Shape: ${landShape}
+Building Footprint: ~${bldWidth.toFixed(1)}m × ${bldDepth.toFixed(1)}m = ${bldArea}m²
+Floors: ${numberOfFloors + 1} (Ground + ${numberOfFloors} upper)
+Total Built Area: ~${totalArea}m²
+
+ROOMS REQUIRED:
+• Bedrooms: ${bedrooms}${isVilla ? " (include 1 Master Bedroom)" : " per apartment"}
+• Bathrooms: ${bathrooms}${isVilla ? " (1 en-suite with Master)" : " per apartment"}
+${isVilla ? `• Majlis: ${majlis} (ground floor required)` : `• Living Rooms: ${majlis > 0 ? majlis : 1} per apartment (NOT Majlis)`}
+${isVilla && maidRooms > 0 ? `• Maid Rooms: ${maidRooms}` : ""}
+• Balconies: ${balconies}
+• Parking: ${garages} car(s)
+${additionalRequirements ? `• Additional: ${additionalRequirements}` : ""}
+
+═══════════════════════════════════════════════════════
+RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
+═══════════════════════════════════════════════════════
+${jsonSchema}`;
 }
 
 // ─── دالة تحويل بيانات AI إلى BSP Layout ─────────────────────────────────────

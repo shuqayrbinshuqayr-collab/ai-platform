@@ -425,7 +425,7 @@ export default function BlueprintEditor() {
                     </span>
                     <span className="text-gray-500 text-center"
                       style={{ fontSize: `clamp(6px, ${space.width * 0.09}vw, 10px)` }}>
-                      {space.width.toFixed(0)}×{space.height.toFixed(0)}%
+                      {(space.width ?? 0).toFixed(0)}×{(space.height ?? 0).toFixed(0)}%
                     </span>
                   </div>
 
@@ -500,10 +500,10 @@ export default function BlueprintEditor() {
                 </h4>
                 <p className="text-sm font-medium text-white mb-1">{isAr ? s.nameAr : s.name}</p>
                 <div className="grid grid-cols-2 gap-1 text-xs text-white/50">
-                  <span>X: {s.x.toFixed(1)}%</span>
-                  <span>Y: {s.y.toFixed(1)}%</span>
-                  <span>W: {s.width.toFixed(1)}%</span>
-                  <span>H: {s.height.toFixed(1)}%</span>
+                  <span>X: {(s.x ?? 0).toFixed(1)}%</span>
+                  <span>Y: {(s.y ?? 0).toFixed(1)}%</span>
+                  <span>W: {(s.width ?? 0).toFixed(1)}%</span>
+                  <span>H: {(s.height ?? 0).toFixed(1)}%</span>
                 </div>
                 <Button
                   size="sm"
@@ -535,7 +535,7 @@ export default function BlueprintEditor() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{s.width.toFixed(0)}×{s.height.toFixed(0)}</span>
+                    <span>{(s.width ?? 0).toFixed(0)}×{(s.height ?? 0).toFixed(0)}</span>
                     <span>{isAr ? s.nameAr : s.name}</span>
                   </div>
                 </button>

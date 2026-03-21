@@ -12,7 +12,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
-import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
+import { generateBSPLayout, generateSVG, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { buildEnhancedArchPrompt } from "./saudiArchRules";
 import { generateRAGContext, generateLearnedContext } from "./blueprintRAG";
@@ -641,19 +641,6 @@ Provide the report in a structured and detailed format.`;
               );
             }
 
-            // ALWAYS use BSP spaces (they fill the building perfectly with no gaps)
-            // Enrich BSP room names with AI names when available
-            const hasAIRooms = aiGroundRooms.length > 2;
-
-            // Build AI name lookup by type+floor for enrichment
-            const aiNameLookup: Map<string, { nameAr: string; nameEn: string }> = new Map();
-            if (hasAIRooms) {
-              [...aiGroundRooms, ...aiUpperRooms].forEach((r: any, idx: number) => {
-                const key = `${r.type}-${r.floor ?? 0}-${idx}`;
-                aiNameLookup.set(key, { nameAr: r.nameAr ?? r.name, nameEn: r.name });
-              });
-            }
-
             // BSP spaces with percentage coordinates (guaranteed to fill building)
             const bspSpaces = bspLayout.floors.flatMap(f =>
               f.rooms.map(r => ({
@@ -672,13 +659,55 @@ Provide the report in a structured and detailed format.`;
               }))
             );
 
+            // Use AI room positions when valid; fall back to BSP silently
+            const hasValidAIRooms = aiGroundRooms.length > 0 &&
+              aiGroundRooms.every((r: any) =>
+                r.x != null && r.y != null &&
+                r.width != null && r.length != null &&
+                !isNaN(r.x) && !isNaN(r.y) &&
+                !isNaN(r.width) && !isNaN(r.length) &&
+                r.width > 0 && r.length > 0
+              );
+
+            const sanitizeRoom = (r: any) => ({
+              ...r,
+              x: parseFloat((r.x ?? 0).toFixed(2)),
+              y: parseFloat((r.y ?? 0).toFixed(2)),
+              width: parseFloat((r.width ?? 3.0).toFixed(2)),
+              length: parseFloat((r.length ?? 3.0).toFixed(2)),
+            });
+
+            const finalSpaces = hasValidAIRooms
+              ? [...aiGroundRooms, ...aiUpperRooms].map(sanitizeRoom)
+              : bspSpaces;
+
+            // Group upper AI rooms by floor for SVG generation
+            const aiUpperByFloor = aiUpperRooms.reduce((acc: Record<number, any[]>, r: any) => {
+              const fl = r.floor ?? 1;
+              if (!acc[fl]) acc[fl] = [];
+              acc[fl].push(r);
+              return acc;
+            }, {});
+
+            const aiFloorsForSVG = hasValidAIRooms
+              ? [
+                  { rooms: aiGroundRooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: r.width, height: r.length })) },
+                  ...Object.values(aiUpperByFloor).map((rooms: any[]) => ({
+                    rooms: rooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: r.width, height: r.length })),
+                  })),
+                ]
+              : null;
+
+            const finalSvgData = hasValidAIRooms && aiFloorsForSVG
+              ? generateSVG({ ...bspLayout, floors: aiFloorsForSVG }, conceptIndex)
+              : bspLayout.svgData;
+
             const structuredData = {
               ...aiData,
               title: aiData.title ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
               titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
-              // Always use BSP spaces — they fill the building perfectly with no gaps
-              spaces: bspSpaces,
-              aiRoomsUsed: hasAIRooms, // flag to track quality
+              spaces: finalSpaces,
+              aiRoomsUsed: hasValidAIRooms, // flag to track quality
               summary: {
                 totalFloors: bspLayout.summary.totalFloors,
                 totalRooms: bspLayout.summary.totalRooms,
@@ -698,8 +727,8 @@ Provide the report in a structured and detailed format.`;
                 complianceNotes: ["Saudi Building Code verified", "Setbacks applied"],
                 complianceNotesAr: ["تم التحقق من الكود السعودي", "تم تطبيق الإرتدادات"],
               },
-              // SVG floor plan data
-              svgData: bspLayout.svgData,
+              // SVG floor plan data (AI positions when valid, BSP as fallback)
+              svgData: finalSvgData,
               bspLayout: {
                 floors: bspLayout.floors,
                 buildingWidth: bspLayout.buildingWidth,
