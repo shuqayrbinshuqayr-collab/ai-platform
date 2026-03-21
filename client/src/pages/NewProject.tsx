@@ -757,6 +757,7 @@ export default function NewProject() {
                   const nextStep = step === 0 ? 2 : Math.min(3, step + 1);
                   setStep(nextStep);
                 }}
+                disabled={step === 0 && landInputMode === "choose"}
                 className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
               >
                 {t(lang, "next")}
