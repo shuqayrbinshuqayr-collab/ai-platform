@@ -4,10 +4,20 @@
  * قاعدة القواعد المعمارية السعودية الشاملة
  * مستخرجة من:
  * 1. مخططات فيلا سعودية حقيقية (10.5م × 22م، دورين)
- * 2. الكود السعودي للبناء (SBC)
- * 3. اشتراطات أمانة الرياض
- * 4. الممارسات المعمارية السعودية المعتمدة
+ * 2. الكود السعودي للبناء SBC 1101 (الوطني الموحد)
+ * 3. الممارسات المعمارية السعودية المعتمدة
  */
+
+import {
+  SBC_SETBACKS,
+  SBC_COVERAGE,
+  CEILING_HEIGHTS,
+  VENTILATION,
+  MIN_ROOM_AREAS,
+  MIN_ROOM_WIDTHS,
+  PRACTICAL_ROOM_AREA_CAPS,
+  SBC_HEIGHT,
+} from "./core/saudiCode";
 
 // ─── أنواع البيانات ───────────────────────────────────────────────────────────
 
@@ -473,12 +483,12 @@ export const POSITION_RULES: PositionRule[] = [
   },
   {
     roomType: "prayer",
-    preferredSide: "west",  // اتجاه القبلة (غرب في الرياض)
+    preferredSide: "west",  // اتجاه القبلة
     avoidSide: "none",
     mustBeCorner: false,
     mustHaveDirectAccess: false,
-    reason: "Prayer room should face Qibla direction (west from Riyadh)",
-    reasonAr: "المصلى يتجه نحو القبلة (غرب من الرياض)",
+    reason: "Prayer room should face Qibla direction (west)",
+    reasonAr: "المصلى يتجه نحو القبلة (الغرب)",
   },
   {
     roomType: "maid_room",
@@ -517,48 +527,49 @@ export const FLOOR_DISTRIBUTION_RULES: FloorDistributionRule[] = [
   { roomType: "balcony", floor: 1, mandatory: false, reason: "Balcony on upper floors", reasonAr: "البلكونة في الأدوار العلوية" },
 ];
 
-// ─── قواعد الكود السعودي للبناء (SBC) ────────────────────────────────────────
+// ─── قواعد الكود السعودي للبناء SBC 1101 (موحد وطني) ────────────────────────
+// القيم مستوردة من server/core/saudiCode.ts (المصدر الرسمي الموحد)
 
 export const SAUDI_BUILDING_CODE = {
-  // الإرتدادات (بالمتر)
+  // الإرتدادات — حد أدنى وطني (SBC 1101). البلديات قد تشترط أكثر.
   setbacks: {
-    front_min: 4.0,      // إرتداد أمامي
-    back_min: 2.0,       // إرتداد خلفي
-    side_min: 1.5,       // إرتداد جانبي
-    side_corner_min: 3.0, // إرتداد جانبي للقطع الزاوية
+    front_min: SBC_SETBACKS.frontMin,
+    back_min: SBC_SETBACKS.backMin,
+    side_min: SBC_SETBACKS.sideMin,
+    side_corner_min: 3.0,   // للقطع الزاوية — ممارسة معتمدة
   },
 
-  // نسب البناء
+  // نسب البناء (SBC 1101 — محدّثة 2025)
   coverage: {
-    residential_max: 0.60,    // أقصى نسبة بناء للسكني
-    villa_max: 0.65,          // أقصى نسبة للفيلا
-    commercial_max: 0.75,     // أقصى نسبة للتجاري
+    residential_max: SBC_COVERAGE.groundFloorMax,
+    villa_max: SBC_COVERAGE.groundFloorMax,
+    commercial_max: SBC_COVERAGE.absoluteMax,
   },
 
-  // الارتفاعات
+  // الارتفاعات (SBC R305.1)
   heights: {
-    floor_to_ceiling_min: 2.9,  // أدنى ارتفاع من أرضية لسقف
-    floor_to_ceiling_pref: 3.2, // الارتفاع المفضل
-    ground_floor_max: 4.5,      // أقصى ارتفاع للدور الأرضي
-    typical_floor_height: 3.5,  // ارتفاع الدور المعتاد
+    floor_to_ceiling_min: CEILING_HEIGHTS.habitableMin,
+    floor_to_ceiling_pref: 3.2,
+    ground_floor_max: 4.5,
+    typical_floor_height: 3.5,
   },
 
-  // الحد الأدنى لأبعاد الغرف
+  // الحد الأدنى لأبعاد الغرف (SBC R304.1 + ممارسات سعودية)
   min_dimensions: {
-    bedroom_width: 3.0,
-    bedroom_area: 12.0,
-    bathroom_width: 1.5,
-    bathroom_area: 4.0,
-    kitchen_width: 2.5,
-    kitchen_area: 8.0,
-    corridor_width: 1.2,
-    staircase_width: 1.2,
+    bedroom_width: MIN_ROOM_WIDTHS.habitable,
+    bedroom_area: MIN_ROOM_AREAS.bedroom,
+    bathroom_width: MIN_ROOM_WIDTHS.bathroom,
+    bathroom_area: MIN_ROOM_AREAS.bathroom,
+    kitchen_width: MIN_ROOM_WIDTHS.habitable,
+    kitchen_area: MIN_ROOM_AREAS.kitchen,
+    corridor_width: MIN_ROOM_WIDTHS.corridor,
+    staircase_width: MIN_ROOM_WIDTHS.corridor,
     staircase_min_step_width: 0.9,
   },
 
-  // اشتراطات الإضاءة والتهوية
+  // اشتراطات الإضاءة والتهوية (SBC R303)
   ventilation: {
-    min_window_area_ratio: 0.10,  // 10% من مساحة الغرفة
+    min_window_area_ratio: VENTILATION.minWindowAreaFraction,
     kitchen_must_have_external_window: true,
     bathroom_must_have_ventilation: true,
     bedroom_must_have_window: true,
@@ -566,7 +577,7 @@ export const SAUDI_BUILDING_CODE = {
 
   // اشتراطات الحريق
   fire_safety: {
-    max_dead_end_corridor: 15.0,  // أقصى طول ممر مسدود
+    max_dead_end_corridor: 15.0,
     min_door_width: 0.9,
     staircase_must_be_enclosed_above_floors: 3,
   },
@@ -818,7 +829,7 @@ POSITION RULES:
 • Kitchen → West or East side, NOT facing street
 • Master Bedroom → South side (maximum privacy from street)
 • Maid Room → West/East side, away from entrance
-• Prayer Room → West side (Qibla from Riyadh)`;
+• Prayer Room → West side (Qibla direction)`;
 
   const residentialRules = `
 ═══════════════════════════════════════════════════════
@@ -980,13 +991,15 @@ ${referenceBlueprints}
 
 ${architecturalRules}
 
-SAUDI BUILDING CODE (SBC) COMPLIANCE:
+SAUDI BUILDING CODE SBC 1101 COMPLIANCE (National Minimums — uniform across all Saudi cities):
 • Front setback: ${setbacks.front}m | Back: ${setbacks.back}m | Side: ${setbacks.side}m
-• Max coverage: ${buildingRatio}%
-• Min ceiling height: 2.9m (prefer 3.2m)
-• Min bedroom: 3.0m width, 12m² area
-• Min bathroom: 1.5m width, 4m² area
-• Min corridor: 1.2m width
+• Max coverage: ${buildingRatio}% (SBC national max: ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}%)
+• Min ceiling height: ${CEILING_HEIGHTS.habitableMin}m (prefer 3.2m, max ${CEILING_HEIGHTS.habitableMax}m per SBC R305.1)
+• Min bedroom: ${MIN_ROOM_WIDTHS.habitable}m width, ${MIN_ROOM_AREAS.bedroom}m² area (SBC R304.1)
+• Min bathroom: ${MIN_ROOM_WIDTHS.bathroom}m width, ${MIN_ROOM_AREAS.bathroom}m² area
+• Min corridor: ${MIN_ROOM_WIDTHS.corridor}m width
+• Natural light: min ${Math.round(VENTILATION.minWindowAreaFraction * 100)}% of room floor area (SBC R303.1)
+• Natural ventilation: min ${Math.round(VENTILATION.minVentilationFraction * 100)}% of room floor area (SBC R303.1)
 • All bedrooms MUST have external windows
 • Kitchen MUST have external window (ventilation)
 • Bathrooms MUST have ventilation

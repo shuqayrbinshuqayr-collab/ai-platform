@@ -64,7 +64,7 @@ const defaultForm: FormData = {
   name: "", description: "",
   landArea: "", landWidth: "", landLength: "", landCoordinates: "", landShape: "rectangular", neighborhoodName: "",
   buildingRatio: "60", floorAreaRatio: "2", maxFloors: "4",
-  frontSetback: "4", backSetback: "3", sideSetback: "2",
+  frontSetback: "", backSetback: "", sideSetback: "",
   buildingType: "", numberOfFloors: "2",
   parkingSpaces: "2", additionalRequirements: "",
   bedrooms: 4, bathrooms: 3, kitchens: 1, diningRooms: 1,
@@ -479,7 +479,7 @@ export default function NewProject() {
                             : uploadingCode ? (lang === "ar" ? "جاري الرفع..." : "Uploading...")
                             : (lang === "ar" ? "نظام البناء" : "Building Code")}
                         </span>
-                        <span className="text-[10px] opacity-60">{lang === "ar" ? "من أمانة الرياض" : "From Riyadh Municipality"}</span>
+                        <span className="text-[10px] opacity-60">{lang === "ar" ? "من البلدية أو الأمانة" : "From municipality / authority"}</span>
                         {buildingCodeFile && !uploadingCode && (
                           <span className="text-[10px] opacity-50 truncate max-w-full">{buildingCodeFile.name}</span>
                         )}
@@ -545,6 +545,43 @@ export default function NewProject() {
                 </div>
               </div>
 
+
+              {/* Setbacks — from building permit or land deed */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-muted-foreground text-xs font-semibold">
+                    {lang === "ar" ? "الارتدادات (م)" : "Setbacks (m)"}
+                  </Label>
+                </div>
+                <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs text-amber-400 mb-2">
+                  {lang === "ar"
+                    ? "أدخل الارتدادات من رخصة البناء أو الصك — تختلف حسب البلدية وليس المدينة"
+                    : "Enter setbacks from your building permit (رخصة البناء) or land deed (صك) — varies by municipality"}
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">{lang === "ar" ? "أمامي" : "Front"}</Label>
+                    <Input type="number" step="0.5" value={form.frontSetback}
+                      onChange={e => set("frontSetback", e.target.value)}
+                      placeholder={lang === "ar" ? "م" : "m"}
+                      className="bg-input border-border text-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">{lang === "ar" ? "خلفي" : "Back"}</Label>
+                    <Input type="number" step="0.5" value={form.backSetback}
+                      onChange={e => set("backSetback", e.target.value)}
+                      placeholder={lang === "ar" ? "م" : "m"}
+                      className="bg-input border-border text-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">{lang === "ar" ? "جانبي" : "Side"}</Label>
+                    <Input type="number" step="0.5" value={form.sideSetback}
+                      onChange={e => set("sideSetback", e.target.value)}
+                      placeholder={lang === "ar" ? "م" : "m"}
+                      className="bg-input border-border text-foreground" />
+                  </div>
+                </div>
+              </div>
 
               {/* Land preview */}
               {form.landWidth && form.landLength && (

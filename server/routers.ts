@@ -15,6 +15,7 @@ import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, generateSVG, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { buildEnhancedArchPrompt } from "./saudiArchRules";
+import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
 import { generateRAGContext, generateLearnedContext } from "./blueprintRAG";
 import { getLearnedBlueprints, canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
@@ -50,22 +51,23 @@ function checkSaudiBuildingCode(project: {
   const sideSetback = project.sideSetback ?? 2;
   const requestedFloors = project.numberOfFloors ?? 2;
 
-  // Saudi Building Code: Residential setbacks
-  if (frontSetback < 4) {
-    warnings.push("Front setback must be at least 4m per Saudi Building Code");
-    warningsAr.push("الإرتداد الأمامي يجب أن يكون 4م على الأقل وفق الكود السعودي");
+  // SBC 1101 national minimums — uniform across all Saudi cities (saudiCode.ts)
+  if (frontSetback < SBC_SETBACKS.frontMin) {
+    warnings.push(`Front setback is below SBC 1101 national minimum of ${SBC_SETBACKS.frontMin}m`);
+    warningsAr.push(`الإرتداد الأمامي أقل من الحد الأدنى الوطني (${SBC_SETBACKS.frontMin}م) وفق الكود السعودي SBC 1101`);
   }
-  if (backSetback < 2) {
-    warnings.push("Back setback must be at least 2m per Saudi Building Code");
-    warningsAr.push("الإرتداد الخلفي يجب أن يكون 2م على الأقل وفق الكود السعودي");
+  if (backSetback < SBC_SETBACKS.backMin) {
+    warnings.push(`Back setback is below SBC 1101 national minimum of ${SBC_SETBACKS.backMin}m`);
+    warningsAr.push(`الإرتداد الخلفي أقل من الحد الأدنى الوطني (${SBC_SETBACKS.backMin}م) وفق الكود السعودي SBC 1101`);
   }
-  if (sideSetback < 1.5) {
-    warnings.push("Side setback must be at least 1.5m per Saudi Building Code");
-    warningsAr.push("الإرتداد الجانبي يجب أن يكون 1.5م على الأقل وفق الكود السعودي");
+  if (sideSetback < SBC_SETBACKS.sideMin) {
+    warnings.push(`Side setback is below SBC 1101 national minimum of ${SBC_SETBACKS.sideMin}m`);
+    warningsAr.push(`الإرتداد الجانبي أقل من الحد الأدنى الوطني (${SBC_SETBACKS.sideMin}م) وفق الكود السعودي SBC 1101`);
   }
-  if (buildingRatio > 75) {
-    warnings.push("Building coverage ratio exceeds 75% — typical Saudi residential max");
-    warningsAr.push("نسبة البناء تتجاوز 75% — الحد المعتاد للمناطق السكنية السعودية");
+  const maxCoveragePercent = Math.round(SBC_COVERAGE.absoluteMax * 100);
+  if (buildingRatio > maxCoveragePercent) {
+    warnings.push(`Building coverage ratio exceeds SBC 1101 national maximum of ${maxCoveragePercent}%`);
+    warningsAr.push(`نسبة البناء تتجاوز الحد الأقصى الوطني (${maxCoveragePercent}%) وفق الكود السعودي SBC 1101`);
   }
   if (requestedFloors > maxFloors) {
     warnings.push(`Requested ${requestedFloors} floors exceeds allowed ${maxFloors} floors`);
@@ -76,12 +78,12 @@ function checkSaudiBuildingCode(project: {
     warningsAr.push("مساحة الأرض صغيرة جداً للمشروع السكني (أقل من 100م²)");
   }
 
-  // Auto-correct setbacks to minimum Saudi code values
+  // Auto-correct setbacks to SBC 1101 national minimums
   const corrected = {
-    frontSetback: Math.max(frontSetback, 4),
-    backSetback: Math.max(backSetback, 2),
-    sideSetback: Math.max(sideSetback, 1.5),
-    buildingRatio: Math.min(buildingRatio, 75),
+    frontSetback: Math.max(frontSetback, SBC_SETBACKS.frontMin),
+    backSetback: Math.max(backSetback, SBC_SETBACKS.backMin),
+    sideSetback: Math.max(sideSetback, SBC_SETBACKS.sideMin),
+    buildingRatio: Math.min(buildingRatio, maxCoveragePercent),
     numberOfFloors: Math.min(requestedFloors, maxFloors),
   };
 
@@ -537,20 +539,20 @@ Provide the report in a structured and detailed format.`;
         const correctionWarningsAr: string[] = [];
         if (!codeCheck.isCompliant) {
           if (project.frontSetback !== undefined && project.frontSetback !== null && project.frontSetback !== codeCheck.corrected.frontSetback) {
-            correctionWarnings.push(`Front setback adjusted from ${project.frontSetback}m to ${codeCheck.corrected.frontSetback}m per Saudi Building Code`);
-            correctionWarningsAr.push(`تم تعديل الإرتداد الأمامي من ${project.frontSetback}م إلى ${codeCheck.corrected.frontSetback}م وفق الكود السعودي`);
+            correctionWarnings.push(`Front setback raised from ${project.frontSetback}m to ${codeCheck.corrected.frontSetback}m (SBC 1101 national minimum)`);
+            correctionWarningsAr.push(`تم رفع الإرتداد الأمامي من ${project.frontSetback}م إلى ${codeCheck.corrected.frontSetback}م (الحد الأدنى الوطني SBC 1101)`);
           }
           if (project.backSetback !== undefined && project.backSetback !== null && project.backSetback !== codeCheck.corrected.backSetback) {
-            correctionWarnings.push(`Back setback adjusted from ${project.backSetback}m to ${codeCheck.corrected.backSetback}m per Saudi Building Code`);
-            correctionWarningsAr.push(`تم تعديل الإرتداد الخلفي من ${project.backSetback}م إلى ${codeCheck.corrected.backSetback}م وفق الكود السعودي`);
+            correctionWarnings.push(`Back setback raised from ${project.backSetback}m to ${codeCheck.corrected.backSetback}m (SBC 1101 national minimum)`);
+            correctionWarningsAr.push(`تم رفع الإرتداد الخلفي من ${project.backSetback}م إلى ${codeCheck.corrected.backSetback}م (الحد الأدنى الوطني SBC 1101)`);
           }
           if (project.sideSetback !== undefined && project.sideSetback !== null && project.sideSetback !== codeCheck.corrected.sideSetback) {
-            correctionWarnings.push(`Side setback adjusted from ${project.sideSetback}m to ${codeCheck.corrected.sideSetback}m per Saudi Building Code`);
-            correctionWarningsAr.push(`تم تعديل الإرتداد الجانبي من ${project.sideSetback}م إلى ${codeCheck.corrected.sideSetback}م وفق الكود السعودي`);
+            correctionWarnings.push(`Side setback raised from ${project.sideSetback}m to ${codeCheck.corrected.sideSetback}m (SBC 1101 national minimum)`);
+            correctionWarningsAr.push(`تم رفع الإرتداد الجانبي من ${project.sideSetback}م إلى ${codeCheck.corrected.sideSetback}م (الحد الأدنى الوطني SBC 1101)`);
           }
           if (project.numberOfFloors !== undefined && project.numberOfFloors !== null && project.numberOfFloors !== codeCheck.corrected.numberOfFloors) {
-            correctionWarnings.push(`Number of floors adjusted from ${project.numberOfFloors} to ${codeCheck.corrected.numberOfFloors} per Saudi Building Code`);
-            correctionWarningsAr.push(`تم تعديل عدد الأدوار من ${project.numberOfFloors} إلى ${codeCheck.corrected.numberOfFloors} وفق الكود السعودي`);
+            correctionWarnings.push(`Number of floors reduced from ${project.numberOfFloors} to ${codeCheck.corrected.numberOfFloors} (exceeds permitted maximum)`);
+            correctionWarningsAr.push(`تم تخفيض عدد الأدوار من ${project.numberOfFloors} إلى ${codeCheck.corrected.numberOfFloors} (يتجاوز الحد المسموح به)`);
           }
           await updateProject(input.projectId, ctx.user.id, {
             frontSetback: codeCheck.corrected.frontSetback,

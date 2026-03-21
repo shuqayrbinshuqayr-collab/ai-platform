@@ -4,6 +4,8 @@
  * Produces architecturally correct floor plans with no gaps/overlaps.
  */
 
+import { PRACTICAL_ROOM_AREA_CAPS, MIN_ROOM_WIDTHS } from "./core/saudiCode";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type RoomType =
   | "bedroom" | "master_bedroom" | "living" | "majlis" | "kitchen"
@@ -264,7 +266,7 @@ function buildFloorGrid(params: {
     let curY = 0;
     leftSlots.forEach((slot, i) => {
       const isLast = i === leftSlots.length - 1;
-      const minH = (slot.type === "corridor" || slot.type === "distributor" || slot.type === "toilet") ? 1.2 : 2.0;
+      const minH = (slot.type === "corridor" || slot.type === "distributor" || slot.type === "toilet") ? MIN_ROOM_WIDTHS.corridor : MIN_ROOM_WIDTHS.habitable;
       const h = isLast ? Math.max(minH, bd - curY) : Math.max(minH, slot.prefH * scale);
       rooms.push(placeRoom(slot.type, slot.nameAr, slot.nameEn, leftX, curY, leftW, h, slot.hasWindow, slot.doorWall));
       curY += h;
@@ -349,13 +351,9 @@ function buildFloorGrid(params: {
     });
   }
 
-  // Fix 3 + Fix 4: enforce aspect ratio ≤ 1:2.5 AND area caps
-  const MAX_AREA: Partial<Record<RoomType, number>> = {
-    bedroom: 20, master_bedroom: 25, family_living: 25, living: 28,
-    kitchen: 18, dining: 16, maid_room: 10, storage: 8, laundry: 8,
-    prayer: 12, office: 18, bathroom: 8, toilet: 4,
-  };
-  const MAJLIS_MAX = 30;
+  // Fix 3 + Fix 4: enforce aspect ratio ≤ 1:2.5 AND area caps (from saudiCode.ts)
+  const MAX_AREA = PRACTICAL_ROOM_AREA_CAPS as Partial<Record<RoomType, number>>;
+  const MAJLIS_MAX = PRACTICAL_ROOM_AREA_CAPS.majlis;
 
   return rooms.map(room => {
     if (room.type === "corridor" || room.type === "parking" || room.type === "staircase" || room.type === "balcony" || room.type === "distributor") return room;
