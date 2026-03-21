@@ -31,7 +31,7 @@ export const MIN_ROOM_AREAS = {
   familyRoom: 14.0,              // m² (غرفة معيشة)
   majlis: 16.0,                  // m² (مجلس) — reception hall
   diningRoom: 9.0,               // m² (غرفة طعام)
-  bathroom: 2.5,                 // m² (حمام)
+  bathroom: 4.0,                 // m² (حمام — full bathroom with shower/tub)
   wc: 1.2,                       // m² (دورة مياه — toilet only)
   laundry: 3.0,                  // m²
   storage: 2.0,                  // m²
@@ -171,7 +171,8 @@ export const PRACTICAL_ROOM_AREA_CAPS = {
 // ─── Minimum Room Widths ──────────────────────────────────────────────────────
 
 export const MIN_ROOM_WIDTHS = {
-  habitable: 2.0,               // m — any habitable room
+  habitable: 2.0,               // m — absolute minimum (passages, small rooms)
+  bedroom: 3.0,                 // m — SBC bedroom minimum width
   corridor: 1.2,                // m
   wc: 0.9,                      // m
   bathroom: 1.2,                // m

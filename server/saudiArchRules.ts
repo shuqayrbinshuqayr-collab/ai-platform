@@ -556,7 +556,7 @@ export const SAUDI_BUILDING_CODE = {
 
   // الحد الأدنى لأبعاد الغرف (SBC R304.1 + ممارسات سعودية)
   min_dimensions: {
-    bedroom_width: MIN_ROOM_WIDTHS.habitable,
+    bedroom_width: MIN_ROOM_WIDTHS.bedroom,
     bedroom_area: MIN_ROOM_AREAS.bedroom,
     bathroom_width: MIN_ROOM_WIDTHS.bathroom,
     bathroom_area: MIN_ROOM_AREAS.bathroom,
@@ -993,9 +993,9 @@ ${architecturalRules}
 
 SAUDI BUILDING CODE SBC 1101 COMPLIANCE (National Minimums — uniform across all Saudi cities):
 • Front setback: ${setbacks.front}m | Back: ${setbacks.back}m | Side: ${setbacks.side}m
-• Max coverage: ${buildingRatio}% (SBC national max: ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}%)
+• Max coverage: ${Math.min(buildingRatio, Math.round(SBC_COVERAGE.groundFloorMax * 100))}% (SBC 1101 national max: ${Math.round(SBC_COVERAGE.groundFloorMax * 100)}% — DO NOT exceed this)
 • Min ceiling height: ${CEILING_HEIGHTS.habitableMin}m (prefer 3.2m, max ${CEILING_HEIGHTS.habitableMax}m per SBC R305.1)
-• Min bedroom: ${MIN_ROOM_WIDTHS.habitable}m width, ${MIN_ROOM_AREAS.bedroom}m² area (SBC R304.1)
+• Min bedroom: ${MIN_ROOM_WIDTHS.bedroom}m width, ${MIN_ROOM_AREAS.bedroom}m² area (SBC R304.1)
 • Min bathroom: ${MIN_ROOM_WIDTHS.bathroom}m width, ${MIN_ROOM_AREAS.bathroom}m² area
 • Min corridor: ${MIN_ROOM_WIDTHS.corridor}m width
 • Natural light: min ${Math.round(VENTILATION.minWindowAreaFraction * 100)}% of room floor area (SBC R303.1)
