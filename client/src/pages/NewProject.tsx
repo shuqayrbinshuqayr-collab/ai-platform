@@ -65,7 +65,7 @@ const defaultForm: FormData = {
   landArea: "", landWidth: "", landLength: "", landCoordinates: "", landShape: "rectangular", neighborhoodName: "",
   buildingRatio: "60", floorAreaRatio: "2", maxFloors: "4",
   frontSetback: "4", backSetback: "3", sideSetback: "2",
-  buildingType: "residential", numberOfFloors: "2",
+  buildingType: "", numberOfFloors: "2",
   parkingSpaces: "2", additionalRequirements: "",
   bedrooms: 4, bathrooms: 3, kitchens: 1, diningRooms: 1,
   livingRooms: 1, majlis: 1, maidRooms: 1, laundryRooms: 1,
@@ -265,9 +265,34 @@ export default function NewProject() {
           <Input
             value={form.name}
             onChange={e => set("name", e.target.value)}
-            placeholder={lang === "ar" ? "مثال: فيلا سكنية - حي النرجس" : "e.g. Residential Villa - Al-Narjis"}
+            placeholder={lang === "ar" ? "مثال: فيلا - حي النرجس" : "e.g. Villa - Al-Narjis"}
             className="bg-input border-border text-foreground placeholder:text-muted-foreground"
           />
+
+          {/* Building type */}
+          <div className="mt-4">
+            <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى *" : "Building Type *"}</Label>
+            <div className="flex gap-3">
+              {[
+                { val: "residential", icon: Building2, ar: "عمارة", en: "Residential Building" },
+                { val: "villa", icon: HomeIcon, ar: "فيلا", en: "Residential Villa" },
+              ].map(({ val, icon: Icon, ar, en }) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => set("buildingType", val)}
+                  className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    form.buildingType === val
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/50 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-semibold">{lang === "ar" ? ar : en}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
 
@@ -357,33 +382,6 @@ export default function NewProject() {
                         </div>
                       </div>
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Building type — shown for both documents and manual modes */}
-              {landInputMode !== "choose" && (
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
-                  <div className="flex gap-3">
-                    {[
-                      { val: "residential", icon: Building2, ar: "عمارة", en: "Residential Building" },
-                      { val: "villa", icon: HomeIcon, ar: "فيلا", en: "Residential Villa" },
-                    ].map(({ val, icon: Icon, ar, en }) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => set("buildingType", val)}
-                        className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                          form.buildingType === val
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border/50 text-muted-foreground hover:border-primary/40"
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-xs font-semibold">{lang === "ar" ? ar : en}</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}
@@ -706,6 +704,8 @@ export default function NewProject() {
                   setStep(nextStep);
                 }}
                 disabled={
+                  // Always require building type selection
+                  (step === 0 && !form.buildingType) ||
                   // Step 0: must select a mode, and fulfill that mode's requirements
                   (step === 0 && landInputMode === "choose") ||
                   (step === 0 && landInputMode === "manual" && (!form.landArea || !form.landWidth || !form.landLength)) ||
