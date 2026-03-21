@@ -361,6 +361,33 @@ export default function NewProject() {
                 </div>
               )}
 
+              {/* Building type — shown for both documents and manual modes */}
+              {landInputMode !== "choose" && (
+                <div>
+                  <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
+                  <div className="flex gap-3">
+                    {[
+                      { val: "residential", icon: Building2, ar: "مبنى سكني", en: "Residential Building" },
+                      { val: "villa", icon: HomeIcon, ar: "فيلا سكنية", en: "Residential Villa" },
+                    ].map(({ val, icon: Icon, ar, en }) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => set("buildingType", val)}
+                        className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          form.buildingType === val
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/50 text-muted-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="text-xs font-semibold">{lang === "ar" ? ar : en}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* ─── Documents Mode ─── */}
               {landInputMode === "documents" && (
                 <div className="space-y-4">
@@ -487,31 +514,6 @@ export default function NewProject() {
                       {lang === "ar" ? "إدخال يدوي" : "Manual Entry"}
                     </span>
                   </div>
-
-              {/* Building type selector */}
-              <div>
-                <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
-                <div className="flex gap-3">
-                  {[
-                    { val: "residential", icon: Building2, ar: "مبنى سكني", en: "Residential Building" },
-                    { val: "villa", icon: HomeIcon, ar: "فيلا سكنية", en: "Residential Villa" },
-                  ].map(({ val, icon: Icon, ar, en }) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => set("buildingType", val)}
-                      className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                        form.buildingType === val
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/50 text-muted-foreground hover:border-primary/40"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-xs font-semibold">{lang === "ar" ? ar : en}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Neighborhood / address */}
               <div className="space-y-1.5">
