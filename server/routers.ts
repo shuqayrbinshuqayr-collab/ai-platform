@@ -112,6 +112,11 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
     hasParking: (project.garages ?? 1) > 0,
   });
 
+  // Parse facadeStyle from additionalRequirements (e.g. "facadeStyle:arabic|...")
+  const additionalReqs = project.additionalRequirements ?? "";
+  const facadeMatch = additionalReqs.match(/facadeStyle:([^|]+)/);
+  const facadeStyle = facadeMatch?.[1]?.trim();
+
   // Use the enhanced prompt builder with Saudi rules
   return buildEnhancedArchPrompt({
     buildingType: project.buildingType === "villa" ? "villa" : "residential",
@@ -126,7 +131,7 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
     maidRooms: project.maidRooms ?? 0,
     balconies: project.balconies ?? 1,
     garages: project.garages ?? 1,
-    additionalRequirements: project.additionalRequirements,
+    additionalRequirements: additionalReqs,
     setbacks: {
       front: corrected.frontSetback,
       back: corrected.backSetback,
@@ -135,6 +140,7 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
     buildingRatio: corrected.buildingRatio,
     conceptIndex,
     conceptStyle: concept,
+    facadeStyle,
   }) + ragContext + learnedContext;
 }
 

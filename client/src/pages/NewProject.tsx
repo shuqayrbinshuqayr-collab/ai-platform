@@ -78,7 +78,7 @@ const facades = [
   { id: "modern", label: { ar: "عصري", en: "Modern" } },
   { id: "classic", label: { ar: "كلاسيكي", en: "Classic" } },
   { id: "contemporary", label: { ar: "معاصر", en: "Contemporary" } },
-  { id: "arabic", label: { ar: "عربي تراثي", en: "Arabic Heritage" } },
+  { id: "arabic", label: { ar: "نجدي", en: "Arabic Heritage" } },
   { id: "minimalist", label: { ar: "بسيط مينيمالي", en: "Minimalist" } },
   { id: "mediterranean", label: { ar: "متوسطي", en: "Mediterranean" } },
 ];
@@ -583,22 +583,6 @@ export default function NewProject() {
                 </div>
               </div>
 
-              {/* Land shape */}
-              <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs">{lang === "ar" ? "شكل الأرض" : "Land Shape"}</Label>
-                <Select value={form.landShape} onValueChange={v => set("landShape", v)}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="rectangular">{t(lang, "rectangular")}</SelectItem>
-                    <SelectItem value="square">{t(lang, "square")}</SelectItem>
-                    <SelectItem value="irregular">{t(lang, "irregular")}</SelectItem>
-                    <SelectItem value="L-shape">{t(lang, "lShape")}</SelectItem>
-                    <SelectItem value="T-shape">{t(lang, "tShape")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               {/* Land preview */}
               {form.landWidth && form.landLength && (

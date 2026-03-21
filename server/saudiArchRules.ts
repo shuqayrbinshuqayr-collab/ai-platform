@@ -630,6 +630,48 @@ export const REAL_BLUEPRINT_REFERENCE = {
   },
 };
 
+// ─── قواعد العمارة النجدية ────────────────────────────────────────────────────
+
+export const NAJDI_ARCH_RULES = `
+══════════════════════════════════════════════════════════════
+ NAJDI ARCHITECTURE RULES (ACTIVE — Facade = نجدي)
+══════════════════════════════════════════════════════════════
+1. PROPORTIONS:
+   - Solid walls dominate: window openings max 10-15% (Traditional), 20-30% (Transitional), up to 50% (Contemporary)
+   - Asymmetric composition is ESSENTIAL — avoid symmetric facades
+   - Horizontal layout with varied parapet heights creating non-linear skyline
+
+2. MATERIALS:
+   - Natural stone (Riyadh stone) or rough cement plaster mimicking clay
+   - Athel wood for doors, ceilings, and drainage spouts
+   - Matte finish surfaces only — no glossy or reflective materials
+
+3. KEY ELEMENTS (MUST APPEAR IN DESIGN DESCRIPTION):
+   - Darwa (درواة): High crenellated parapets at corners with 3 or 5 stepped points
+   - Tarma (طرمة): Projecting upper observation opening / covered porch
+   - Masarib (مصاريب): Exposed wooden drainage spouts as decorative facade elements
+   - Arcades: Triangular or rectangular arches on cylindrical stone columns
+   - Courtyard / Faryna (فارينا): Central courtyard for light, ventilation, and privacy
+
+4. COLORS:
+   - Base: Creamy white or clay beige covering entire building
+   - Secondary: Dark wood tones (doors/windows), limited to 10-25% of facade
+   - No bright or saturated colors
+
+5. PATTERNS:
+   - Triangle motifs as horizontal bands across facade
+   - Geometric/floral carved wooden door decorations
+   - White plaster frames around windows contrasting with clay wall color
+
+SUB-STYLES:
+   - Traditional (TR): Max 15% openings, small square windows, rich triangle/band decorations, massive solid walls
+   - Transitional (TIN): 20-30% openings, mix of narrow and wide windows, minimal geometric decoration
+   - Contemporary (C): Up to 50% openings, tall vertical windows, sharp angles, simplified historic patterns
+
+APPLY THESE RULES: Describe the Najdi architectural elements explicitly in conceptDescription and highlightsAr. The floor plan should include a central courtyard (Faryna) for light and privacy, and the entrance should feature a Tarma (projecting porch).
+══════════════════════════════════════════════════════════════
+`;
+
 // ─── دالة توليد الـ Prompt المحسّن ────────────────────────────────────────────
 
 export function buildEnhancedArchPrompt(params: {
@@ -650,13 +692,14 @@ export function buildEnhancedArchPrompt(params: {
   buildingRatio: number;
   conceptIndex: number;
   conceptStyle: { en: string; ar: string; focus: string };
+  facadeStyle?: string;
 }): string {
 
   const {
     buildingType, landArea, landWidth, landLength, landShape,
     numberOfFloors, bedrooms, bathrooms, majlis, maidRooms,
     balconies, garages, additionalRequirements,
-    setbacks, buildingRatio, conceptIndex, conceptStyle
+    setbacks, buildingRatio, conceptIndex, conceptStyle, facadeStyle
   } = params;
 
   // حساب أبعاد المبنى
@@ -668,9 +711,12 @@ export function buildEnhancedArchPrompt(params: {
   // اختيار المرجع الأقرب من المخططات الحقيقية
   const refSimilarity = landArea <= 300 ? "EXACT MATCH" : landArea <= 500 ? "CLOSE MATCH" : "SCALED MATCH";
 
+  const najdiBlock = facadeStyle === "arabic" ? NAJDI_ARCH_RULES : "";
+
   return `You are a licensed Saudi residential architect (SBC-certified) with 25+ years designing villas in Riyadh, Jeddah, and Dammam.
 Generate CONCEPT #${conceptIndex}: "${conceptStyle.en}" (${conceptStyle.ar}).
 Design philosophy: ${conceptStyle.focus}
+${najdiBlock}
 
 ══════════════════════════════════════════════════════════════
  REAL SAUDI VILLA BLUEPRINTS — USE AS EXACT REFERENCE
