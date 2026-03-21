@@ -147,6 +147,31 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
   }) + ragContext + learnedContext;
 }
 
+// ─── Snap AI rooms to 0.5m grid and clamp to building boundary ────────────────
+function snapRoomsToGrid(
+  rooms: any[],
+  buildingWidth: number,
+  buildingDepth: number,
+): any[] {
+  // Sort top-to-bottom, left-to-right so clamping is deterministic
+  const sorted = [...rooms].sort((a, b) => a.y - b.y || a.x - b.x);
+  return sorted.map((r) => {
+    const GRID = 0.5;
+    // Snap position to nearest 0.5m
+    const x = Math.round(r.x / GRID) * GRID;
+    const y = Math.round(r.y / GRID) * GRID;
+    // Snap size to nearest 0.5m (minimum 1.5m)
+    const w = Math.max(1.5, Math.round(r.width / GRID) * GRID);
+    const h = Math.max(1.5, Math.round(r.height / GRID) * GRID);
+    // Clamp so room never exceeds building boundary
+    const clampedX = Math.max(0, Math.min(x, buildingWidth - 1.5));
+    const clampedY = Math.max(0, Math.min(y, buildingDepth - 1.5));
+    const clampedW = Math.min(w, buildingWidth - clampedX);
+    const clampedH = Math.min(h, buildingDepth - clampedY);
+    return { ...r, x: clampedX, y: clampedY, width: clampedW, height: clampedH };
+  });
+}
+
 export const appRouter = router({
   debug: router({
     getLastResponse: publicProcedure.query(() => {
@@ -746,11 +771,18 @@ Provide the report in a structured and detailed format.`;
               return acc;
             }, {});
 
+            const toMeters = (rooms: any[]) => rooms.map((r: any) => ({
+              ...r,
+              x: (r.x / 100) * bspLayout.buildingWidth,
+              y: (r.y / 100) * bspLayout.buildingDepth,
+              width: (r.w / 100) * bspLayout.buildingWidth,
+              height: (r.h / 100) * bspLayout.buildingDepth,
+            }));
             const aiFloorsForSVG = hasValidAIRooms
               ? [
-                  { rooms: aiGroundRooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: (r.w / 100) * bspLayout.buildingWidth, height: (r.h / 100) * bspLayout.buildingDepth })) },
+                  { rooms: snapRoomsToGrid(toMeters(aiGroundRooms), bspLayout.buildingWidth, bspLayout.buildingDepth) },
                   ...Object.values(aiUpperByFloor).map((rooms: any[]) => ({
-                    rooms: rooms.map((r: any) => ({ ...r, x: (r.x / 100) * bspLayout.buildingWidth, y: (r.y / 100) * bspLayout.buildingDepth, width: (r.w / 100) * bspLayout.buildingWidth, height: (r.h / 100) * bspLayout.buildingDepth })),
+                    rooms: snapRoomsToGrid(toMeters(rooms), bspLayout.buildingWidth, bspLayout.buildingDepth),
                   })),
                 ]
               : null;
