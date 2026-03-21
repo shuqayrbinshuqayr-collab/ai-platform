@@ -708,61 +708,81 @@ export function buildEnhancedArchPrompt(params: {
   const bldArea = Math.round(bldWidth * bldDepth);
   const totalArea = bldArea * (numberOfFloors + 1);
 
-  // اختيار المرجع الأقرب من المخططات الحقيقية
-  const refSimilarity = landArea <= 300 ? "EXACT MATCH" : landArea <= 500 ? "CLOSE MATCH" : "SCALED MATCH";
-
   const najdiBlock = facadeStyle === "arabic" ? NAJDI_ARCH_RULES : "";
 
   // ── اختيار استراتيجية التخطيط بحسب نوع المبنى ──────────────────────────────
   const isVilla = buildingType === "villa";
 
-  // ── مراجع حقيقية ومواصفات الغرف حسب نوع المبنى ──────────────────────────────
+  // ── مراجع نسبية مبنية على أبعاد أرض المستخدم الفعلية ──────────────────────
+  // Scale reference rooms proportionally to user's actual building footprint
+  const rAw = parseFloat((bldWidth * 0.95).toFixed(1));
+  const rAd = parseFloat((bldDepth * 0.95).toFixed(1));
+  const rBw = parseFloat((bldWidth * 0.85).toFixed(1));
+  const rBd = parseFloat((bldDepth * 0.90).toFixed(1));
+  const rAarea = Math.round(rAw * rAd);
+  const rBarea = Math.round(rBw * rBd);
+
+  // Proportional room dimensions (scaled from real Saudi reference ratios)
+  const majW = parseFloat((bldWidth * 0.52).toFixed(1));  // majlis ≈ 52% of width
+  const majD = parseFloat((bldDepth * 0.19).toFixed(1));  // majlis ≈ 19% of depth
+  const kitW = parseFloat((bldWidth * 0.22).toFixed(1));  // kitchen ≈ 22% of width
+  const kitD = parseFloat((bldDepth * 0.18).toFixed(1));  // kitchen depth
+  const bedW = parseFloat((bldWidth * 0.30).toFixed(1));  // bedroom ≈ 30% of width
+  const bedD = parseFloat((bldDepth * 0.17).toFixed(1));  // bedroom depth
+  const mbrW = parseFloat((bldWidth * 0.33).toFixed(1));  // master BR ≈ 33% of width
+  const batW = parseFloat((bldWidth * 0.22).toFixed(1));  // bathroom ≈ 22%
+  const batD = parseFloat((bldDepth * 0.07).toFixed(1));  // bathroom depth
+  const staW = parseFloat((bldWidth * 0.18).toFixed(1));  // staircase width
+  const staD = parseFloat((bldDepth * 0.30).toFixed(1));  // staircase depth
+  const livW = parseFloat((bldWidth * 0.39).toFixed(1));  // living/family hall
+  const livD = parseFloat((bldDepth * 0.23).toFixed(1));
+
   const villaReferences = `
 ══════════════════════════════════════════════════════════════
- REAL SAUDI VILLA BLUEPRINTS — USE AS EXACT REFERENCE
+ PROPORTIONAL SAUDI VILLA REFERENCES — USE AS PROPORTIONAL GUIDE ONLY
+ (Scaled to this project's building footprint: ${bldWidth.toFixed(1)}m × ${bldDepth.toFixed(1)}m)
 ══════════════════════════════════════════════════════════════
-Reference A (10.5×22m, 231m², 2 floors):
-  GROUND: Entrance(5.8×1.9) | Majlis(7.4×4.2) | Staircase(2.5×6.6)
-          Distributor(2.6×3.7) | Family Hall(5.46×5.0) | Kitchen(3.14×4.0)
-          Bathroom(3.14×1.5) | Maid Room(3.1×2.1) | Storage(1.8×2.4)
-          Bedroom1(3.1×3.9) | Bedroom2(4.3×3.6) | Master BR(4.6×3.6)
-  UPPER:  Balcony(5.6×1.8) | Family Living(4.3×3.6) | Master BR(4.6×3.6)
-          Master Bath(1.9×2.0) | Bedroom1(3.07×3.0) | Bedroom2(4.2×3.0)
-          Bedroom3(4.0×5.0) | Kitchen(2.9×4.0) | Dining(4.24×3.0)
+Reference A (${rAw}×${rAd}m, ${rAarea}m², ${numberOfFloors + 1} floors):
+  GROUND: Entrance(${parseFloat((bldWidth*0.41).toFixed(1))}×${parseFloat((bldDepth*0.09).toFixed(1))}) | Majlis(${majW}×${majD}) | Staircase(${staW}×${staD})
+          Distributor(${parseFloat((bldWidth*0.18).toFixed(1))}×${parseFloat((bldDepth*0.17).toFixed(1))}) | Family Hall(${livW}×${livD}) | Kitchen(${kitW}×${kitD})
+          Bathroom(${batW}×${batD}) | Maid Room(${parseFloat((bldWidth*0.22).toFixed(1))}×${parseFloat((bldDepth*0.10).toFixed(1))}) | Storage(${parseFloat((bldWidth*0.13).toFixed(1))}×${parseFloat((bldDepth*0.11).toFixed(1))})
+          Bedroom1(${parseFloat((bldWidth*0.22).toFixed(1))}×${bedD}) | Bedroom2(${bedW}×${bedD}) | Master BR(${mbrW}×${bedD})
+  UPPER:  Balcony(${parseFloat((bldWidth*0.40).toFixed(1))}×${parseFloat((bldDepth*0.08).toFixed(1))}) | Family Living(${bedW}×${bedD}) | Master BR(${mbrW}×${bedD})
+          Master Bath(${parseFloat((bldWidth*0.14).toFixed(1))}×${parseFloat((bldDepth*0.09).toFixed(1))}) | Bedroom1(${bedW}×${bedD}) | Bedroom2(${bedW}×${bedD})
+          Kitchen(${parseFloat((bldWidth*0.21).toFixed(1))}×${kitD}) | Dining(${parseFloat((bldWidth*0.30).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))})
 
-Reference B (12×20m, 240m², 2 floors):
-  GROUND: Entrance(4.0×2.5) | Majlis(6.0×5.0) | Parking(6.0×3.0)
-          Staircase(2.8×5.5) | Distributor(2.5×4.0) | Kitchen(3.5×4.5)
-          Dining(3.5×3.5) | Bathroom(2.0×2.5) | Maid Room(3.0×2.8)
-  UPPER:  Corridor(1.8×6.0) | Family Living(5.0×4.5) | Master BR(5.0×4.5)
-          Master Bath(2.2×2.8) | Bedroom2(3.8×4.0) | Bedroom3(3.8×4.0)
-          Prayer Room(3.0×3.0) | Balcony(4.0×1.8)`;
+Reference B (${rBw}×${rBd}m, ${rBarea}m², ${numberOfFloors + 1} floors):
+  GROUND: Entrance(${parseFloat((bldWidth*0.29).toFixed(1))}×${parseFloat((bldDepth*0.11).toFixed(1))}) | Majlis(${parseFloat((bldWidth*0.43).toFixed(1))}×${majD}) | Parking(${parseFloat((bldWidth*0.43).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))})
+          Staircase(${parseFloat((bldWidth*0.20).toFixed(1))}×${parseFloat((bldDepth*0.25).toFixed(1))}) | Distributor(${parseFloat((bldWidth*0.18).toFixed(1))}×${parseFloat((bldDepth*0.18).toFixed(1))}) | Kitchen(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.20).toFixed(1))})
+          Dining(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Bathroom(${batW}×${parseFloat((bldDepth*0.11).toFixed(1))}) | Maid Room(${parseFloat((bldWidth*0.21).toFixed(1))}×${parseFloat((bldDepth*0.13).toFixed(1))})
+  UPPER:  Corridor(${parseFloat((bldWidth*0.13).toFixed(1))}×${parseFloat((bldDepth*0.27).toFixed(1))}) | Family Living(${parseFloat((bldWidth*0.36).toFixed(1))}×${parseFloat((bldDepth*0.20).toFixed(1))}) | Master BR(${mbrW}×${parseFloat((bldDepth*0.20).toFixed(1))})
+          Master Bath(${parseFloat((bldWidth*0.16).toFixed(1))}×${parseFloat((bldDepth*0.13).toFixed(1))}) | Bedroom2(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.18).toFixed(1))}) | Bedroom3(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.18).toFixed(1))})
+          Prayer Room(${parseFloat((bldWidth*0.21).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Balcony(${parseFloat((bldWidth*0.29).toFixed(1))}×${parseFloat((bldDepth*0.08).toFixed(1))})`;
 
+  const aptW = parseFloat((bldWidth * 0.45).toFixed(1));
+  const aptD = parseFloat((bldDepth * 0.18).toFixed(1));
   const residentialReferences = `
 ══════════════════════════════════════════════════════════════
- REAL SAUDI RESIDENTIAL BUILDING (عمارة) BLUEPRINTS — EXACT REFERENCE
+ PROPORTIONAL RESIDENTIAL BUILDING (عمارة) REFERENCES — PROPORTIONAL GUIDE ONLY
+ (Scaled to this project's building footprint: ${bldWidth.toFixed(1)}m × ${bldDepth.toFixed(1)}m)
 ══════════════════════════════════════════════════════════════
-Reference A (12×20m, 240m², 4 floors, 2 apartments/floor):
-  GROUND: Shared Lobby/Entrance(4.0×3.0) | Elevator+Staircase Core(3.5×5.5)
-          Parking(12.0×5.0) | Guard Room(2.5×2.5) | Utilities(2.0×2.0)
-  TYPICAL FLOOR (repeat per floor, 2 apartments):
-    Apt-A: Door from Corridor | Living Room(4.5×4.0) | Kitchen(3.0×3.5)
-           Bedroom1(3.5×3.5) | Bedroom2(3.0×3.5) | Bathroom(2.0×2.5)
-           Balcony(3.5×1.5)
-    Apt-B: Door from Corridor | Living Room(4.5×4.0) | Kitchen(3.0×3.5)
-           Master BR(4.0×3.5) | Bedroom(3.0×3.5) | Bathroom(2.0×2.5)
-           Balcony(3.5×1.5)
-  CORRIDOR (shared): 1.5m wide, runs between apartments, connects to staircase
+Reference A (${rAw}×${rAd}m, ${rAarea}m², ${numberOfFloors + 1} floors, ${bedrooms >= 4 ? "1 apt/floor" : "2 apts/floor"}):
+  GROUND: Shared Lobby(${parseFloat((bldWidth*0.29).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))}) | Elevator+Staircase(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.25).toFixed(1))})
+          Parking(${bldWidth.toFixed(1)}×${parseFloat((bldDepth*0.23).toFixed(1))}) | Guard Room(${parseFloat((bldWidth*0.18).toFixed(1))}×${parseFloat((bldDepth*0.11).toFixed(1))})
+  TYPICAL FLOOR (${bedrooms >= 4 ? "1 large apartment" : "2 apartments"}):
+    Apt-A: Living Room(${aptW}×${aptD}) | Kitchen(${parseFloat((bldWidth*0.21).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))})
+           Bedroom1(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Bedroom2(${parseFloat((bldWidth*0.21).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Bathroom(${batW}×${parseFloat((bldDepth*0.11).toFixed(1))})
+           Balcony(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.07).toFixed(1))})
+  CORRIDOR (shared): ${parseFloat((bldWidth*0.11).toFixed(1))}m wide, runs center of floor
 
-Reference B (15×25m, 375m², 5 floors, 1 apartment/floor):
-  GROUND: Shared Lobby(5.0×4.0) | Elevator+Staircase(4.0×6.0)
-          Parking(15.0×6.0) | Storage Room(3.0×3.0)
-  TYPICAL FLOOR (1 large apartment per floor):
-    Private Entrance from elevator lobby | Living Room(6.0×5.0)
-    Kitchen(4.0×4.0) | Dining(4.0×3.5) | Master BR(5.0×4.5)
-    Master Bath(2.5×3.0) | Bedroom2(4.0×3.5) | Bedroom3(3.5×3.5)
-    Bedroom4(3.5×3.5) | Bathroom(2.0×2.5) | Balcony(5.0×2.0)
-    Laundry(2.5×2.0)`;
+Reference B (${rBw}×${rBd}m, ${rBarea}m², ${numberOfFloors + 1} floors, 1 apt/floor):
+  GROUND: Shared Lobby(${parseFloat((bldWidth*0.33).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Elevator+Staircase(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.24).toFixed(1))})
+          Parking(${bldWidth.toFixed(1)}×${parseFloat((bldDepth*0.24).toFixed(1))}) | Storage(${parseFloat((bldWidth*0.20).toFixed(1))}×${parseFloat((bldDepth*0.12).toFixed(1))})
+  TYPICAL FLOOR (1 large apartment):
+    Living Room(${parseFloat((bldWidth*0.43).toFixed(1))}×${parseFloat((bldDepth*0.20).toFixed(1))}) | Kitchen(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.16).toFixed(1))}) | Dining(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))})
+    Master BR(${mbrW}×${parseFloat((bldDepth*0.18).toFixed(1))}) | Master Bath(${parseFloat((bldWidth*0.18).toFixed(1))}×${parseFloat((bldDepth*0.12).toFixed(1))}) | Bedroom2(${parseFloat((bldWidth*0.27).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))})
+    Bedroom3(${parseFloat((bldWidth*0.25).toFixed(1))}×${parseFloat((bldDepth*0.14).toFixed(1))}) | Bathroom(${batW}×${parseFloat((bldDepth*0.11).toFixed(1))}) | Balcony(${parseFloat((bldWidth*0.36).toFixed(1))}×${parseFloat((bldDepth*0.08).toFixed(1))})
+    Laundry(${parseFloat((bldWidth*0.18).toFixed(1))}×${parseFloat((bldDepth*0.09).toFixed(1))})`;
 
   // ── قواعد التخطيط المعماري حسب نوع المبنى ────────────────────────────────────
   const villaRules = `

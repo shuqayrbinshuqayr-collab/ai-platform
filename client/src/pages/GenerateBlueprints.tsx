@@ -483,6 +483,7 @@ export default function GenerateBlueprints() {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<number | null>(null);
   const [codeWarnings, setCodeWarnings] = useState<string[]>([]);
+  const [correctionWarnings, setCorrectionWarnings] = useState<string[]>([]);
 
   const { data: project } = trpc.projects.get.useQuery({ id: projectId });
 
@@ -495,6 +496,9 @@ export default function GenerateBlueprints() {
     onSuccess: (data) => {
       setBatchId(data.batchId);
       setCodeWarnings(lang === "ar" ? data.codeWarnings : data.codeWarningsEn);
+      if (data.correctionWarnings?.length || data.correctionWarningsAr?.length) {
+        setCorrectionWarnings(lang === "ar" ? (data.correctionWarningsAr ?? []) : (data.correctionWarnings ?? []));
+      }
       setPhase("selecting");
     },
     onError: (err) => {
@@ -582,6 +586,17 @@ export default function GenerateBlueprints() {
         {/* ─── SELECTING PHASE ─── */}
         {phase === "selecting" && batchBlueprints && (
           <div className="space-y-6">
+            {/* Setback/floor correction warnings */}
+            {correctionWarnings.length > 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-1">
+                <p className="text-amber-400 text-xs font-semibold">
+                  {lang === "ar" ? "⚠ تم تعديل البيانات تلقائياً وفق الكود السعودي:" : "⚠ Auto-corrected per Saudi Building Code:"}
+                </p>
+                {correctionWarnings.map((w, i) => (
+                  <p key={i} className="text-amber-300/80 text-xs">{w}</p>
+                ))}
+              </div>
+            )}
             {/* Title */}
             <div className="text-center space-y-2">
               <div className="text-xs text-primary font-mono opacity-70">// 6 ARCHITECTURAL CONCEPTS //</div>

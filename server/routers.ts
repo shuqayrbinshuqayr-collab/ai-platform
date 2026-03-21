@@ -532,8 +532,26 @@ Provide the report in a structured and detailed format.`;
         // Step 1: Auto-check Saudi Building Codee
         const codeCheck = checkSaudiBuildingCode(project);
 
-        // Step 2: Apply auto-corrections silently
+        // Step 2: Apply auto-corrections and collect explicit warnings per field
+        const correctionWarnings: string[] = [];
+        const correctionWarningsAr: string[] = [];
         if (!codeCheck.isCompliant) {
+          if (project.frontSetback !== undefined && project.frontSetback !== null && project.frontSetback !== codeCheck.corrected.frontSetback) {
+            correctionWarnings.push(`Front setback adjusted from ${project.frontSetback}m to ${codeCheck.corrected.frontSetback}m per Saudi Building Code`);
+            correctionWarningsAr.push(`تم تعديل الإرتداد الأمامي من ${project.frontSetback}م إلى ${codeCheck.corrected.frontSetback}م وفق الكود السعودي`);
+          }
+          if (project.backSetback !== undefined && project.backSetback !== null && project.backSetback !== codeCheck.corrected.backSetback) {
+            correctionWarnings.push(`Back setback adjusted from ${project.backSetback}m to ${codeCheck.corrected.backSetback}m per Saudi Building Code`);
+            correctionWarningsAr.push(`تم تعديل الإرتداد الخلفي من ${project.backSetback}م إلى ${codeCheck.corrected.backSetback}م وفق الكود السعودي`);
+          }
+          if (project.sideSetback !== undefined && project.sideSetback !== null && project.sideSetback !== codeCheck.corrected.sideSetback) {
+            correctionWarnings.push(`Side setback adjusted from ${project.sideSetback}m to ${codeCheck.corrected.sideSetback}m per Saudi Building Code`);
+            correctionWarningsAr.push(`تم تعديل الإرتداد الجانبي من ${project.sideSetback}م إلى ${codeCheck.corrected.sideSetback}م وفق الكود السعودي`);
+          }
+          if (project.numberOfFloors !== undefined && project.numberOfFloors !== null && project.numberOfFloors !== codeCheck.corrected.numberOfFloors) {
+            correctionWarnings.push(`Number of floors adjusted from ${project.numberOfFloors} to ${codeCheck.corrected.numberOfFloors} per Saudi Building Code`);
+            correctionWarningsAr.push(`تم تعديل عدد الأدوار من ${project.numberOfFloors} إلى ${codeCheck.corrected.numberOfFloors} وفق الكود السعودي`);
+          }
           await updateProject(input.projectId, ctx.user.id, {
             frontSetback: codeCheck.corrected.frontSetback,
             backSetback: codeCheck.corrected.backSetback,
@@ -554,6 +572,19 @@ Provide the report in a structured and detailed format.`;
         const conceptPromises = Array.from({ length: 6 }, (_, i) => {
           const conceptIndex = i + 1;
           // 4a: Generate BSP layout (deterministic, instant)t)
+          // Compute building footprint from user's actual land dimensions
+          const correctedSetbacks = {
+            front: codeCheck.corrected.frontSetback,
+            back: codeCheck.corrected.backSetback,
+            side: codeCheck.corrected.sideSetback,
+          };
+          const userBuildingWidth = project.landWidth
+            ? parseFloat((project.landWidth - correctedSetbacks.side * 2).toFixed(2))
+            : undefined;
+          const userBuildingDepth = project.landLength
+            ? parseFloat((project.landLength - correctedSetbacks.front - correctedSetbacks.back).toFixed(2))
+            : undefined;
+
           const bspLayout = generateBSPLayout({
             landArea: project.landArea ?? 300,
             buildingType: (project.buildingType === "villa" ? "villa" : "apartment") as "villa" | "apartment",
@@ -567,11 +598,9 @@ Provide the report in a structured and detailed format.`;
               maidRoom: project.maidRooms ?? 0,
               balcony: project.balconies ?? 1,
             },
-            setbacks: {
-              front: codeCheck.corrected.frontSetback,
-              back: codeCheck.corrected.backSetback,
-              side: codeCheck.corrected.sideSetback,
-            },
+            setbacks: correctedSetbacks,
+            buildingWidth: userBuildingWidth,
+            buildingDepth: userBuildingDepth,
           });
 
           // 4b: AI enrichment (titles, descriptions, highlights)
@@ -772,6 +801,8 @@ Provide the report in a structured and detailed format.`;
           codeWarnings: codeCheck.warningsAr,
           codeWarningsEn: codeCheck.warnings,
           autoCorrections: !codeCheck.isCompliant ? codeCheck.corrected : null,
+          correctionWarnings,
+          correctionWarningsAr,
         };
       }),
 

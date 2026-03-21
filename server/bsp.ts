@@ -388,22 +388,29 @@ export function generateBSPLayout(params: {
   conceptIndex: number;
   extras: { majlis?: number; parking?: number; maidRoom?: number; balcony?: number };
   setbacks: { front: number; back: number; side: number };
+  buildingWidth?: number;   // Computed from user's landWidth - setbacks (preferred)
+  buildingDepth?: number;   // Computed from user's landLength - setbacks (preferred)
 }): BuildingLayout {
   const { landArea, numberOfFloors, bedrooms, bathrooms, conceptIndex, extras, setbacks } = params;
 
   // ── Compute building footprint ────────────────────────────────────────────
-  const maxCoverage = SAUDI_CODE.maxCoverage;
-  const maxBuildingArea = landArea * maxCoverage;
-
-  // Typical Saudi villa: width ≈ 10–14m, depth ≈ 15–22m
-  // Derive from land area
-  const sqrtLand = Math.sqrt(landArea);
-  let bw = Math.min(Math.max(sqrtLand * 0.55, 9), 14);
-  let bd = Math.min(maxBuildingArea / bw, 22);
-  // Ensure depth is at least 12m
-  if (bd < 12) { bd = 12; bw = Math.min(maxBuildingArea / bd, 14); }
-  bw = parseFloat(bw.toFixed(2));
-  bd = parseFloat(bd.toFixed(2));
+  // Prefer actual user dimensions (landWidth/landLength minus setbacks).
+  // Fall back to formula from landArea only when user didn't provide land shape.
+  let bw: number;
+  let bd: number;
+  if (params.buildingWidth && params.buildingDepth && params.buildingWidth > 0 && params.buildingDepth > 0) {
+    bw = parseFloat(params.buildingWidth.toFixed(2));
+    bd = parseFloat(params.buildingDepth.toFixed(2));
+  } else {
+    const maxCoverage = SAUDI_CODE.maxCoverage;
+    const maxBuildingArea = landArea * maxCoverage;
+    const sqrtLand = Math.sqrt(landArea);
+    bw = Math.min(Math.max(sqrtLand * 0.55, 9), 14);
+    bd = Math.min(maxBuildingArea / bw, 22);
+    if (bd < 12) { bd = 12; bw = Math.min(maxBuildingArea / bd, 14); }
+    bw = parseFloat(bw.toFixed(2));
+    bd = parseFloat(bd.toFixed(2));
+  }
 
   const buildingArea = parseFloat((bw * bd).toFixed(1));
   const floors = Math.max(1, numberOfFloors);
