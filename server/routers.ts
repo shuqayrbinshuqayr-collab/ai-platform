@@ -524,6 +524,7 @@ Provide the report in a structured and detailed format.`;
         lang: z.enum(["ar", "en"]).default("ar"),
       }))
       .mutation(async ({ ctx, input }) => {
+        console.error("=== GENERATE6 CALLED ===");
         // Check daily blueprint limit for free plan
         const canGenerate = await canGenerateBlueprint(ctx.user.id);
         if (!canGenerate.allowed) {
@@ -627,7 +628,7 @@ Provide the report in a structured and detailed format.`;
             }
 
             // ── DEBUG LOGGING (temporary) ────────────────────────────────
-            console.log("GPT RAW RESPONSE:", JSON.stringify(content).slice(0, 500));
+            console.error("GPT RAW RESPONSE:", JSON.stringify(content).slice(0, 500));
 
             // Merge BSP layout with AI enrichment
             const conceptTitle = CONCEPT_TITLES[i];
@@ -711,10 +712,10 @@ Provide the report in a structured and detailed format.`;
               length: parseFloat((r.length ?? 3.0).toFixed(2)),
             });
 
-            console.log("AI ROOMS PARSED:", aiGroundRooms?.length, aiUpperRooms?.length);
-            console.log("HAS VALID AI ROOMS:", hasValidAIRooms);
-            console.log("FIRST ROOM SAMPLE:", JSON.stringify(aiGroundRooms?.[0]));
-            console.log("FINAL SPACES SOURCE:", hasValidAIRooms ? "GPT-4o" : "BSP FALLBACK");
+            console.error("AI ROOMS PARSED:", aiGroundRooms?.length, aiUpperRooms?.length);
+            console.error("HAS VALID AI ROOMS:", hasValidAIRooms);
+            console.error("FIRST ROOM SAMPLE:", JSON.stringify(aiGroundRooms?.[0]));
+            console.error("FINAL SPACES SOURCE:", hasValidAIRooms ? "GPT-4o" : "BSP FALLBACK");
             // ── END DEBUG ────────────────────────────────────────────────
 
             const finalSpaces = hasValidAIRooms
