@@ -82,8 +82,7 @@ export default function Home() {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               {lang === "ar" ? (
                 <>
-                  مخططات معمارية<br />
-                  <span className="text-orange-gradient">ذكية في ثوانٍ</span>
+                  مخططات معمارية
                 </>
               ) : (
                 <>
