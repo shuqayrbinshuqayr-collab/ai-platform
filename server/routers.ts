@@ -148,48 +148,57 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
 }
 
 // ─── Zone-based architectural room placement (ground floor) ──────────────────
-// Ignores GPT-4o x/y coordinates entirely. Uses only room type + size.
+// Layout: 4 zones — Guest(top) | Family(mid) | Private(bottom) | Service(side strip right)
+// Corridor runs north-south. Foyer injected between entrance and majlis.
 function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
-  const G = 0.5; // grid step
+  const G = 0.5;
   const snap = (v: number) => Math.round(v / G) * G;
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, hi));
-
-  // ── Type helpers ────────────────────────────────────────────────────────────
   const tp = (r: any) => (r.type ?? "").toLowerCase().replace(/[\s-]/g, "_");
   const is = (r: any, ...kw: string[]) => kw.some(k => tp(r).includes(k));
 
-  // ── Zone y-boundaries ────────────────────────────────────────────────────────
-  const guestEnd   = snap(bD * 0.38);   // guest/reception zone: top 38%
-  const familyEnd  = snap(bD * 0.70);   // family/living zone:   38–70%
-  // service zone: 70–100%
+  // ── Zone boundaries ──────────────────────────────────────────────────────────
+  const serviceW = snap(bW * 0.22);     // service strip: right 22% of width
+  const corrW    = 1.2;                 // corridor width
+  const mainW    = bW - serviceW;       // main area (guest/family/private)
+  const guestEnd  = snap(bD * 0.30);   // guest zone: top 30%
+  const familyEnd = snap(bD * 0.62);   // family zone: 30–62%
+  // private zone: 62–100% of bD
 
-  // ── Classify each room into a zone ──────────────────────────────────────────
-  const classify = (r: any): "guest" | "family" | "service" => {
-    if (is(r, "entrance", "foyer", "lobby", "majlis", "reception", "parking", "garage")) return "guest";
-    if (tp(r) === "wc" || tp(r) === "toilet") return "guest";
-    if (is(r, "stair", "elevator", "family", "living", "salon", "dining")) return "family";
-    if (is(r, "kitchen", "maid", "laundry", "storage", "driver")) return "service";
-    if (is(r, "bathroom", "bath")) return "service";
-    return "family"; // bedrooms and unknowns → family zone
-  };
-
-  // ── Normalise room width/height (enforce minimums + aspect ratio) ────────────
+  // ── Per-type minimum dimensions (STEP 4) ────────────────────────────────────
   const norm = (r: any): any => {
-    const minW = tp(r) === "wc" || tp(r) === "toilet" ? 1.2 : 2.5;
-    let w = snap(Math.max(r.width  ?? 3.0, minW));
-    let h = snap(Math.max(r.height ?? 3.0, 2.0));
-    if (w / h > 2.5) h = snap(w / 2.5);   // max ratio 1:2.5
+    const t = tp(r);
+    let minW = 2.5, minH = 2.5;
+    if (t === "wc" || t === "toilet")              { minW = 1.2; minH = 2.0; }
+    else if (t === "corridor")                     { minW = 1.2; minH = 2.0; }
+    else if (t.includes("majlis"))                 { minW = 4.0; minH = 5.0; }
+    else if (t.includes("master_bedroom") || (t.includes("master") && t.includes("bed"))) { minW = 4.0; minH = 4.5; }
+    else if (t.includes("bedroom"))                { minW = 3.0; minH = 3.5; }
+    else if (t.includes("kitchen"))                { minW = 2.5; minH = 4.0; }
+    else if (t.includes("bathroom") || t.includes("bath")) { minW = 2.0; minH = 2.5; }
+    let w = snap(Math.max(r.width  ?? minW, minW));
+    let h = snap(Math.max(r.height ?? minH, minH));
+    if (w / h > 2.5) h = snap(w / 2.5);
     if (h / w > 2.5) w = snap(h / 2.5);
     return { ...r, width: w, height: h };
   };
 
-  // Group by zone
-  const zones: Record<string, any[]> = { guest: [], family: [], service: [] };
+  // ── Classify into zones ──────────────────────────────────────────────────────
+  const classify = (r: any): "guest" | "family" | "private" | "service" => {
+    if (is(r, "entrance", "foyer", "lobby", "majlis", "reception", "parking", "garage")) return "guest";
+    if (tp(r) === "wc" || tp(r) === "toilet") return "guest"; // guest WC near entrance
+    if (is(r, "stair", "elevator", "family_living", "family", "living", "salon", "dining", "kitchen")) return "family";
+    if (is(r, "maid", "laundry", "storage", "driver", "utility")) return "service";
+    if (is(r, "bedroom", "master", "bathroom", "bath", "balcony", "prayer", "office")) return "private";
+    return "private";
+  };
+
+  const zones: Record<string, any[]> = { guest: [], family: [], private: [], service: [] };
   rooms.forEach(r => zones[classify(r)].push(norm(r)));
 
   const result: any[] = [];
 
-  // ── Strip packer: fills maxW × maxH starting at (x0, y0) ────────────────────
+  // ── Strip packer ─────────────────────────────────────────────────────────────
   function pack(rms: any[], x0: number, y0: number, maxW: number, maxH: number) {
     let cx = x0, cy = y0, rowH = 0;
     for (const r of [...rms].sort((a, b) => b.width * b.height - a.width * a.height)) {
@@ -204,122 +213,143 @@ function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // GUEST ZONE  (y: 0 → guestEnd)
+  // GUEST ZONE  (x: 0→mainW,  y: 0 → guestEnd)
   // ════════════════════════════════════════════════════════════════════════════
   {
     const y0 = 0, zH = guestEnd;
 
-    // Parking/garage: right wall, full zone height
+    // Parking: right edge of guest zone (max 18m²)
     const parking = zones.guest.filter(r => is(r, "parking", "garage"));
-    let rightEdge = bW;
+    let parkRightEdge = mainW;
     parking.forEach(r => {
-      const w = snap(Math.max(r.width, 3.0));
-      rightEdge = bW - w;
-      result.push({ ...r, x: rightEdge, y: y0, width: w, height: zH });
+      const w = snap(clamp(r.width, 3.0, 6.5));
+      const h = clamp(snap(Math.min(r.height, 18 / w)), 2.5, zH);
+      parkRightEdge = mainW - w;
+      result.push({ ...r, x: parkRightEdge, y: y0, width: w, height: h });
     });
-    const availW = rightEdge; // remaining width after parking
 
-    // Majlis: NW corner (x=0)
-    let majlisW = 0;
+    // Majlis: NW corner, min 4m×5m
+    let majlisW = 0, majlisH = 0;
     const majlis = zones.guest.find(r => is(r, "majlis", "reception"));
     if (majlis) {
-      const w = clamp(snap(Math.max(majlis.width, 3.5)), 3.0, availW * 0.45);
-      const h = clamp(snap(Math.max(majlis.height, 3.5)), 3.0, zH);
+      const w = clamp(snap(Math.max(majlis.width, 4.0)), 4.0, mainW * 0.45);
+      const h = clamp(snap(Math.max(majlis.height, 5.0)), 5.0, zH);
       result.push({ ...majlis, x: 0, y: y0, width: w, height: h });
-      majlisW = w;
+      majlisW = w; majlisH = h;
     }
 
-    // Entrance/foyer: top-center of remaining space
-    let entranceH = 2.0;
+    // Foyer (2m×3m) injected between majlis and entrance — always when both exist
     const entrance = zones.guest.find(r => is(r, "entrance", "foyer", "lobby"));
+    let foyerRightX = majlisW;
+    if (majlis && entrance) {
+      const fw = 2.0, fh = snap(Math.min(3.0, zH));
+      result.push({
+        type: "foyer", nameAr: "فناء استقبال", name: "Foyer",
+        x: majlisW, y: y0, width: fw, height: fh,
+        area: fw * fh, floor: rooms[0]?.floor ?? 0, hasDoor: true, doorWall: "south",
+      });
+      foyerRightX = majlisW + fw;
+    }
+
+    // Entrance: placed after foyer (or after majlis if no foyer)
+    let entranceH = 2.5;
     if (entrance) {
-      const w = clamp(snap(Math.max(entrance.width, 3.0)), 2.5, availW - majlisW);
-      const h = clamp(snap(Math.max(entrance.height, 2.0)), 2.0, zH);
-      const ex = snap(majlisW + (availW - majlisW) / 2 - w / 2);
-      result.push({ ...entrance, x: clamp(ex, majlisW, availW - w), y: y0, width: w, height: h });
+      const w = clamp(snap(Math.max(entrance.width, 2.5)), 2.5, parkRightEdge - foyerRightX);
+      const h = clamp(snap(Math.max(entrance.height, 2.5)), 2.0, zH);
+      result.push({ ...entrance, x: clamp(foyerRightX, 0, parkRightEdge - w), y: y0, width: w, height: h });
       entranceH = h;
     }
 
-    // Remaining guest rooms (WC, etc.)
-    const others = zones.guest.filter(r => !is(r, "parking", "garage", "majlis", "entrance", "foyer", "lobby"));
-    pack(others, 0, y0 + entranceH, availW, zH - entranceH);
+    // Remaining guest rooms (WC, etc.) below majlis or entrance
+    const guestOthers = zones.guest.filter(r => !is(r, "parking", "garage", "majlis", "reception", "entrance", "foyer", "lobby"));
+    const belowMajlisY = Math.max(entranceH, majlisH);
+    pack(guestOthers, 0, belowMajlisY > 0 ? belowMajlisY : y0 + 2.5, parkRightEdge, zH - belowMajlisY);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // FAMILY ZONE  (y: guestEnd → familyEnd)
+  // FAMILY ZONE  (x: 0→mainW,  y: guestEnd → familyEnd)
   // ════════════════════════════════════════════════════════════════════════════
   {
     const y0 = guestEnd, zH = familyEnd - guestEnd;
 
-    // Staircase: right wall (east)
+    // Staircase: right wall of main area
     let stairW = 0;
     const stair = zones.family.find(r => is(r, "stair"));
     if (stair) {
-      const w = clamp(snap(Math.max(stair.width, 2.5)), 2.5, bW * 0.3);
-      const h = clamp(snap(Math.max(stair.height, 3.0)), 2.5, zH);
-      result.push({ ...stair, x: bW - w, y: y0, width: w, height: h });
+      const w = clamp(snap(Math.max(stair.width, 2.5)), 2.5, mainW * 0.3);
+      const h = clamp(snap(Math.max(stair.height, 3.5)), 3.0, zH);
+      result.push({ ...stair, x: mainW - w, y: y0, width: w, height: h });
       stairW = w;
     }
 
-    // Dining: bottom of family zone — will share wall with kitchen below
-    let diningH = 0;
-    const dining = zones.family.find(r => is(r, "dining"));
-    if (dining) {
-      const w = clamp(snap(Math.max(dining.width, 3.0)), 2.5, bW - stairW);
-      const h = clamp(snap(Math.max(dining.height, 3.0)), 2.5, zH * 0.45);
-      diningH = h;
-      result.push({ ...dining, x: 0, y: familyEnd - h, width: w, height: h });
+    // Kitchen: exterior wall (x=0), min 2.5m×4m
+    let kitchenW = 0, kitchenH = 0;
+    const kitchen = zones.family.find(r => is(r, "kitchen"));
+    if (kitchen) {
+      const w = clamp(snap(Math.max(kitchen.width, 2.5)), 2.5, (mainW - stairW) * 0.4);
+      const h = clamp(snap(Math.max(kitchen.height, 4.0)), 3.5, zH);
+      result.push({ ...kitchen, x: 0, y: y0, width: w, height: h });
+      kitchenW = w; kitchenH = h;
     }
 
-    // Remaining family rooms: strip pack top of zone
-    const others = zones.family.filter(r => !is(r, "stair", "dining"));
-    pack(others, 0, y0, bW - stairW, zH - diningH);
+    // Dining: adjacent to kitchen (shared wall)
+    let diningW = 0;
+    const dining = zones.family.find(r => is(r, "dining"));
+    if (dining && kitchenW > 0) {
+      const w = clamp(snap(Math.max(dining.width, 3.0)), 2.5, mainW - stairW - kitchenW);
+      const h = clamp(snap(Math.max(dining.height, 3.0)), 2.5, kitchenH > 0 ? kitchenH : zH * 0.5);
+      result.push({ ...dining, x: kitchenW, y: y0, width: w, height: h });
+      diningW = w;
+    }
+
+    // Remaining family rooms: living, family_living, etc.
+    const famOthers = zones.family.filter(r => !is(r, "stair", "kitchen", "dining"));
+    pack(famOthers, 0, y0 + Math.max(kitchenH, 0), mainW - stairW, zH - Math.max(kitchenH, 0));
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // SERVICE ZONE  (y: familyEnd → bD)
+  // PRIVATE ZONE  (x: 0→mainW,  y: familyEnd → bD)
   // ════════════════════════════════════════════════════════════════════════════
   {
     const y0 = familyEnd, zH = bD - familyEnd;
 
-    // Bathrooms cluster: right side (shared plumbing wall)
-    const baths = zones.service.filter(r => is(r, "bathroom", "bath", "toilet") || tp(r) === "wc");
-    let bathLeftEdge = bW;
+    // Bathrooms: right side (shared plumbing wall)
+    const baths = zones.private.filter(r => is(r, "bathroom", "bath", "toilet") || tp(r) === "wc");
+    let bathLeftEdge = mainW;
     baths.forEach(r => {
       const w = snap(Math.max(r.width, tp(r) === "wc" || tp(r) === "toilet" ? 1.2 : 2.0));
-      const h = clamp(snap(Math.max(r.height, 2.0)), 1.5, zH);
+      const h = clamp(snap(Math.max(r.height, 2.5)), 2.0, zH);
       bathLeftEdge = Math.max(0, bathLeftEdge - w);
       result.push({ ...r, x: bathLeftEdge, y: y0, width: w, height: h });
     });
 
-    // Kitchen: x=0, adjacent to dining above (shared wall at familyEnd)
-    let kitchenW = 0;
-    const kitchen = zones.service.find(r => is(r, "kitchen"));
-    if (kitchen) {
-      const w = clamp(snap(Math.max(kitchen.width, 3.0)), 2.5, bathLeftEdge);
-      const h = clamp(snap(Math.max(kitchen.height, 3.0)), 2.5, zH);
-      result.push({ ...kitchen, x: 0, y: y0, width: w, height: h });
-      kitchenW = w;
-    }
+    // Bedrooms: strip packed in remaining private area
+    const bedrooms = zones.private.filter(r => !is(r, "bathroom", "bath", "toilet", "balcony") && tp(r) !== "wc");
+    pack(bedrooms, 0, y0, bathLeftEdge, zH);
 
-    // Other service rooms
-    const others = zones.service.filter(r => !is(r, "bathroom", "bath", "toilet", "kitchen") && tp(r) !== "wc");
-    pack(others, kitchenW, y0, bathLeftEdge - kitchenW, zH);
+    // Balconies: bottom edge (south exterior wall)
+    const balconies = zones.private.filter(r => is(r, "balcony"));
+    pack(balconies, 0, bD - 2.0, mainW, 2.0);
   }
 
-  // ── Vertical corridor through all zones ──────────────────────────────────────
-  const corrW = 1.2;
-  const corrX = snap(bW / 2 - corrW / 2);
+  // ════════════════════════════════════════════════════════════════════════════
+  // SERVICE SIDE STRIP  (x: mainW → bW,  y: 0 → bD, except where parking placed)
+  // ════════════════════════════════════════════════════════════════════════════
+  {
+    pack(zones.service, mainW, guestEnd, serviceW, bD - guestEnd);
+  }
+
+  // ── Vertical corridor (1.2m wide) through all zones ──────────────────────────
   result.push({
-    name: "Corridor", nameAr: "ممر", type: "corridor",
-    x: corrX, y: 0, width: corrW, height: bD,
+    name: "Corridor", nameAr: "ممر رئيسي", type: "corridor",
+    x: snap(mainW / 2 - corrW / 2), y: 0, width: corrW, height: bD,
     area: parseFloat((corrW * bD).toFixed(1)),
     floor: rooms[0]?.floor ?? 0,
   });
 
-  // ── Scale up if coverage < 95% ───────────────────────────────────────────────
+  // ── STEP 5: Fill to 92% — convert leftover voids to storage ─────────────────
   const covered = result.reduce((s, r) => s + r.width * r.height, 0);
-  const target  = bW * bD * 0.95;
+  const target  = bW * bD * 0.92;
   if (covered < target && covered > 0) {
     const sc = Math.sqrt(target / covered);
     return result.map(r => {

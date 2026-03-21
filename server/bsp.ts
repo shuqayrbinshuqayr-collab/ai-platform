@@ -533,16 +533,20 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   svg += `<text x="${ox + bw*SCALE/2}" y="${ly + sb.front*SCALE/2 + 4}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Arial">إرتداد أمامي ${sb.front}م</text>`;
   svg += `<text x="${ox + bw*SCALE/2}" y="${oy + bd*SCALE + sb.back*SCALE/2 + 4}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Arial">إرتداد خلفي ${sb.back}م</text>`;
 
-  // ── Building outer walls (double-line thick walls) ─────────────────────────
-  // Outer wall fill
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="#E2E8F0" stroke="#1E293B" stroke-width="${WT}"/>`;
-  // Inner wall line (creates double-wall effect)
-  svg += `<rect x="${ox+WT/2}" y="${oy+WT/2}" width="${bw*SCALE-WT}" height="${bd*SCALE-WT}" fill="none" stroke="#334155" stroke-width="0.5"/>`;
+  // ── Building outer walls: STEP 1 exterior wall 12px ─────────────────────
+  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="#E2E8F0" stroke="#1a1a1a" stroke-width="12"/>`;
 
   // ── Room rendering: double-rect walls + doors + windows + stairs ──────────
-  const WI = 10;            // wall inset in px (≈0.24m interior wall)
-  const DOOR_PX = Math.round(0.9 * SCALE);   // 90cm door opening
+  const WI = 6;             // interior wall inset px (6px ≈ 0.14m)
   const WIN_MIN = Math.round(1.2 * SCALE);   // 120cm min window
+
+  // Door width per room type (STEP 2)
+  const doorWidthForType = (t: string): number => {
+    if (t.includes("majlis") || t.includes("entrance") || t.includes("foyer") || t.includes("living")) return Math.round(1.2 * SCALE);
+    if (t.includes("bathroom") || t.includes("bath")) return Math.round(0.8 * SCALE);
+    if (t.includes("wc") || t.includes("toilet")) return Math.round(0.7 * SCALE);
+    return Math.round(0.9 * SCALE); // bedroom default
+  };
 
   rooms.forEach(room => {
     const rx = ox + room.x * SCALE;
@@ -554,9 +558,12 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const onLeft   = room.x < 0.3;
     const onRight  = room.x + room.width  > bw - 0.3;
     const onBottom = room.y + room.height > bd - 0.3;
+    const isExterior = onTop || onLeft || onRight || onBottom;
+    const wallFill = isExterior ? "#1a1a1a" : "#444444"; // STEP 1: exterior vs interior
+    const wallSW   = isExterior ? 3 : 1.5;               // stroke on outer rect
 
-    // ── LAYER 1: Outer rect (wall fill #2d2d2d) + Inner rect (room fill) ───
-    svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#2d2d2d" stroke="#1a1a1a" stroke-width="2"/>`;
+    // ── LAYER 1: Outer rect (wall fill) + Inner rect (room fill) ───────────
+    svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${wallFill}" stroke="${wallFill}" stroke-width="${wallSW}"/>`;
     if (rw > WI * 2 + 4 && rh > WI * 2 + 4) {
       svg += `<rect x="${rx+WI}" y="${ry+WI}" width="${rw-WI*2}" height="${rh-WI*2}" fill="${fill}"/>`;
     }
@@ -586,11 +593,10 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       svg += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#64748B" font-size="${Math.min(rw,rh)*0.35}" font-weight="900" font-family="Arial" opacity="0.2">P</text>`;
     }
 
-    // ── LAYER 3: Windows — three parallel lines on exterior wall ───────────
-    const needsWindow = !["corridor", "storage", "wc", "toilet"].includes(room.type ?? "");
-    if ((onTop || onLeft || onRight || onBottom) && needsWindow) {
+    // ── LAYER 3: Windows — only on exterior walls, 3 parallel lines ────────
+    const noWindow = ["corridor", "storage", "wc", "toilet", "parking", "garage", "distributor"].includes(room.type ?? "");
+    if (isExterior && !noWindow) {
       const isMajlis = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("living");
-      // Majlis gets 2 windows; bathroom gets small one (60cm)
       const isBath = (room.type ?? "").includes("bath") || room.type === "wc" || room.type === "toilet";
       const winPx = isBath ? Math.round(0.6 * SCALE) : Math.min(Math.max(WIN_MIN, 50), onTop || onBottom ? rw * 0.5 : rh * 0.5);
 
@@ -621,10 +627,14 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     }
 
     // ── LAYER 4: Doors — gap + leaf + quarter-arc swing ────────────────────
-    if (rw > WI * 2 + 12 && rh > WI * 2 + 12) {
-      const isLarge = (room.area ?? 0) > 20 &&
-        ((room.type ?? "").includes("majlis") || (room.type ?? "").includes("living"));
-      const doorLen = isLarge ? Math.round(0.75 * SCALE) : Math.min(DOOR_PX, Math.min(rw, rh) * 0.38);
+    // Garage = no door; WC = pocket door (dashed lines in wall gap)
+    const isGarage = (room.type ?? "").includes("parking") || (room.type ?? "").includes("garage");
+    const isWC = room.type === "wc" || room.type === "toilet";
+
+    if (!isGarage && rw > WI * 2 + 12 && rh > WI * 2 + 12) {
+      const t = (room.type ?? "").toLowerCase();
+      const doorLen = doorWidthForType(t);
+      const isBigDoor = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("entrance");
       const wall = room.doorWall ?? (onTop ? "north" : onBottom ? "south" : onLeft ? "west" : "east");
 
       const drawDoor = (dwLen: number, offsetFactor: number) => {
@@ -632,61 +642,81 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
           case "north": {
             const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${dx}" y="${ry}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
-            svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-            svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            if (isWC) {
+              // Pocket door: two parallel dashed lines
+              svg += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+            } else {
+              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+              svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            }
             break;
           }
           case "south": {
             const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${dx}" y="${ry+rh-WI}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
-            svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-            svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            if (isWC) {
+              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+            } else {
+              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+              svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            }
             break;
           }
           case "east": {
             const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${rx+rw-WI}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
-            svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-            svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            if (isWC) {
+              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+            } else {
+              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+              svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            }
             break;
           }
           default: { // west
             const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${rx}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
-            svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-            svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            if (isWC) {
+              svg += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+            } else {
+              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+              svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+            }
           }
         }
       };
 
-      if (isLarge) {
-        // Double door: two leaves
-        drawDoor(doorLen, 0.2);
-        drawDoor(doorLen, 0.6);
+      if (isBigDoor) {
+        // Double door: two leaves side by side
+        drawDoor(Math.round(doorLen * 0.5), 0.2);
+        drawDoor(Math.round(doorLen * 0.5), 0.5);
       } else {
         drawDoor(doorLen, 0.25);
       }
     }
 
-    // ── LAYER 5: Room labels — Arabic bold + area + dims ───────────────────
+    // ── LAYER 5: Room labels — Arabic bold (11px) + area (9px) + dims (8px) ─
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
     const labelColor = ROOM_STROKE[room.type] ?? "#1E293B";
     const minSide = Math.min(rw, rh);
 
     if (minSide > 38) {
-      const fs = Math.min(Math.max(minSide / 5.5, 8), 11);
-      svg += `<text x="${cx}" y="${cy - fs - 1}"  text-anchor="middle" fill="${labelColor}" font-size="${fs}" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      svg += `<text x="${cx}" y="${cy + 4}"        text-anchor="middle" fill="#64748B"      font-size="9"    font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
-      svg += `<text x="${cx}" y="${cy + 15}"       text-anchor="middle" fill="#94A3B8"      font-size="8"    font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
+      // STEP 1 font hierarchy: 11px bold name, 9px normal area, 8px light dims
+      svg += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="${labelColor}" font-size="11" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 4}"  text-anchor="middle" fill="#64748B"      font-size="9"  font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
+      svg += `<text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="#94A3B8"      font-size="8"  font-weight="300" font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
     } else if (minSide > 24) {
-      const fs = Math.max(minSide / 6, 7);
-      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${labelColor}" font-size="${fs}" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${labelColor}" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
     }
   });
 
-  // ── Outer building border (redraw on top for clean edges) ─────────────────
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#0F172A" stroke-width="${WT}"/>`;
+  // ── Outer building border — exterior wall 12px redraw on top ──────────────
+  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#0F172A" stroke-width="12"/>`;
 
   // ── Dimension lines ───────────────────────────────────────────────────────
   const dimOffset = 28;
@@ -716,6 +746,32 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     svg += `<line x1="${px}" y1="${dimTopY-4}" x2="${px}" y2="${dimTopY+4}" stroke="#94A3B8" stroke-width="1"/>`;
     svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#94A3B8" stroke-width="0.5" stroke-dasharray="4,3"/>`;
   });
+
+  // ── STEP 6: SBC Validation warnings in left margin ───────────────────────
+  const SBC_MIN: Record<string, number> = {
+    master_bedroom: 16, bedroom: 9, majlis: 20, family_living: 16,
+    living: 16, kitchen: 6, bathroom: 4, toilet: 2.4, maid_room: 6,
+  };
+  const sbcWarnings: string[] = [];
+  rooms.forEach(r => {
+    const minArea = SBC_MIN[r.type ?? ""];
+    if (minArea && (r.area ?? 0) < minArea) {
+      sbcWarnings.push(`⚠ ${r.nameAr}: ${(r.area??0).toFixed(1)}م² (أدنى ${minArea}م²)`);
+    }
+    if (r.type !== "corridor" && r.type !== "wc" && r.type !== "toilet" && r.type !== "parking") {
+      if (Math.min(r.width ?? 99, r.height ?? 99) < 2.5) {
+        sbcWarnings.push(`⚠ ${r.nameAr}: عرض ${Math.min(r.width??99,r.height??99).toFixed(1)}م < 2.5م`);
+      }
+    }
+  });
+  if (sbcWarnings.length > 0) {
+    const warnX = ox - MARGIN + 4;
+    const warnY0 = oy + 10;
+    svg += `<text x="${warnX}" y="${warnY0}" fill="#DC2626" font-size="7" font-weight="bold" font-family="Arial">تحقق SBC:</text>`;
+    sbcWarnings.slice(0, 6).forEach((w, i) => {
+      svg += `<text x="${warnX}" y="${warnY0 + 12 + i * 11}" fill="#DC2626" font-size="7" font-family="Arial">${w}</text>`;
+    });
+  }
 
   // ── North arrow — top-right corner ──────────────────────────────────────
   const nax = ox + bw*SCALE - 22, nay = oy + 24;
