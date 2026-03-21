@@ -147,64 +147,205 @@ function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, 
   }) + ragContext + learnedContext;
 }
 
-// ─── Snap AI rooms to 0.5m grid, enforce wall rules, fill empty space ─────────
-function snapRoomsToGrid(
-  rooms: any[],
-  buildingWidth: number,
-  buildingDepth: number,
-): any[] {
-  const GRID = 0.5;
-  const bW = buildingWidth;
-  const bD = buildingDepth;
+// ─── Zone-based architectural room placement (ground floor) ──────────────────
+// Ignores GPT-4o x/y coordinates entirely. Uses only room type + size.
+function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
+  const G = 0.5; // grid step
+  const snap = (v: number) => Math.round(v / G) * G;
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, hi));
 
-  // 1. Sort top-to-bottom, left-to-right for deterministic clamping
-  let snapped = [...rooms]
-    .sort((a, b) => a.y - b.y || a.x - b.x)
-    .map((r) => {
-      // Snap position and size to 0.5m grid
-      let x = Math.round(r.x / GRID) * GRID;
-      let y = Math.round(r.y / GRID) * GRID;
-      let w = Math.max(1.5, Math.round(r.width / GRID) * GRID);
-      let h = Math.max(1.5, Math.round(r.height / GRID) * GRID);
+  // ── Type helpers ────────────────────────────────────────────────────────────
+  const tp = (r: any) => (r.type ?? "").toLowerCase().replace(/[\s-]/g, "_");
+  const is = (r: any, ...kw: string[]) => kw.some(k => tp(r).includes(k));
 
-      const type: string = (r.type ?? "").toLowerCase();
+  // ── Zone y-boundaries ────────────────────────────────────────────────────────
+  const guestEnd   = snap(bD * 0.38);   // guest/reception zone: top 38%
+  const familyEnd  = snap(bD * 0.70);   // family/living zone:   38–70%
+  // service zone: 70–100%
 
-      // 2. Wall-snapping rules for specific room types
-      if (type.includes("parking") || type.includes("garage")) {
-        // Parking must hug left or right wall — pick whichever side is closer
-        x = x < bW / 2 ? 0 : Math.round((bW - w) / GRID) * GRID;
-      } else if (type.includes("stair")) {
-        // Staircase must touch left or right wall
-        x = x < bW / 2 ? 0 : Math.round((bW - w) / GRID) * GRID;
-      } else if (x > bW * 0.7) {
-        // Any room too far right — pull it back so it fits
-        x = Math.round((bW - w) / GRID) * GRID;
-      }
+  // ── Classify each room into a zone ──────────────────────────────────────────
+  const classify = (r: any): "guest" | "family" | "service" => {
+    if (is(r, "entrance", "foyer", "lobby", "majlis", "reception", "parking", "garage")) return "guest";
+    if (tp(r) === "wc" || tp(r) === "toilet") return "guest";
+    if (is(r, "stair", "elevator", "family", "living", "salon", "dining")) return "family";
+    if (is(r, "kitchen", "maid", "laundry", "storage", "driver")) return "service";
+    if (is(r, "bathroom", "bath")) return "service";
+    return "family"; // bedrooms and unknowns → family zone
+  };
 
-      // 3. Clamp to building boundary
-      x = Math.max(0, Math.min(x, bW - 1.5));
-      y = Math.max(0, Math.min(y, bD - 1.5));
-      w = Math.min(w, bW - x);
-      h = Math.min(h, bD - y);
+  // ── Normalise room width/height (enforce minimums + aspect ratio) ────────────
+  const norm = (r: any): any => {
+    const minW = tp(r) === "wc" || tp(r) === "toilet" ? 1.2 : 2.5;
+    let w = snap(Math.max(r.width  ?? 3.0, minW));
+    let h = snap(Math.max(r.height ?? 3.0, 2.0));
+    if (w / h > 2.5) h = snap(w / 2.5);   // max ratio 1:2.5
+    if (h / w > 2.5) w = snap(h / 2.5);
+    return { ...r, width: w, height: h };
+  };
 
-      return { ...r, x, y, width: w, height: h };
-    });
+  // Group by zone
+  const zones: Record<string, any[]> = { guest: [], family: [], service: [] };
+  rooms.forEach(r => zones[classify(r)].push(norm(r)));
 
-  // 4. Coverage check — if rooms cover < 85% of floor area, scale up proportionally
-  const buildingArea = bW * bD;
-  const coveredArea = snapped.reduce((sum, r) => sum + r.width * r.height, 0);
-  if (coveredArea < buildingArea * 0.85 && coveredArea > 0) {
-    const scale = Math.sqrt((buildingArea * 0.85) / coveredArea);
-    snapped = snapped.map((r) => {
-      const w = Math.min(Math.round(r.width * scale / GRID) * GRID, bW);
-      const h = Math.min(Math.round(r.height * scale / GRID) * GRID, bD);
-      const x = Math.min(r.x, bW - w);
-      const y = Math.min(r.y, bD - h);
-      return { ...r, x, y, width: w, height: h };
-    });
+  const result: any[] = [];
+
+  // ── Strip packer: fills maxW × maxH starting at (x0, y0) ────────────────────
+  function pack(rms: any[], x0: number, y0: number, maxW: number, maxH: number) {
+    let cx = x0, cy = y0, rowH = 0;
+    for (const r of [...rms].sort((a, b) => b.width * b.height - a.width * a.height)) {
+      if (cx - x0 + r.width > maxW + 0.01) { cx = x0; cy += rowH; rowH = 0; }
+      if (cy - y0 >= maxH - 0.5) break;
+      const w = clamp(r.width,  1.0, x0 + maxW - cx);
+      const h = clamp(r.height, 1.0, y0 + maxH - cy);
+      if (w < 1.0 || h < 1.0) continue;
+      result.push({ ...r, x: cx, y: cy, width: w, height: h });
+      cx += w; rowH = Math.max(rowH, h);
+    }
   }
 
-  return snapped;
+  // ════════════════════════════════════════════════════════════════════════════
+  // GUEST ZONE  (y: 0 → guestEnd)
+  // ════════════════════════════════════════════════════════════════════════════
+  {
+    const y0 = 0, zH = guestEnd;
+
+    // Parking/garage: right wall, full zone height
+    const parking = zones.guest.filter(r => is(r, "parking", "garage"));
+    let rightEdge = bW;
+    parking.forEach(r => {
+      const w = snap(Math.max(r.width, 3.0));
+      rightEdge = bW - w;
+      result.push({ ...r, x: rightEdge, y: y0, width: w, height: zH });
+    });
+    const availW = rightEdge; // remaining width after parking
+
+    // Majlis: NW corner (x=0)
+    let majlisW = 0;
+    const majlis = zones.guest.find(r => is(r, "majlis", "reception"));
+    if (majlis) {
+      const w = clamp(snap(Math.max(majlis.width, 3.5)), 3.0, availW * 0.45);
+      const h = clamp(snap(Math.max(majlis.height, 3.5)), 3.0, zH);
+      result.push({ ...majlis, x: 0, y: y0, width: w, height: h });
+      majlisW = w;
+    }
+
+    // Entrance/foyer: top-center of remaining space
+    let entranceH = 2.0;
+    const entrance = zones.guest.find(r => is(r, "entrance", "foyer", "lobby"));
+    if (entrance) {
+      const w = clamp(snap(Math.max(entrance.width, 3.0)), 2.5, availW - majlisW);
+      const h = clamp(snap(Math.max(entrance.height, 2.0)), 2.0, zH);
+      const ex = snap(majlisW + (availW - majlisW) / 2 - w / 2);
+      result.push({ ...entrance, x: clamp(ex, majlisW, availW - w), y: y0, width: w, height: h });
+      entranceH = h;
+    }
+
+    // Remaining guest rooms (WC, etc.)
+    const others = zones.guest.filter(r => !is(r, "parking", "garage", "majlis", "entrance", "foyer", "lobby"));
+    pack(others, 0, y0 + entranceH, availW, zH - entranceH);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // FAMILY ZONE  (y: guestEnd → familyEnd)
+  // ════════════════════════════════════════════════════════════════════════════
+  {
+    const y0 = guestEnd, zH = familyEnd - guestEnd;
+
+    // Staircase: right wall (east)
+    let stairW = 0;
+    const stair = zones.family.find(r => is(r, "stair"));
+    if (stair) {
+      const w = clamp(snap(Math.max(stair.width, 2.5)), 2.5, bW * 0.3);
+      const h = clamp(snap(Math.max(stair.height, 3.0)), 2.5, zH);
+      result.push({ ...stair, x: bW - w, y: y0, width: w, height: h });
+      stairW = w;
+    }
+
+    // Dining: bottom of family zone — will share wall with kitchen below
+    let diningH = 0;
+    const dining = zones.family.find(r => is(r, "dining"));
+    if (dining) {
+      const w = clamp(snap(Math.max(dining.width, 3.0)), 2.5, bW - stairW);
+      const h = clamp(snap(Math.max(dining.height, 3.0)), 2.5, zH * 0.45);
+      diningH = h;
+      result.push({ ...dining, x: 0, y: familyEnd - h, width: w, height: h });
+    }
+
+    // Remaining family rooms: strip pack top of zone
+    const others = zones.family.filter(r => !is(r, "stair", "dining"));
+    pack(others, 0, y0, bW - stairW, zH - diningH);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // SERVICE ZONE  (y: familyEnd → bD)
+  // ════════════════════════════════════════════════════════════════════════════
+  {
+    const y0 = familyEnd, zH = bD - familyEnd;
+
+    // Bathrooms cluster: right side (shared plumbing wall)
+    const baths = zones.service.filter(r => is(r, "bathroom", "bath", "toilet") || tp(r) === "wc");
+    let bathLeftEdge = bW;
+    baths.forEach(r => {
+      const w = snap(Math.max(r.width, tp(r) === "wc" || tp(r) === "toilet" ? 1.2 : 2.0));
+      const h = clamp(snap(Math.max(r.height, 2.0)), 1.5, zH);
+      bathLeftEdge = Math.max(0, bathLeftEdge - w);
+      result.push({ ...r, x: bathLeftEdge, y: y0, width: w, height: h });
+    });
+
+    // Kitchen: x=0, adjacent to dining above (shared wall at familyEnd)
+    let kitchenW = 0;
+    const kitchen = zones.service.find(r => is(r, "kitchen"));
+    if (kitchen) {
+      const w = clamp(snap(Math.max(kitchen.width, 3.0)), 2.5, bathLeftEdge);
+      const h = clamp(snap(Math.max(kitchen.height, 3.0)), 2.5, zH);
+      result.push({ ...kitchen, x: 0, y: y0, width: w, height: h });
+      kitchenW = w;
+    }
+
+    // Other service rooms
+    const others = zones.service.filter(r => !is(r, "bathroom", "bath", "toilet", "kitchen") && tp(r) !== "wc");
+    pack(others, kitchenW, y0, bathLeftEdge - kitchenW, zH);
+  }
+
+  // ── Vertical corridor through all zones ──────────────────────────────────────
+  const corrW = 1.2;
+  const corrX = snap(bW / 2 - corrW / 2);
+  result.push({
+    name: "Corridor", nameAr: "ممر", type: "corridor",
+    x: corrX, y: 0, width: corrW, height: bD,
+    area: parseFloat((corrW * bD).toFixed(1)),
+    floor: rooms[0]?.floor ?? 0,
+  });
+
+  // ── Scale up if coverage < 95% ───────────────────────────────────────────────
+  const covered = result.reduce((s, r) => s + r.width * r.height, 0);
+  const target  = bW * bD * 0.95;
+  if (covered < target && covered > 0) {
+    const sc = Math.sqrt(target / covered);
+    return result.map(r => {
+      const w = clamp(snap(r.width * sc),  1.0, bW);
+      const h = clamp(snap(r.height * sc), 1.0, bD);
+      return { ...r, x: clamp(r.x, 0, bW - w), y: clamp(r.y, 0, bD - h), width: w, height: h };
+    });
+  }
+  return result;
+}
+
+// ─── Simple snap + clamp for upper floors (bedrooms / bathrooms only) ─────────
+function snapUpperFloor(rooms: any[], bW: number, bD: number): any[] {
+  const G = 0.5;
+  const snap = (v: number) => Math.round(v / G) * G;
+  let cx = 0, cy = 0, rowH = 0;
+  const result: any[] = [];
+  for (const r of [...rooms].sort((a, b) => b.width * b.height - a.width * a.height)) {
+    const w = Math.max(snap(r.width ?? 3.0), 2.5);
+    const h = Math.max(snap(r.height ?? 3.0), 2.0);
+    if (cx + w > bW + 0.01) { cx = 0; cy += rowH; rowH = 0; }
+    if (cy + h > bD) break;
+    result.push({ ...r, x: Math.min(cx, bW - w), y: Math.min(cy, bD - h), width: Math.min(w, bW - cx), height: Math.min(h, bD - cy) });
+    cx += w; rowH = Math.max(rowH, h);
+  }
+  return result;
 }
 
 export const appRouter = router({
@@ -806,18 +947,19 @@ Provide the report in a structured and detailed format.`;
               return acc;
             }, {});
 
-            const toMeters = (rooms: any[]) => rooms.map((r: any) => ({
+            // Extract meter dimensions from AI rooms (ignore GPT-4o x/y positions)
+            const withMeters = (rooms: any[]) => rooms.map((r: any) => ({
               ...r,
-              x: (r.x / 100) * bspLayout.buildingWidth,
-              y: (r.y / 100) * bspLayout.buildingDepth,
-              width: (r.w / 100) * bspLayout.buildingWidth,
+              width:  (r.w / 100) * bspLayout.buildingWidth,
               height: (r.h / 100) * bspLayout.buildingDepth,
             }));
             const aiFloorsForSVG = hasValidAIRooms
               ? [
-                  { rooms: snapRoomsToGrid(toMeters(aiGroundRooms), bspLayout.buildingWidth, bspLayout.buildingDepth) },
+                  // Ground floor: full zone-based placement (ignores GPT-4o x/y)
+                  { rooms: placeRoomsInZones(withMeters(aiGroundRooms), bspLayout.buildingWidth, bspLayout.buildingDepth) },
+                  // Upper floors: simple strip packing
                   ...Object.values(aiUpperByFloor).map((rooms: any[]) => ({
-                    rooms: snapRoomsToGrid(toMeters(rooms), bspLayout.buildingWidth, bspLayout.buildingDepth),
+                    rooms: snapUpperFloor(withMeters(rooms), bspLayout.buildingWidth, bspLayout.buildingDepth),
                   })),
                 ]
               : null;
