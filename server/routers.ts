@@ -790,6 +790,11 @@ Provide the report in a structured and detailed format.`;
                 buildingDepth: bspLayout.buildingDepth,
                 setbacks: bspLayout.setbacks,
               },
+              _debug: {
+                spacesSource: hasValidAIRooms ? "GPT-4o" : "BSP",
+                aiRoomsCount: aiGroundRooms?.length ?? 0,
+                firstRoom: aiGroundRooms?.[0] ?? null,
+              },
             };
 
             const blueprintId = await createBlueprint({
