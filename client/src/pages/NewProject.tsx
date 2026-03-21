@@ -536,23 +536,47 @@ export default function NewProject() {
               </div>
 
               {/* Land dimensions */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "المساحة (م²)" : "Area (m²)"}</Label>
-                  <Input type="number" value={form.landArea} onChange={e => set("landArea", e.target.value)}
-                    placeholder="500" className="bg-input border-border text-foreground" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "العرض (م)" : "Width (m)"}</Label>
-                  <Input type="number" value={form.landWidth} onChange={e => set("landWidth", e.target.value)}
-                    placeholder="20" className="bg-input border-border text-foreground" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{lang === "ar" ? "الطول (م)" : "Length (m)"}</Label>
-                  <Input type="number" value={form.landLength} onChange={e => set("landLength", e.target.value)}
-                    placeholder="25" className="bg-input border-border text-foreground" />
-                </div>
-              </div>
+              {(() => {
+                const autoArea = form.landWidth && form.landLength
+                  ? String(parseFloat(form.landWidth) * parseFloat(form.landLength))
+                  : null;
+                const handleDim = (field: "landWidth" | "landLength", val: string) => {
+                  const other = field === "landWidth" ? parseFloat(form.landLength) : parseFloat(form.landWidth);
+                  const self = parseFloat(val);
+                  setForm(f => ({
+                    ...f,
+                    [field]: val,
+                    landArea: self > 0 && other > 0 ? String(self * other) : f.landArea,
+                  }));
+                };
+                return (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">
+                        {lang === "ar" ? "المساحة (م²)" : "Area (m²)"}
+                        {autoArea && <span className="text-primary ms-1 text-[10px]">{lang === "ar" ? "محسوبة" : "auto"}</span>}
+                      </Label>
+                      <Input type="number" value={form.landArea}
+                        onChange={e => set("landArea", e.target.value)}
+                        readOnly={!!autoArea}
+                        placeholder="500"
+                        className={`border-border text-foreground ${autoArea ? "bg-primary/5 text-primary cursor-default" : "bg-input"}`} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">{lang === "ar" ? "العرض (م)" : "Width (m)"}</Label>
+                      <Input type="number" value={form.landWidth}
+                        onChange={e => handleDim("landWidth", e.target.value)}
+                        placeholder="15" className="bg-input border-border text-foreground" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">{lang === "ar" ? "الطول (م)" : "Length (m)"}</Label>
+                      <Input type="number" value={form.landLength}
+                        onChange={e => handleDim("landLength", e.target.value)}
+                        placeholder="20" className="bg-input border-border text-foreground" />
+                    </div>
+                  </div>
+                );
+              })()}
 
 
               {/* Setbacks — from building permit or land deed */}
