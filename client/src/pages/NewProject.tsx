@@ -367,8 +367,8 @@ export default function NewProject() {
                   <Label className="text-muted-foreground text-sm mb-3 block">{lang === "ar" ? "نوع المبنى" : "Building Type"}</Label>
                   <div className="flex gap-3">
                     {[
-                      { val: "residential", icon: Building2, ar: "مبنى سكني", en: "Residential Building" },
-                      { val: "villa", icon: HomeIcon, ar: "فيلا سكنية", en: "Residential Villa" },
+                      { val: "residential", icon: Building2, ar: "عمارة", en: "Residential Building" },
+                      { val: "villa", icon: HomeIcon, ar: "فيلا", en: "Residential Villa" },
                     ].map(({ val, icon: Icon, ar, en }) => (
                       <button
                         key={val}
