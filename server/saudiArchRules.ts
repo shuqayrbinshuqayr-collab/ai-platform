@@ -1141,7 +1141,13 @@ Never output a layout with SBC violations.
 STEP 7 — OUTPUT FORMAT
 ══════════════════════════════════════════════
 Respond with VALID JSON ONLY. No markdown. No explanation.
-${jsonSchema}`;
+${jsonSchema}
+
+CRITICAL: Your response must be pure JSON only.
+Do not write any explanation, error message, or text before or after the JSON.
+Do not start with "An error", "I cannot", "Sorry", or any natural language.
+If you cannot generate a valid layout, return exactly: {"error": "cannot generate"}
+Any response that is not valid JSON will cause a system failure.`;
 }
 
 // ─── دالة تحويل بيانات AI إلى BSP Layout ─────────────────────────────────────

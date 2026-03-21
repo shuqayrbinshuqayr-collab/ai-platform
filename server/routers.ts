@@ -837,8 +837,16 @@ Provide the report in a structured and detailed format.`;
             let aiData: any = {};
             try {
               const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
-              aiData = JSON.parse(cleaned);
-            } catch {
+              const parsed = JSON.parse(cleaned);
+              // If GPT returned an error object, treat as no AI rooms
+              if (parsed && parsed.error) {
+                console.error("GPT returned error:", parsed.error);
+                aiData = {};
+              } else {
+                aiData = parsed;
+              }
+            } catch (e) {
+              console.error("GPT JSON parse failed:", content.slice(0, 200));
               aiData = {};
             }
 
