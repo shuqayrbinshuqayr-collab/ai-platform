@@ -1,5 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { InsertUser, users, projects, blueprints, InsertProject, InsertBlueprint, Project, Blueprint, subscriptions, InsertSubscription, Subscription } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -8,7 +9,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -40,7 +42,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
     if (!values.lastSignedIn) values.lastSignedIn = new Date();
     if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+    await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -54,6 +56,13 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function updateUserProfile(userId: number, data: { officeName?: string; officePhone?: string; preferredLang?: "ar" | "en" }) {
   const db = await getDb();
   if (!db) return;
@@ -64,8 +73,8 @@ export async function updateUserProfile(userId: number, data: { officeName?: str
 export async function createProject(data: InsertProject): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(projects).values(data);
-  return (result[0] as any).insertId;
+  const result = await db.insert(projects).values(data).returning({ id: projects.id });
+  return result[0].id;
 }
 
 export async function getProjectsByUser(userId: number): Promise<Project[]> {
@@ -97,8 +106,8 @@ export async function deleteProject(id: number, userId: number) {
 export async function createBlueprint(data: InsertBlueprint): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(blueprints).values(data);
-  return (result[0] as any).insertId;
+  const result = await db.insert(blueprints).values(data).returning({ id: blueprints.id });
+  return result[0].id;
 }
 
 export async function getBlueprintsByProject(projectId: number, userId: number): Promise<Blueprint[]> {
@@ -130,9 +139,9 @@ export async function selectBlueprint(blueprintId: number, projectId: number, us
   const db = await getDb();
   if (!db) return;
   // Deselect all blueprints in the same project first
-  await db.update(blueprints).set({ isSelected: 0 }).where(and(eq(blueprints.projectId, projectId), eq(blueprints.userId, userId)));
+  await db.update(blueprints).set({ isSelected: false }).where(and(eq(blueprints.projectId, projectId), eq(blueprints.userId, userId)));
   // Select the chosen blueprint
-  await db.update(blueprints).set({ isSelected: 1 }).where(and(eq(blueprints.id, blueprintId), eq(blueprints.userId, userId)));
+  await db.update(blueprints).set({ isSelected: true }).where(and(eq(blueprints.id, blueprintId), eq(blueprints.userId, userId)));
 }
 
 export async function getBlueprintsByBatch(batchId: string, userId: number): Promise<Blueprint[]> {
@@ -226,6 +235,6 @@ export async function getLearnedBlueprints(): Promise<Blueprint[]> {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(blueprints)
-    .where(eq(blueprints.addedToRAG, 1))
+    .where(eq(blueprints.addedToRAG, true))
     .limit(20);
 }

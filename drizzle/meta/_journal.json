@@ -1,82 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1771856127503,
-      "tag": "0000_married_sue_storm",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1771856429388,
-      "tag": "0001_short_logan",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1771872783084,
-      "tag": "0002_easy_typhoid_mary",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1772303991766,
-      "tag": "0003_dazzling_elektra",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1773595696829,
-      "tag": "0004_happy_white_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1773693733189,
-      "tag": "0005_glossy_obadiah_stane",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "5",
-      "when": 1773695820861,
-      "tag": "0006_ambiguous_hellcat",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "5",
-      "when": 1773756640091,
-      "tag": "0007_wonderful_mercury",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "5",
-      "when": 1773785629283,
-      "tag": "0008_amusing_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "5",
-      "when": 1773785683732,
-      "tag": "0009_broken_wildside",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "5",
-      "when": 1773798910873,
-      "tag": "0010_icy_leper_queen",
+      "version": "7",
+      "when": 1774046227073,
+      "tag": "0000_previous_marvex",
       "breakpoints": true
     }
   ]

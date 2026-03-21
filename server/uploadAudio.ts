@@ -1,4 +1,4 @@
-import express, { Request } from "express";
+import express, { Application, Request, Response } from "express";
 import multer from "multer";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
@@ -8,8 +8,8 @@ const upload = multer({
   limits: { fileSize: 16 * 1024 * 1024 }, // 16MB
 });
 
-export function registerUploadRoute(app: express.Express) {
-  app.post("/api/upload-audio", upload.single("audio"), async (req: Request & { file?: Express.Multer.File }, res) => {
+export function registerUploadRoute(app: Application) {
+  app.post("/api/upload-audio", upload.single("audio"), async (req: Request & { file?: Express.Multer.File }, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });

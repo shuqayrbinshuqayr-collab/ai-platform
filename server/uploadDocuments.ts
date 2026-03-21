@@ -1,4 +1,4 @@
-import express, { Request } from "express";
+import express, { Application, Request, Response } from "express";
 import multer from "multer";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
@@ -8,8 +8,8 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB for PDFs
 });
 
-export function registerUploadDocumentRoute(app: express.Express) {
-  app.post("/api/upload", upload.single("file"), async (req: Request & { file?: Express.Multer.File }, res) => {
+export function registerUploadDocumentRoute(app: Application) {
+  app.post("/api/upload", upload.single("file"), async (req: Request & { file?: Express.Multer.File }, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });

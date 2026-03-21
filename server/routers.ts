@@ -1,9 +1,13 @@
 import { z } from "zod";
+import type { Response } from "express";
 import { getDb } from "./db";
 import { blueprints } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { sdk } from "./_core/sdk";
+import { getUserByEmail, upsertUser } from "./db";
+import bcrypt from "bcryptjs";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
@@ -138,11 +142,67 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getUserByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مستخدم بالفعل" });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const openId = `email:${input.email}`;
+        await upsertUser({
+          openId,
+          email: input.email,
+          name: input.name,
+          passwordHash,
+          loginMethod: "email",
+          lastSignedIn: new Date(),
+        });
+        const sessionToken = await sdk.createSessionToken(openId, {
+          name: input.name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        (ctx.res as Response).cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true } as const;
+      }),
+
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        }
+        const valid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        }
+        await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name ?? "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        (ctx.res as Response).cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true } as const;
+      }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      (ctx.res as Response).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
     updateProfile: protectedProcedure
       .input(z.object({
         officeName: z.string().optional(),
@@ -214,7 +274,7 @@ export const appRouter = router({
           ...input,
           userId: ctx.user.id,
           status: "draft",
-          isLargeProject: isLarge ? 1 : 0,
+          isLargeProject: isLarge,
         });
         return { id };
       }),
@@ -341,7 +401,7 @@ export const appRouter = router({
           .set({
             editedSpaces: input.editedSpaces,
             editorFeedback: input.editorFeedback ?? null,
-            isEditedByEngineer: 1,
+            isEditedByEngineer: true,
             updatedAt: new Date(),
           })
           .where(eq(blueprints.id, input.blueprintId));
@@ -364,7 +424,7 @@ export const appRouter = router({
           updatedAt: new Date(),
         };
         if (input.addToRAG) {
-          updates.addedToRAG = 1;
+          updates.addedToRAG = true;
           // Build RAG entry from edited or original spaces
           const spaces = (bp.editedSpaces as any[]) ?? ((bp.structuredData as any)?.spaces ?? []);
           const project = await getProjectById((bp as any).projectId, ctx.user.id);
@@ -406,8 +466,8 @@ export const appRouter = router({
         return {
           editedSpaces: bp.editedSpaces as any[] ?? null,
           editorFeedback: bp.editorFeedback,
-          isEditedByEngineer: bp.isEditedByEngineer === 1,
-          addedToRAG: bp.addedToRAG === 1,
+          isEditedByEngineer: bp.isEditedByEngineer,
+          addedToRAG: bp.addedToRAG,
         };
       }),
 

@@ -1,110 +1,829 @@
 {
-  "version": "5",
-  "dialect": "mysql",
-  "id": "3ef846c7-50fc-400a-a68f-d949a51ae439",
+  "id": "6f4bd73f-c0a3-47a6-b4bf-9e7aa7bc86c5",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "users": {
-      "name": "users",
+    "public.blueprints": {
+      "name": "blueprints",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "int",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": true
+          "default": 1
         },
-        "openId": {
-          "name": "openId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
+        "conceptDescription": {
+          "name": "conceptDescription",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "email": {
-          "name": "email",
-          "type": "varchar(320)",
+        "conceptDescriptionAr": {
+          "name": "conceptDescriptionAr",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "loginMethod": {
-          "name": "loginMethod",
+        "structuredData": {
+          "name": "structuredData",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "svgData": {
+          "name": "svgData",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "regulatoryCompliance": {
+          "name": "regulatoryCompliance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aiModel": {
+          "name": "aiModel",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "role": {
-          "name": "role",
-          "type": "enum('user','admin')",
+        "generationTime": {
+          "name": "generationTime",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "conceptIndex": {
+          "name": "conceptIndex",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "'user'"
+          "default": 1
+        },
+        "isSelected": {
+          "name": "isSelected",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "batchId": {
+          "name": "batchId",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdfUrl": {
+          "name": "pdfUrl",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pngUrl": {
+          "name": "pngUrl",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "editedSpaces": {
+          "name": "editedSpaces",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "editorFeedback": {
+          "name": "editorFeedback",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isEditedByEngineer": {
+          "name": "isEditedByEngineer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "addedToRAG": {
+          "name": "addedToRAG",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
+          "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.officeMembers": {
+      "name": "officeMembers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "officeOwnerId": {
+          "name": "officeOwnerId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memberId": {
+          "name": "memberId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inviteEmail": {
+          "name": "inviteEmail",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memberStatus": {
+          "name": "memberStatus",
+          "type": "memberStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.projects": {
+      "name": "projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "landArea": {
+          "name": "landArea",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "landWidth": {
+          "name": "landWidth",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "landLength": {
+          "name": "landLength",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "landCoordinates": {
+          "name": "landCoordinates",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "landShape": {
+          "name": "landShape",
+          "type": "landShape",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'rectangular'"
+        },
+        "buildingRatio": {
+          "name": "buildingRatio",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "floorAreaRatio": {
+          "name": "floorAreaRatio",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "maxFloors": {
+          "name": "maxFloors",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "frontSetback": {
+          "name": "frontSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "backSetback": {
+          "name": "backSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sideSetback": {
+          "name": "sideSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildingType": {
+          "name": "buildingType",
+          "type": "buildingType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'residential'"
+        },
+        "numberOfRooms": {
+          "name": "numberOfRooms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numberOfFloors": {
+          "name": "numberOfFloors",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parkingSpaces": {
+          "name": "parkingSpaces",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "additionalRequirements": {
+          "name": "additionalRequirements",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bedrooms": {
+          "name": "bedrooms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bathrooms": {
+          "name": "bathrooms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "majlis": {
+          "name": "majlis",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "garages": {
+          "name": "garages",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "maidRooms": {
+          "name": "maidRooms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "balconies": {
+          "name": "balconies",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "zoningCode": {
+          "name": "zoningCode",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deedNumber": {
+          "name": "deedNumber",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plotNumber": {
+          "name": "plotNumber",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blockNumber": {
+          "name": "blockNumber",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "planNumber": {
+          "name": "planNumber",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "neighborhoodName": {
+          "name": "neighborhoodName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "propertyType": {
+          "name": "propertyType",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "northSetback": {
+          "name": "northSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "southSetback": {
+          "name": "southSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eastSetback": {
+          "name": "eastSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "westSetback": {
+          "name": "westSetback",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "northLength": {
+          "name": "northLength",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "southLength": {
+          "name": "southLength",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eastLength": {
+          "name": "eastLength",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "westLength": {
+          "name": "westLength",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deedFileUrl": {
+          "name": "deedFileUrl",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildingCodeFileUrl": {
+          "name": "buildingCodeFileUrl",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extractedDeedData": {
+          "name": "extractedDeedData",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extractedBuildingCodeData": {
+          "name": "extractedBuildingCodeData",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isLargeProject": {
+          "name": "isLargeProject",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscriptions": {
+      "name": "subscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plan": {
+          "name": "plan",
+          "type": "plan",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'student'"
+        },
+        "blueprintsLimit": {
+          "name": "blueprintsLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "blueprintsUsedToday": {
+          "name": "blueprintsUsedToday",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "projectsLimit": {
+          "name": "projectsLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": -1
+        },
+        "seats": {
+          "name": "seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "officeId": {
+          "name": "officeId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isOfficeOwner": {
+          "name": "isOfficeOwner",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "pricePerMonth": {
+          "name": "pricePerMonth",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 20
+        },
+        "blueprintsResetDate": {
+          "name": "blueprintsResetDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subscriptions_userId_unique": {
+          "name": "subscriptions_userId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "openId": {
+          "name": "openId",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "loginMethod": {
+          "name": "loginMethod",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
+        },
+        "officeName": {
+          "name": "officeName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "officePhone": {
+          "name": "officePhone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferredLang": {
+          "name": "preferredLang",
+          "type": "preferredLang",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ar'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "lastSignedIn": {
           "name": "lastSignedIn",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "users_id": {
-          "name": "users_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "openId"
           ]
         }
       },
-      "checkConstraint": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
+  "enums": {
+    "public.buildingType": {
+      "name": "buildingType",
+      "schema": "public",
+      "values": [
+        "residential",
+        "villa"
+      ]
+    },
+    "public.landShape": {
+      "name": "landShape",
+      "schema": "public",
+      "values": [
+        "rectangular",
+        "square",
+        "irregular",
+        "L-shape",
+        "T-shape"
+      ]
+    },
+    "public.memberStatus": {
+      "name": "memberStatus",
+      "schema": "public",
+      "values": [
+        "pending",
+        "active",
+        "removed"
+      ]
+    },
+    "public.plan": {
+      "name": "plan",
+      "schema": "public",
+      "values": [
+        "free",
+        "student",
+        "solo",
+        "office"
+      ]
+    },
+    "public.preferredLang": {
+      "name": "preferredLang",
+      "schema": "public",
+      "values": [
+        "ar",
+        "en"
+      ]
+    },
+    "public.status": {
+      "name": "status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "processing",
+        "completed",
+        "archived"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "user",
+        "admin"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
   "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "tables": {},
-    "indexes": {}
+    "tables": {}
   }
 }
