@@ -53,15 +53,16 @@ export default function NavBar() {
       <div className="container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center group">
-            <svg viewBox="0 0 180 88" className="h-10 w-auto" xmlns="http://www.w3.org/2000/svg">
-              {/* Open rooftop: two diagonal lines, no walls */}
-              <polyline points="8,46 90,6 172,46" stroke="#F97316" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter" fill="none"/>
-              {/* SOAR.AI — single text element, tspan for colour split */}
-              <text y="82" fontFamily="'Arial Black', 'Arial Bold', Arial, sans-serif" fontWeight="900" fontSize="32" fill="#F97316">
-                <tspan x="2">SOAR</tspan><tspan fill="white">.AI</tspan>
-              </text>
+          <Link href="/" className="flex flex-col items-center leading-none group">
+            {/* Rooftop icon */}
+            <svg viewBox="0 0 100 38" className="w-16 h-auto" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="4,34 50,4 96,34" stroke="#F97316" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
             </svg>
+            {/* Text below roof */}
+            <div className="flex items-baseline" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: "1.25rem", lineHeight: 1 }}>
+              <span style={{ color: "#F97316" }}>SOAR</span>
+              <span style={{ color: "white" }}>.AI</span>
+            </div>
           </Link>
 
           {/* Desktop Nav */}
