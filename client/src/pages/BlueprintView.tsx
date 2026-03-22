@@ -26,6 +26,268 @@ const HAS_DOOR = new Set([
   "prayer", "entrance", "storage", "laundry", "corridor", "distributor"
 ]);
 
+// ─── Site Plan Component ──────────────────────────────────────────────────────
+function SitePlan({
+  landW, landD, bldW, bldD,
+  frontSetback, backSetback, sideSetback, lang,
+}: {
+  landW: number; landD: number; bldW: number; bldD: number;
+  frontSetback: number; backSetback: number; sideSetback: number; lang: string;
+}) {
+  const SVG_W = 640;
+  const SVG_H = 480;
+  const PAD_H = 60; // horizontal padding (for dimension labels)
+  const PAD_V = 50; // vertical padding
+
+  const innerW = SVG_W - PAD_H * 2;
+  const innerH = SVG_H - PAD_V * 2;
+
+  // pixels per meter
+  const scX = innerW / landW;
+  const scY = innerH / landD;
+
+  // Land origin = top-left = (PAD_H, PAD_V)
+  // Street = BOTTOM of land
+  // Back setback at top, front setback at bottom
+
+  const bldX = PAD_H + sideSetback * scX;
+  const bldY = PAD_V + backSetback * scY;
+  const bldSvgW = bldW * scX;
+  const bldSvgH = bldD * scY;
+  const bldBottom = bldY + bldSvgH;
+  const bldRight = bldX + bldSvgW;
+
+  // Gate: vehicle 4m wide, centered on front wall
+  const gateW = Math.min(4 * scX, bldSvgW * 0.6);
+  const gateX = PAD_H + innerW / 2 - gateW / 2;
+  const gateY = PAD_V + innerH; // on front land wall
+  const leafW = gateW / 2;
+
+  // Pedestrian gate: 1.2m, left of vehicle gate
+  const pedW = 1.2 * scX;
+  const pedX = gateX - pedW - 6;
+
+  // Garage door: 3.5m centered on building front face
+  const garageW = Math.min(3.5 * scX, bldSvgW * 0.55);
+  const garageX = bldX + bldSvgW / 2 - garageW / 2;
+  const garageH = Math.max(12, 2.2 * scY);
+
+  // Driveway: from gate centre to garage centre
+  const driveCX = PAD_H + innerW / 2;
+  const driveW = gateW;
+
+  // Tree circles helper
+  const trees: { cx: number; cy: number }[] = [];
+  const treeR = Math.max(6, Math.min(12, scX * 0.6));
+  // Front garden trees (row between building front and street)
+  const frontZoneH = (PAD_V + innerH) - bldBottom;
+  if (frontZoneH > treeR * 3) {
+    const ty = bldBottom + frontZoneH * 0.45;
+    for (let i = 0; i < 4; i++) {
+      const tx = PAD_H + (innerW / 5) * (i + 0.8);
+      // Skip if overlaps driveway
+      if (Math.abs(tx - driveCX) < driveW / 2 + treeR + 4) continue;
+      trees.push({ cx: tx, cy: ty });
+    }
+  }
+  // Back garden trees
+  const backZoneH = bldY - PAD_V;
+  if (backZoneH > treeR * 3) {
+    const ty = PAD_V + backZoneH * 0.5;
+    for (let i = 0; i < 3; i++) {
+      trees.push({ cx: PAD_H + (innerW / 4) * (i + 0.8), cy: ty });
+    }
+  }
+  // Side strip trees
+  [PAD_H + sideSetback * scX * 0.5, bldRight + sideSetback * scX * 0.5].forEach(tx => {
+    trees.push({ cx: tx, cy: bldY + bldSvgH * 0.3 });
+    trees.push({ cx: tx, cy: bldY + bldSvgH * 0.7 });
+  });
+
+  const labelStyle = { fontFamily: "'Cairo','Arial',sans-serif", fontSize: 9 } as const;
+
+  return (
+    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ background: "#fff", fontFamily: "'Cairo','Arial',sans-serif" }}>
+
+      {/* ── Land fill (light beige) ── */}
+      <rect x={PAD_H} y={PAD_V} width={innerW} height={innerH} fill="#faf7f0" stroke="none"/>
+
+      {/* ── Back garden ── */}
+      <rect x={PAD_H} y={PAD_V} width={innerW} height={backSetback * scY} fill="#e8f5e0"/>
+      {/* ── Front garden (between building and street) ── */}
+      <rect x={PAD_H} y={bldBottom} width={innerW} height={(PAD_V + innerH) - bldBottom} fill="#e8f5e0"/>
+      {/* ── Side gardens ── */}
+      <rect x={PAD_H} y={bldY} width={sideSetback * scX} height={bldSvgH} fill="#e8f5e0"/>
+      <rect x={bldRight} y={bldY} width={sideSetback * scX} height={bldSvgH} fill="#e8f5e0"/>
+
+      {/* ── Front setback hatch zone (light gray overlay) ── */}
+      <rect x={PAD_H} y={bldBottom} width={innerW} height={(PAD_V + innerH) - bldBottom}
+        fill="#f0f0f0" fillOpacity="0.5"/>
+
+      {/* ── Tree symbols ── */}
+      {trees.map((t, i) => (
+        <g key={i}>
+          <circle cx={t.cx} cy={t.cy} r={treeR} fill="#b8dba0" stroke="#5a9b44" strokeWidth="0.8"/>
+          <circle cx={t.cx} cy={t.cy} r={treeR * 0.4} fill="#7dc962" stroke="none"/>
+        </g>
+      ))}
+
+      {/* ── Driveway (dashed path from gate to garage) ── */}
+      <rect
+        x={driveCX - driveW / 2} y={bldBottom}
+        width={driveW} height={(PAD_V + innerH) - bldBottom}
+        fill="#e0d8c8" stroke="none"
+      />
+      <line
+        x1={driveCX} y1={bldBottom + garageH}
+        x2={driveCX} y2={PAD_V + innerH}
+        stroke="#9ca3af" strokeWidth="1.5" strokeDasharray="8,5"
+      />
+
+      {/* ── Building footprint (white fill) ── */}
+      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
+        fill="#ffffff" stroke="none"/>
+
+      {/* ── Garage door symbol on building front face ── */}
+      <rect x={garageX} y={bldBottom - garageH} width={garageW} height={garageH}
+        fill="#e5e7eb" stroke="#374151" strokeWidth="1"/>
+      {/* Horizontal lines inside garage door */}
+      {Array.from({ length: 5 }).map((_, i) => (
+        <line key={i}
+          x1={garageX + 2} y1={bldBottom - garageH + (garageH / 6) * (i + 1)}
+          x2={garageX + garageW - 2} y2={bldBottom - garageH + (garageH / 6) * (i + 1)}
+          stroke="#9ca3af" strokeWidth="0.7"
+        />
+      ))}
+      <text x={garageX + garageW / 2} y={bldBottom - garageH - 4}
+        textAnchor="middle" fill="#374151" {...labelStyle} fontSize={8}>
+        {lang === "ar" ? "موقف سيارة" : "Garage"}
+      </text>
+
+      {/* ── Building boundary (thick black) ── */}
+      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
+        fill="none" stroke="#000000" strokeWidth="3"/>
+
+      {/* ── Land boundary (outer thick line = سور الأرض) ── */}
+      <rect x={PAD_H} y={PAD_V} width={innerW} height={innerH}
+        fill="none" stroke="#000000" strokeWidth="3.5"/>
+
+      {/* ── Street label at bottom ── */}
+      <rect x={PAD_H} y={PAD_V + innerH + 2} width={innerW} height="16"
+        fill="#d1d5db" stroke="none"/>
+      <text x={PAD_H + innerW / 2} y={PAD_V + innerH + 13}
+        textAnchor="middle" fill="#374151" fontWeight="700" {...labelStyle} fontSize={10}>
+        {lang === "ar" ? "◄ الشارع ►" : "◄ STREET ►"}
+      </text>
+
+      {/* ── Vehicle gate (two leaves on front wall) ── */}
+      {/* Opening gap on land wall */}
+      <rect x={gateX} y={gateY - 4} width={gateW} height="5"
+        fill="#faf7f0" stroke="none"/>
+      {/* Left leaf (opens inward/up) */}
+      <rect x={gateX} y={gateY - leafW - 2} width="4" height={leafW}
+        fill="#6b7280" stroke="#374151" strokeWidth="0.8"/>
+      {/* Right leaf */}
+      <rect x={gateX + gateW - 4} y={gateY - leafW - 2} width="4" height={leafW}
+        fill="#6b7280" stroke="#374151" strokeWidth="0.8"/>
+      <text x={gateX + gateW / 2} y={gateY - leafW - 5}
+        textAnchor="middle" fill="#374151" fontWeight="700" {...labelStyle}>
+        {lang === "ar" ? "بوابة رئيسية" : "Main Gate"}
+      </text>
+
+      {/* ── Pedestrian gate ── */}
+      {pedX > PAD_H && (
+        <>
+          <rect x={pedX} y={gateY - 4} width={pedW} height="5"
+            fill="#faf7f0" stroke="none"/>
+          <rect x={pedX} y={gateY - pedW - 2} width="3" height={pedW}
+            fill="#9ca3af" stroke="#374151" strokeWidth="0.6"/>
+          <text x={pedX + pedW / 2} y={gateY - pedW - 5}
+            textAnchor="middle" fill="#6b7280" {...labelStyle} fontSize={7.5}>
+            {lang === "ar" ? "بوابة مشاة" : "Ped. Gate"}
+          </text>
+        </>
+      )}
+
+      {/* ── Setback labels ── */}
+      {/* Front setback label */}
+      {frontZoneH > 16 && (
+        <text x={PAD_H + 6} y={bldBottom + frontZoneH / 2 + 4}
+          fill="#6b7280" {...labelStyle}>
+          {lang === "ar" ? `ارتداد أمامي ${frontSetback}م` : `Front ${frontSetback}m`}
+        </text>
+      )}
+      {/* Back setback label */}
+      {backZoneH > 16 && (
+        <text x={PAD_H + 6} y={PAD_V + backZoneH / 2 + 4}
+          fill="#6b7280" {...labelStyle}>
+          {lang === "ar" ? `ارتداد خلفي ${backSetback}م` : `Back ${backSetback}m`}
+        </text>
+      )}
+      {/* Side setback label */}
+      {sideSetback * scX > 14 && (
+        <text
+          x={PAD_H + sideSetback * scX / 2} y={bldY + bldSvgH / 2}
+          textAnchor="middle" fill="#6b7280" {...labelStyle} fontSize={7.5}
+          transform={`rotate(-90,${PAD_H + sideSetback * scX / 2},${bldY + bldSvgH / 2})`}>
+          {lang === "ar" ? `${sideSetback}م` : `${sideSetback}m`}
+        </text>
+      )}
+
+      {/* ── Building label ── */}
+      <text x={bldX + bldSvgW / 2} y={bldY + bldSvgH / 2}
+        textAnchor="middle" dominantBaseline="middle"
+        fill="#374151" fontWeight="800" {...labelStyle} fontSize={12}>
+        {lang === "ar" ? "المبنى" : "BUILDING"}
+      </text>
+      <text x={bldX + bldSvgW / 2} y={bldY + bldSvgH / 2 + 16}
+        textAnchor="middle" dominantBaseline="middle"
+        fill="#9ca3af" fontFamily="'Share Tech Mono',monospace" fontSize={9}>
+        {`${bldW.toFixed(1)}م × ${bldD.toFixed(1)}م`}
+      </text>
+
+      {/* ── Land dimension lines ── */}
+      {/* Top: land width */}
+      <line x1={PAD_H} y1={PAD_V - 18} x2={PAD_H + innerW} y2={PAD_V - 18} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={PAD_H} y1={PAD_V - 23} x2={PAD_H} y2={PAD_V - 13} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={PAD_H + innerW} y1={PAD_V - 23} x2={PAD_H + innerW} y2={PAD_V - 13} stroke="#374151" strokeWidth="0.8"/>
+      <rect x={PAD_H + innerW / 2 - 24} y={PAD_V - 24} width="48" height="12" fill="#fff"/>
+      <text x={PAD_H + innerW / 2} y={PAD_V - 14} textAnchor="middle"
+        fill="#374151" fontFamily="'Share Tech Mono',monospace" fontSize={10} fontWeight="700">
+        {landW.toFixed(1)} م
+      </text>
+
+      {/* Left: land depth */}
+      <line x1={PAD_H - 18} y1={PAD_V} x2={PAD_H - 18} y2={PAD_V + innerH} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={PAD_H - 23} y1={PAD_V} x2={PAD_H - 13} y2={PAD_V} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={PAD_H - 23} y1={PAD_V + innerH} x2={PAD_H - 13} y2={PAD_V + innerH} stroke="#374151" strokeWidth="0.8"/>
+      <rect x={PAD_H - 33} y={PAD_V + innerH / 2 - 22} width="13" height="44" fill="#fff"/>
+      <text x={PAD_H - 26} y={PAD_V + innerH / 2} textAnchor="middle"
+        fill="#374151" fontFamily="'Share Tech Mono',monospace" fontSize={10} fontWeight="700"
+        transform={`rotate(-90,${PAD_H - 26},${PAD_V + innerH / 2})`}>
+        {landD.toFixed(1)} م
+      </text>
+
+      {/* ── North arrow ── */}
+      <g transform={`translate(${SVG_W - 32}, ${PAD_V + 22})`}>
+        <circle cx="0" cy="0" r="14" fill="none" stroke="#374151" strokeWidth="0.8"/>
+        <line x1="0" y1="10" x2="0" y2="-10" stroke="#374151" strokeWidth="1"/>
+        <polygon points="0,-13 -3,-6 3,-6" fill="#374151"/>
+        <text x="0" y="24" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600"
+          fontFamily="'Share Tech Mono',monospace">N</text>
+      </g>
+
+      {/* ── Title ── */}
+      <text x={SVG_W / 2} y={SVG_H - 8} textAnchor="middle"
+        fill="#9ca3af" fontFamily="'Share Tech Mono',monospace" fontSize={8}>
+        {lang === "ar" ? "مخطط الموقع — SITE PLAN  |  SOAR.AI" : "SITE PLAN  |  SOAR.AI"}
+      </text>
+    </svg>
+  );
+}
+
 // ─── AutoCAD Floor Plan Component ────────────────────────────────────────────
 function FloorPlan({
   spaces, floor, lang, bldW, bldH
@@ -638,6 +900,32 @@ export default function BlueprintView() {
 
         {/* Floor plans */}
         <div ref={svgRef} className="space-y-8">
+          {/* Site Plan — shown once above floor plans */}
+          {summary.landWidth && summary.buildingWidth && (
+            <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+              <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
+                <Ruler className="w-4 h-4 text-primary"/>
+                <span className="text-sm font-semibold text-foreground">
+                  {lang === "ar" ? "مخطط الموقع" : "Site Plan"}
+                </span>
+                <span className="text-xs text-muted-foreground font-mono ms-auto">
+                  {summary.landWidth}م × {summary.landDepth}م
+                </span>
+              </div>
+              <div className="p-4">
+                <SitePlan
+                  landW={summary.landWidth}
+                  landD={summary.landDepth}
+                  bldW={summary.buildingWidth}
+                  bldD={summary.buildingDepth}
+                  frontSetback={summary.frontSetback ?? 3}
+                  backSetback={summary.backSetback ?? 2}
+                  sideSetback={summary.sideSetback ?? 1.5}
+                  lang={lang}
+                />
+              </div>
+            </div>
+          )}
           {floorsArr.map(floor => (
             <div key={floor} className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
               <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
