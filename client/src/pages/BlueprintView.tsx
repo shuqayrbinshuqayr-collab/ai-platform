@@ -12,7 +12,6 @@ import { useRef } from "react";
 import React from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-
 // Rooms that typically have windows
 const HAS_WINDOW = new Set([
   "bedroom", "master_bedroom", "living", "family_living",
@@ -26,409 +25,201 @@ const HAS_DOOR = new Set([
   "prayer", "entrance", "storage", "laundry", "corridor", "distributor"
 ]);
 
-// ─── Site Plan Component ──────────────────────────────────────────────────────
-function SitePlan({
-  landW, landD, bldW, bldD,
-  frontSetback, backSetback, sideSetback, lang,
+// ─── Unified Site + Floor Plan Component ─────────────────────────────────────
+// Draws: land → gardens → driveway → fence → building footprint → interior rooms
+function UnifiedFloorPlan({
+  spaces, floor, lang,
+  bldW: bldWProp, bldH: bldHProp,
+  landW: landWProp, landD: landDProp,
+  frontSetback: frontSbProp, backSetback: backSbProp, sideSetback: sideSbProp,
 }: {
-  landW: number; landD: number; bldW: number; bldD: number;
-  frontSetback: number; backSetback: number; sideSetback: number; lang: string;
+  spaces: any[]; floor: number; lang: string;
+  bldW?: number; bldH?: number;
+  landW?: number; landD?: number;
+  frontSetback?: number; backSetback?: number; sideSetback?: number;
 }) {
+  const floorSpaces = spaces.filter(s => (s.floor ?? 0) === floor);
+  if (floorSpaces.length === 0) return null;
+
+  // Resolve dimensions with fallbacks
+  const frontSb  = frontSbProp  ?? 3;
+  const backSb   = backSbProp   ?? 2;
+  const sideSb   = sideSbProp   ?? 1.5;
+  const bldW     = bldWProp     ?? 10;
+  const bldH     = bldHProp     ?? 15;
+  const landW    = landWProp    ?? bldW + sideSb * 2;
+  const landD    = landDProp    ?? bldH + frontSb + backSb;
+
+  // ── SVG canvas ──────────────────────────────────────────────────────────────
   const SVG_W = 640;
-  const SVG_H = 480;
-  const PAD_H = 60; // horizontal padding (for dimension labels)
-  const PAD_V = 50; // vertical padding
+  const SVG_H = 640;
+  const PAD   = 60; // padding for dimension labels
 
-  const innerW = SVG_W - PAD_H * 2;
-  const innerH = SVG_H - PAD_V * 2;
+  const availW = SVG_W - PAD * 2;
+  const availH = SVG_H - PAD * 2;
 
-  // pixels per meter
-  const scX = innerW / landW;
-  const scY = innerH / landD;
+  // Scale: fit full land proportionally
+  const scale = Math.min(availW / landW, availH / landD); // px per meter
 
-  // Land origin = top-left = (PAD_H, PAD_V)
-  // Street = BOTTOM of land
-  // Back setback at top, front setback at bottom
+  const landSvgW = landW * scale;
+  const landSvgH = landD * scale;
 
-  const bldX = PAD_H + sideSetback * scX;
-  const bldY = PAD_V + backSetback * scY;
-  const bldSvgW = bldW * scX;
-  const bldSvgH = bldD * scY;
+  // Center land in available area
+  const landX = PAD + (availW - landSvgW) / 2;
+  const landY = PAD + (availH - landSvgH) / 2;
+
+  // Building position inside land (street = BOTTOM, back = TOP)
+  const bldX     = landX + sideSb * scale;
+  const bldY     = landY + backSb * scale;
+  const bldSvgW  = bldW * scale;
+  const bldSvgH  = bldH * scale;
+  const bldRight  = bldX + bldSvgW;
   const bldBottom = bldY + bldSvgH;
-  const bldRight = bldX + bldSvgW;
+  const landBottom = landY + landSvgH;
 
-  // Gate: vehicle 4m wide, centered on front wall
-  const gateW = Math.min(4 * scX, bldSvgW * 0.6);
-  const gateX = PAD_H + innerW / 2 - gateW / 2;
-  const gateY = PAD_V + innerH; // on front land wall
-  const leafW = gateW / 2;
+  // Fence thickness: 0.3m or at least 3px
+  const wallT = Math.max(3, 0.3 * scale);
 
-  // Pedestrian gate: 1.2m, left of vehicle gate
-  const pedW = 1.2 * scX;
-  const pedX = gateX - pedW - 6;
+  // Vehicle gate: 4m wide, positioned left side of front wall
+  const vGateW = Math.min(4 * scale, landSvgW * 0.4);
+  const vGateX = landX + 2 * scale;
+  const vGateCX = vGateX + vGateW / 2;
 
-  // Garage door: 3.5m centered on building front face
-  const garageW = Math.min(3.5 * scX, bldSvgW * 0.55);
+  // Pedestrian gate: 1.2m, right of vehicle gate
+  const pGateW = Math.min(1.2 * scale, landSvgW * 0.15);
+  const pGateX = vGateX + vGateW + Math.max(4, 0.5 * scale);
+
+  // Gate leaf length (swings inward toward back)
+  const leafL = Math.min(vGateW / 2, 30);
+
+  // Garage door: 3.5m centered on building south face
+  const garageW = Math.min(3.5 * scale, bldSvgW * 0.5);
+  const garageH = Math.max(10, Math.min(20, 2.2 * scale));
   const garageX = bldX + bldSvgW / 2 - garageW / 2;
-  const garageH = Math.max(12, 2.2 * scY);
 
-  // Driveway: from gate centre to garage centre
-  const driveCX = PAD_H + innerW / 2;
-  const driveW = gateW;
+  // Tree radius
+  const treeR = Math.max(5, Math.min(11, scale * 0.5));
 
-  // Tree circles helper
+  // Trees: collect positions, skip driveway corridor
   const trees: { cx: number; cy: number }[] = [];
-  const treeR = Math.max(6, Math.min(12, scX * 0.6));
-  // Front garden trees (row between building front and street)
-  const frontZoneH = (PAD_V + innerH) - bldBottom;
-  if (frontZoneH > treeR * 3) {
-    const ty = bldBottom + frontZoneH * 0.45;
-    for (let i = 0; i < 4; i++) {
-      const tx = PAD_H + (innerW / 5) * (i + 0.8);
-      // Skip if overlaps driveway
-      if (Math.abs(tx - driveCX) < driveW / 2 + treeR + 4) continue;
+  const skipL = vGateCX - vGateW / 2 - treeR - 3;
+  const skipR = vGateCX + vGateW / 2 + treeR + 3;
+
+  // Front garden trees (between bldBottom and landBottom)
+  const frontH = landBottom - bldBottom;
+  if (frontH > treeR * 3) {
+    const ty = bldBottom + frontH * 0.45;
+    for (let i = 0; i < 5; i++) {
+      const tx = landX + (landSvgW / 6) * (i + 0.8);
+      if (tx > skipL && tx < skipR) continue;
       trees.push({ cx: tx, cy: ty });
     }
   }
   // Back garden trees
-  const backZoneH = bldY - PAD_V;
-  if (backZoneH > treeR * 3) {
-    const ty = PAD_V + backZoneH * 0.5;
-    for (let i = 0; i < 3; i++) {
-      trees.push({ cx: PAD_H + (innerW / 4) * (i + 0.8), cy: ty });
+  const backH = bldY - landY;
+  if (backH > treeR * 3) {
+    const ty = landY + backH * 0.5;
+    for (let i = 0; i < 4; i++) {
+      trees.push({ cx: landX + (landSvgW / 5) * (i + 0.7), cy: ty });
     }
   }
   // Side strip trees
-  [PAD_H + sideSetback * scX * 0.5, bldRight + sideSetback * scX * 0.5].forEach(tx => {
-    trees.push({ cx: tx, cy: bldY + bldSvgH * 0.3 });
-    trees.push({ cx: tx, cy: bldY + bldSvgH * 0.7 });
-  });
+  const sidePxW = sideSb * scale;
+  if (sidePxW > treeR * 2.5) {
+    const cx1 = landX + sidePxW / 2;
+    const cx2 = bldRight + sidePxW / 2;
+    [cx1, cx2].forEach(cx => {
+      trees.push({ cx, cy: bldY + bldSvgH * 0.25 });
+      trees.push({ cx, cy: bldY + bldSvgH * 0.75 });
+    });
+  }
 
-  const labelStyle = { fontFamily: "'Cairo','Arial',sans-serif", fontSize: 9 } as const;
-
-  return (
-    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ background: "#fff", fontFamily: "'Cairo','Arial',sans-serif" }}>
-
-      {/* ── Land fill (light beige) ── */}
-      <rect x={PAD_H} y={PAD_V} width={innerW} height={innerH} fill="#faf7f0" stroke="none"/>
-
-      {/* ── Back garden ── */}
-      <rect x={PAD_H} y={PAD_V} width={innerW} height={backSetback * scY} fill="#e8f5e0"/>
-      {/* ── Front garden (between building and street) ── */}
-      <rect x={PAD_H} y={bldBottom} width={innerW} height={(PAD_V + innerH) - bldBottom} fill="#e8f5e0"/>
-      {/* ── Side gardens ── */}
-      <rect x={PAD_H} y={bldY} width={sideSetback * scX} height={bldSvgH} fill="#e8f5e0"/>
-      <rect x={bldRight} y={bldY} width={sideSetback * scX} height={bldSvgH} fill="#e8f5e0"/>
-
-      {/* ── Front setback hatch zone (light gray overlay) ── */}
-      <rect x={PAD_H} y={bldBottom} width={innerW} height={(PAD_V + innerH) - bldBottom}
-        fill="#f0f0f0" fillOpacity="0.5"/>
-
-      {/* ── Tree symbols ── */}
-      {trees.map((t, i) => (
-        <g key={i}>
-          <circle cx={t.cx} cy={t.cy} r={treeR} fill="#b8dba0" stroke="#5a9b44" strokeWidth="0.8"/>
-          <circle cx={t.cx} cy={t.cy} r={treeR * 0.4} fill="#7dc962" stroke="none"/>
-        </g>
-      ))}
-
-      {/* ── Driveway (dashed path from gate to garage) ── */}
-      <rect
-        x={driveCX - driveW / 2} y={bldBottom}
-        width={driveW} height={(PAD_V + innerH) - bldBottom}
-        fill="#e0d8c8" stroke="none"
-      />
-      <line
-        x1={driveCX} y1={bldBottom + garageH}
-        x2={driveCX} y2={PAD_V + innerH}
-        stroke="#9ca3af" strokeWidth="1.5" strokeDasharray="8,5"
-      />
-
-      {/* ── Building footprint (white fill) ── */}
-      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
-        fill="#ffffff" stroke="none"/>
-
-      {/* ── Garage door symbol on building front face ── */}
-      <rect x={garageX} y={bldBottom - garageH} width={garageW} height={garageH}
-        fill="#e5e7eb" stroke="#374151" strokeWidth="1"/>
-      {/* Horizontal lines inside garage door */}
-      {Array.from({ length: 5 }).map((_, i) => (
-        <line key={i}
-          x1={garageX + 2} y1={bldBottom - garageH + (garageH / 6) * (i + 1)}
-          x2={garageX + garageW - 2} y2={bldBottom - garageH + (garageH / 6) * (i + 1)}
-          stroke="#9ca3af" strokeWidth="0.7"
-        />
-      ))}
-      <text x={garageX + garageW / 2} y={bldBottom - garageH - 4}
-        textAnchor="middle" fill="#374151" {...labelStyle} fontSize={8}>
-        {lang === "ar" ? "موقف سيارة" : "Garage"}
-      </text>
-
-      {/* ── Building boundary (thick black) ── */}
-      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
-        fill="none" stroke="#000000" strokeWidth="3"/>
-
-      {/* ── Land boundary (outer thick line = سور الأرض) ── */}
-      <rect x={PAD_H} y={PAD_V} width={innerW} height={innerH}
-        fill="none" stroke="#000000" strokeWidth="3.5"/>
-
-      {/* ── Street label at bottom ── */}
-      <rect x={PAD_H} y={PAD_V + innerH + 2} width={innerW} height="16"
-        fill="#d1d5db" stroke="none"/>
-      <text x={PAD_H + innerW / 2} y={PAD_V + innerH + 13}
-        textAnchor="middle" fill="#374151" fontWeight="700" {...labelStyle} fontSize={10}>
-        {lang === "ar" ? "◄ الشارع ►" : "◄ STREET ►"}
-      </text>
-
-      {/* ── Vehicle gate (two leaves on front wall) ── */}
-      {/* Opening gap on land wall */}
-      <rect x={gateX} y={gateY - 4} width={gateW} height="5"
-        fill="#faf7f0" stroke="none"/>
-      {/* Left leaf (opens inward/up) */}
-      <rect x={gateX} y={gateY - leafW - 2} width="4" height={leafW}
-        fill="#6b7280" stroke="#374151" strokeWidth="0.8"/>
-      {/* Right leaf */}
-      <rect x={gateX + gateW - 4} y={gateY - leafW - 2} width="4" height={leafW}
-        fill="#6b7280" stroke="#374151" strokeWidth="0.8"/>
-      <text x={gateX + gateW / 2} y={gateY - leafW - 5}
-        textAnchor="middle" fill="#374151" fontWeight="700" {...labelStyle}>
-        {lang === "ar" ? "بوابة رئيسية" : "Main Gate"}
-      </text>
-
-      {/* ── Pedestrian gate ── */}
-      {pedX > PAD_H && (
-        <>
-          <rect x={pedX} y={gateY - 4} width={pedW} height="5"
-            fill="#faf7f0" stroke="none"/>
-          <rect x={pedX} y={gateY - pedW - 2} width="3" height={pedW}
-            fill="#9ca3af" stroke="#374151" strokeWidth="0.6"/>
-          <text x={pedX + pedW / 2} y={gateY - pedW - 5}
-            textAnchor="middle" fill="#6b7280" {...labelStyle} fontSize={7.5}>
-            {lang === "ar" ? "بوابة مشاة" : "Ped. Gate"}
-          </text>
-        </>
-      )}
-
-      {/* ── Setback labels ── */}
-      {/* Front setback label */}
-      {frontZoneH > 16 && (
-        <text x={PAD_H + 6} y={bldBottom + frontZoneH / 2 + 4}
-          fill="#6b7280" {...labelStyle}>
-          {lang === "ar" ? `ارتداد أمامي ${frontSetback}م` : `Front ${frontSetback}m`}
-        </text>
-      )}
-      {/* Back setback label */}
-      {backZoneH > 16 && (
-        <text x={PAD_H + 6} y={PAD_V + backZoneH / 2 + 4}
-          fill="#6b7280" {...labelStyle}>
-          {lang === "ar" ? `ارتداد خلفي ${backSetback}م` : `Back ${backSetback}m`}
-        </text>
-      )}
-      {/* Side setback label */}
-      {sideSetback * scX > 14 && (
-        <text
-          x={PAD_H + sideSetback * scX / 2} y={bldY + bldSvgH / 2}
-          textAnchor="middle" fill="#6b7280" {...labelStyle} fontSize={7.5}
-          transform={`rotate(-90,${PAD_H + sideSetback * scX / 2},${bldY + bldSvgH / 2})`}>
-          {lang === "ar" ? `${sideSetback}م` : `${sideSetback}m`}
-        </text>
-      )}
-
-      {/* ── Building label ── */}
-      <text x={bldX + bldSvgW / 2} y={bldY + bldSvgH / 2}
-        textAnchor="middle" dominantBaseline="middle"
-        fill="#374151" fontWeight="800" {...labelStyle} fontSize={12}>
-        {lang === "ar" ? "المبنى" : "BUILDING"}
-      </text>
-      <text x={bldX + bldSvgW / 2} y={bldY + bldSvgH / 2 + 16}
-        textAnchor="middle" dominantBaseline="middle"
-        fill="#9ca3af" fontFamily="'Share Tech Mono',monospace" fontSize={9}>
-        {`${bldW.toFixed(1)}م × ${bldD.toFixed(1)}م`}
-      </text>
-
-      {/* ── Land dimension lines ── */}
-      {/* Top: land width */}
-      <line x1={PAD_H} y1={PAD_V - 18} x2={PAD_H + innerW} y2={PAD_V - 18} stroke="#374151" strokeWidth="0.8"/>
-      <line x1={PAD_H} y1={PAD_V - 23} x2={PAD_H} y2={PAD_V - 13} stroke="#374151" strokeWidth="0.8"/>
-      <line x1={PAD_H + innerW} y1={PAD_V - 23} x2={PAD_H + innerW} y2={PAD_V - 13} stroke="#374151" strokeWidth="0.8"/>
-      <rect x={PAD_H + innerW / 2 - 24} y={PAD_V - 24} width="48" height="12" fill="#fff"/>
-      <text x={PAD_H + innerW / 2} y={PAD_V - 14} textAnchor="middle"
-        fill="#374151" fontFamily="'Share Tech Mono',monospace" fontSize={10} fontWeight="700">
-        {landW.toFixed(1)} م
-      </text>
-
-      {/* Left: land depth */}
-      <line x1={PAD_H - 18} y1={PAD_V} x2={PAD_H - 18} y2={PAD_V + innerH} stroke="#374151" strokeWidth="0.8"/>
-      <line x1={PAD_H - 23} y1={PAD_V} x2={PAD_H - 13} y2={PAD_V} stroke="#374151" strokeWidth="0.8"/>
-      <line x1={PAD_H - 23} y1={PAD_V + innerH} x2={PAD_H - 13} y2={PAD_V + innerH} stroke="#374151" strokeWidth="0.8"/>
-      <rect x={PAD_H - 33} y={PAD_V + innerH / 2 - 22} width="13" height="44" fill="#fff"/>
-      <text x={PAD_H - 26} y={PAD_V + innerH / 2} textAnchor="middle"
-        fill="#374151" fontFamily="'Share Tech Mono',monospace" fontSize={10} fontWeight="700"
-        transform={`rotate(-90,${PAD_H - 26},${PAD_V + innerH / 2})`}>
-        {landD.toFixed(1)} م
-      </text>
-
-      {/* ── North arrow ── */}
-      <g transform={`translate(${SVG_W - 32}, ${PAD_V + 22})`}>
-        <circle cx="0" cy="0" r="14" fill="none" stroke="#374151" strokeWidth="0.8"/>
-        <line x1="0" y1="10" x2="0" y2="-10" stroke="#374151" strokeWidth="1"/>
-        <polygon points="0,-13 -3,-6 3,-6" fill="#374151"/>
-        <text x="0" y="24" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600"
-          fontFamily="'Share Tech Mono',monospace">N</text>
-      </g>
-
-      {/* ── Title ── */}
-      <text x={SVG_W / 2} y={SVG_H - 8} textAnchor="middle"
-        fill="#9ca3af" fontFamily="'Share Tech Mono',monospace" fontSize={8}>
-        {lang === "ar" ? "مخطط الموقع — SITE PLAN  |  SOAR.AI" : "SITE PLAN  |  SOAR.AI"}
-      </text>
-    </svg>
-  );
-}
-
-// ─── AutoCAD Floor Plan Component ────────────────────────────────────────────
-function FloorPlan({
-  spaces, floor, lang, bldW, bldH
-}: {
-  spaces: any[]; floor: number; lang: string; bldW?: number; bldH?: number;
-}) {
-  const floorSpaces = spaces.filter(s => (s.floor ?? 0) === floor);
-  const firstS = floorSpaces[0];
-  console.log(
-    `[FloorPlan] floor=${floor} rooms=${floorSpaces.length} bldW=${bldW} bldH=${bldH}`,
-    `isMeterMode=${firstS?.width !== undefined && firstS?.w === undefined}`,
-    `SVG inner=${640-65-35}×${540-45-65}`,
-    `first room → x=${firstS?.x} y=${firstS?.y} w=${firstS?.w} h=${firstS?.h}`,
-    `  in meters: ${((firstS?.w ?? 0)/100*(bldW??10)).toFixed(2)}m × ${((firstS?.h ?? 0)/100*(bldH??20)).toFixed(2)}m`,
-  );
-  if (floorSpaces.length === 0) return null;
-
-  const SVG_W = 640;
-  const SVG_H = 540;
-  const PAD_L = 65;
-  const PAD_T = 45;
-  const PAD_R = 35;
-  const PAD_B = 65;
-
-  const innerW = SVG_W - PAD_L - PAD_R;
-  const innerH = SVG_H - PAD_T - PAD_B;
-
-  const firstSpace = floorSpaces[0];
-  const isMeterMode = firstSpace?.width !== undefined && firstSpace?.w === undefined;
-  const buildingW = bldW ?? 10;
-  const buildingH = bldH ?? 20;
-
-  // Wall thickness in SVG pixels
-  const WALL_T = 5;
-  // Half wall for inner offset
-  const HW = WALL_T / 2;
-
-  // Convert space coordinates to SVG pixels
-  function toSVG(space: any): { x: number; y: number; w: number; h: number } {
-    if (isMeterMode) {
-      const sx = innerW / buildingW;
-      const sy = innerH / buildingH;
+  // ── Room coordinate helpers ─────────────────────────────────────────────────
+  function roomToSVG(space: any) {
+    const isMeter = space.width !== undefined && space.w === undefined;
+    if (isMeter) {
+      const sx = bldSvgW / bldW;
+      const sy = bldSvgH / bldH;
       return {
-        x: PAD_L + (space.x ?? 0) * sx,
-        y: PAD_T + (space.y ?? 0) * sy,
-        w: Math.max((space.width ?? 3) * sx, 12),
-        h: Math.max((space.height ?? space.length ?? 3) * sy, 12),
+        x: bldX + (space.x ?? 0) * sx,
+        y: bldY + (space.y ?? 0) * sy,
+        w: Math.max((space.width ?? 3) * sx, 10),
+        h: Math.max((space.height ?? space.length ?? 3) * sy, 10),
       };
     }
     return {
-      x: PAD_L + ((space.x ?? 0) / 100) * innerW,
-      y: PAD_T + ((space.y ?? 0) / 100) * innerH,
-      w: Math.max(((space.w ?? 10) / 100) * innerW, 12),
-      h: Math.max(((space.h ?? 10) / 100) * innerH, 12),
+      x: bldX + ((space.x ?? 0) / 100) * bldSvgW,
+      y: bldY + ((space.y ?? 0) / 100) * bldSvgH,
+      w: Math.max(((space.w ?? 10) / 100) * bldSvgW, 10),
+      h: Math.max(((space.h ?? 10) / 100) * bldSvgH, 10),
     };
   }
 
-  function getDims(space: any): { wm: number; hm: number } {
-    if (isMeterMode) {
-      return { wm: space.width ?? 0, hm: space.height ?? space.length ?? 0 };
-    }
-    return {
-      wm: ((space.w ?? 0) / 100) * buildingW,
-      hm: ((space.h ?? 0) / 100) * buildingH,
-    };
+  function getRoomDims(space: any) {
+    if (space.width !== undefined) return { wm: space.width ?? 0, hm: space.height ?? space.length ?? 0 };
+    return { wm: ((space.w ?? 0) / 100) * bldW, hm: ((space.h ?? 0) / 100) * bldH };
   }
 
-  // ─── Door symbol (arc + door leaf) ───────────────────────────────────────
-  // Draws a door on the bottom wall of the room by default
+  // Wall thickness for room walls
+  const WALL_T = Math.max(3, Math.min(5, scale * 0.18));
+  const HW = WALL_T / 2;
+
+  // ── Sub-components ──────────────────────────────────────────────────────────
+
   function DoorSymbol({ x, y, w, h, type }: { x: number; y: number; w: number; h: number; type: string }) {
-    // Door width = 25-35px, centered on the appropriate wall
-    const dw = Math.min(w * 0.35, 35);
-    const dh = dw; // door leaf length = same as width (square arc)
-
-    // Determine which wall to place door on
-    const onBottom = ["bedroom", "master_bedroom", "bathroom", "toilet", "maid_room", "storage", "laundry"].includes(type);
-    const onLeft   = ["majlis", "family_living", "living"].includes(type);
-    const onTop    = ["balcony"].includes(type);
-    // Default: bottom wall
-
+    const dw = Math.min(w * 0.38, 32);
+    const dh = dw;
+    const onTop  = ["balcony"].includes(type);
+    const onLeft = ["majlis", "family_living", "living"].includes(type);
     if (onTop) {
-      // Door on top wall, opens upward
       const dx = x + w / 2 - dw / 2;
       const dy = y;
       return (
-        <g stroke="#1A1A1A" strokeWidth="1" fill="none">
-          {/* Clear wall opening */}
-          <rect x={dx} y={dy - HW} width={dw} height={WALL_T} fill="#FFFFFF" stroke="none"/>
-          {/* Door leaf */}
-          <line x1={dx} y1={dy} x2={dx} y2={dy - dh} stroke="#1A1A1A" strokeWidth="1"/>
-          {/* Arc */}
+        <g stroke="#1A1A1A" strokeWidth="0.9" fill="none">
+          <rect x={dx} y={dy - HW} width={dw} height={WALL_T} fill="#fff" stroke="none"/>
+          <line x1={dx} y1={dy} x2={dx} y2={dy - dh}/>
           <path d={`M ${dx} ${dy} A ${dw} ${dh} 0 0 1 ${dx + dw} ${dy}`} strokeDasharray="3,2"/>
         </g>
       );
     } else if (onLeft) {
-      // Door on left wall, opens inward (rightward)
       const dx = x;
       const dy = y + h / 2 - dw / 2;
       return (
-        <g stroke="#1A1A1A" strokeWidth="1" fill="none">
-          <rect x={dx - HW} y={dy} width={WALL_T} height={dw} fill="#FFFFFF" stroke="none"/>
-          <line x1={dx} y1={dy} x2={dx + dh} y2={dy} stroke="#1A1A1A" strokeWidth="1"/>
+        <g stroke="#1A1A1A" strokeWidth="0.9" fill="none">
+          <rect x={dx - HW} y={dy} width={WALL_T} height={dw} fill="#fff" stroke="none"/>
+          <line x1={dx} y1={dy} x2={dx + dh} y2={dy}/>
           <path d={`M ${dx} ${dy} A ${dh} ${dw} 0 0 0 ${dx} ${dy + dw}`} strokeDasharray="3,2"/>
         </g>
       );
     } else {
-      // Door on bottom wall, opens inward (upward)
       const dx = x + w / 2 - dw / 2;
       const dy = y + h;
       return (
-        <g stroke="#1A1A1A" strokeWidth="1" fill="none">
-          <rect x={dx} y={dy - HW} width={dw} height={WALL_T} fill="#FFFFFF" stroke="none"/>
-          <line x1={dx} y1={dy} x2={dx} y2={dy - dh} stroke="#1A1A1A" strokeWidth="1"/>
+        <g stroke="#1A1A1A" strokeWidth="0.9" fill="none">
+          <rect x={dx} y={dy - HW} width={dw} height={WALL_T} fill="#fff" stroke="none"/>
+          <line x1={dx} y1={dy} x2={dx} y2={dy - dh}/>
           <path d={`M ${dx} ${dy} A ${dw} ${dh} 0 0 0 ${dx + dw} ${dy}`} strokeDasharray="3,2"/>
         </g>
       );
     }
   }
 
-  // ─── Window symbol — only on exterior walls ───────────────────────────────
-  // A wall is exterior only if it coincides with the building boundary.
-  function WindowSymbol({ x, y, w, h, space }: { x: number; y: number; w: number; h: number; space: any }) {
-    // Determine which building edges this room touches (in SVG pixels)
-    const atTop    = Math.abs(y - PAD_T) < 4;
-    const atBottom = Math.abs((y + h) - (PAD_T + innerH)) < 4;
-    const atLeft   = Math.abs(x - PAD_L) < 4;
-    const atRight  = Math.abs((x + w) - (PAD_L + innerW)) < 4;
-
-    // Pick the first available exterior wall
-    const ww = Math.min(w * 0.45, 45);
-    const wh = Math.min(h * 0.4, 40);
-
+  function WindowSymbol({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+    // Exterior wall = edge aligns with building boundary
+    const atTop    = Math.abs(y - bldY) < 5;
+    const atBottom = Math.abs((y + h) - bldBottom) < 5;
+    const atLeft   = Math.abs(x - bldX) < 5;
+    const atRight  = Math.abs((x + w) - bldRight) < 5;
+    const ww = Math.min(w * 0.45, 44);
+    const wh = Math.min(h * 0.4, 38);
     if (atTop) {
       const wx = x + w / 2 - ww / 2;
-      const wy = y;
       return (
         <g>
-          <rect x={wx} y={wy - HW} width={ww} height={WALL_T} fill="#FFFFFF" stroke="none"/>
-          <line x1={wx} y1={wy - HW} x2={wx + ww} y2={wy - HW} stroke="#1A1A1A" strokeWidth="0.8"/>
-          <line x1={wx} y1={wy} x2={wx + ww} y2={wy} stroke="#6B9AC4" strokeWidth="1.2"/>
-          <line x1={wx} y1={wy + HW} x2={wx + ww} y2={wy + HW} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <rect x={wx} y={y - HW} width={ww} height={WALL_T} fill="#fff" stroke="none"/>
+          <line x1={wx} y1={y - HW} x2={wx + ww} y2={y - HW} stroke="#1A1A1A" strokeWidth="0.7"/>
+          <line x1={wx} y1={y} x2={wx + ww} y2={y} stroke="#6B9AC4" strokeWidth="1.2"/>
+          <line x1={wx} y1={y + HW} x2={wx + ww} y2={y + HW} stroke="#1A1A1A" strokeWidth="0.7"/>
         </g>
       );
     }
@@ -437,10 +228,10 @@ function FloorPlan({
       const wy = y + h;
       return (
         <g>
-          <rect x={wx} y={wy - HW} width={ww} height={WALL_T} fill="#FFFFFF" stroke="none"/>
-          <line x1={wx} y1={wy - HW} x2={wx + ww} y2={wy - HW} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <rect x={wx} y={wy - HW} width={ww} height={WALL_T} fill="#fff" stroke="none"/>
+          <line x1={wx} y1={wy - HW} x2={wx + ww} y2={wy - HW} stroke="#1A1A1A" strokeWidth="0.7"/>
           <line x1={wx} y1={wy} x2={wx + ww} y2={wy} stroke="#6B9AC4" strokeWidth="1.2"/>
-          <line x1={wx} y1={wy + HW} x2={wx + ww} y2={wy + HW} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx} y1={wy + HW} x2={wx + ww} y2={wy + HW} stroke="#1A1A1A" strokeWidth="0.7"/>
         </g>
       );
     }
@@ -449,10 +240,10 @@ function FloorPlan({
       const wx = x + w;
       return (
         <g>
-          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#FFFFFF" stroke="none"/>
-          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#fff" stroke="none"/>
+          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.7"/>
           <line x1={wx} y1={wy} x2={wx} y2={wy + wh} stroke="#6B9AC4" strokeWidth="1.2"/>
-          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.7"/>
         </g>
       );
     }
@@ -461,18 +252,16 @@ function FloorPlan({
       const wx = x;
       return (
         <g>
-          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#FFFFFF" stroke="none"/>
-          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <rect x={wx - HW} y={wy} width={WALL_T} height={wh} fill="#fff" stroke="none"/>
+          <line x1={wx - HW} y1={wy} x2={wx - HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.7"/>
           <line x1={wx} y1={wy} x2={wx} y2={wy + wh} stroke="#6B9AC4" strokeWidth="1.2"/>
-          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.8"/>
+          <line x1={wx + HW} y1={wy} x2={wx + HW} y2={wy + wh} stroke="#1A1A1A" strokeWidth="0.7"/>
         </g>
       );
     }
-    // Room has no exterior wall — skip window
     return null;
   }
 
-  // ─── Staircase symbol ─────────────────────────────────────────────────────
   function StaircaseSymbol({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
     const steps = Math.max(4, Math.floor(h / 12));
     const stepH = h / steps;
@@ -481,25 +270,18 @@ function FloorPlan({
         {Array.from({ length: steps }).map((_, i) => (
           <line key={i} x1={x + 4} y1={y + i * stepH} x2={x + w - 4} y2={y + i * stepH}/>
         ))}
-        {/* Arrow indicating direction */}
         <line x1={x + w / 2} y1={y + 4} x2={x + w / 2} y2={y + h - 4} stroke="#6B7280" strokeWidth="1"/>
         <polygon points={`${x + w / 2},${y + 4} ${x + w / 2 - 4},${y + 14} ${x + w / 2 + 4},${y + 14}`} fill="#6B7280"/>
       </g>
     );
   }
 
-  // ─── Dimension line ───────────────────────────────────────────────────────
   function DimLine({ x1, y1, x2, y2, label, axis }: {
     x1: number; y1: number; x2: number; y2: number; label: string; axis: "h" | "v";
   }) {
-    const C = "#374151";
-    const FS = 7.5;
-    const TICK = 5;
-    const ARROW = 5;
-
+    const C = "#374151"; const FS = 7.5; const TICK = 5; const ARROW = 5;
     if (axis === "h") {
-      const my = (y1 + y2) / 2;
-      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2; const mx = (x1 + x2) / 2;
       return (
         <g>
           <line x1={x1} y1={y1} x2={x1} y2={y1 + TICK} stroke={C} strokeWidth="0.7"/>
@@ -507,7 +289,7 @@ function FloorPlan({
           <line x1={x1} y1={my} x2={x2} y2={my} stroke={C} strokeWidth="0.7"/>
           <polygon points={`${x1},${my} ${x1+ARROW},${my-2} ${x1+ARROW},${my+2}`} fill={C}/>
           <polygon points={`${x2},${my} ${x2-ARROW},${my-2} ${x2-ARROW},${my+2}`} fill={C}/>
-          <rect x={mx - 16} y={my - 6} width="32" height="11" fill="#FFFFFF"/>
+          <rect x={mx - 16} y={my - 6} width="32" height="11" fill="#fff"/>
           <text x={mx} y={my + 1} textAnchor="middle" dominantBaseline="middle"
             fill={C} fontSize={FS} fontFamily="'Share Tech Mono','Courier New',monospace" fontWeight="600">
             {label}
@@ -515,8 +297,7 @@ function FloorPlan({
         </g>
       );
     } else {
-      const mx = (x1 + x2) / 2;
-      const my = (y1 + y2) / 2;
+      const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
       return (
         <g>
           <line x1={x1} y1={y1} x2={x1 + TICK} y2={y1} stroke={C} strokeWidth="0.7"/>
@@ -524,7 +305,7 @@ function FloorPlan({
           <line x1={mx} y1={y1} x2={mx} y2={y2} stroke={C} strokeWidth="0.7"/>
           <polygon points={`${mx},${y1} ${mx-2},${y1+ARROW} ${mx+2},${y1+ARROW}`} fill={C}/>
           <polygon points={`${mx},${y2} ${mx-2},${y2-ARROW} ${mx+2},${y2-ARROW}`} fill={C}/>
-          <rect x={mx - 5} y={my - 16} width="10" height="32" fill="#FFFFFF"/>
+          <rect x={mx - 5} y={my - 16} width="10" height="32" fill="#fff"/>
           <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle"
             fill={C} fontSize={FS} fontFamily="'Share Tech Mono','Courier New',monospace" fontWeight="600"
             transform={`rotate(-90,${mx},${my})`}>
@@ -547,174 +328,292 @@ function FloorPlan({
       style={{ background: "#FFFFFF", fontFamily: "'Cairo','Arial',sans-serif" }}
     >
       <defs>
-        {/* Fine grid */}
-        <pattern id={`grid-f${floor}`} width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#E5E7EB" strokeWidth="0.25"/>
+        <pattern id={`grid-u${floor}`} width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#E5E7EB" strokeWidth="0.2"/>
         </pattern>
       </defs>
 
-      {/* White background */}
-      <rect width={SVG_W} height={SVG_H} fill="#FFFFFF"/>
+      {/* ════ LAYER 1 — LAND FILL ════ */}
+      <rect x={landX} y={landY} width={landSvgW} height={landSvgH}
+        fill="#f5f2eb" stroke="none"/>
 
-      {/* Drawing area grid */}
-      <rect x={PAD_L} y={PAD_T} width={innerW} height={innerH} fill={`url(#grid-f${floor})`}/>
+      {/* ════ LAYER 2 — SETBACK GARDENS ════ */}
+      {/* Back garden (top) */}
+      <rect x={landX} y={landY} width={landSvgW} height={backSb * scale} fill="#e8f0d8"/>
+      {/* Front garden (bottom) — driveway will paint over */}
+      <rect x={landX} y={bldBottom} width={landSvgW} height={landBottom - bldBottom} fill="#e8f0d8"/>
+      {/* Left side setback */}
+      <rect x={landX} y={bldY} width={sideSb * scale} height={bldSvgH} fill="#ede8dc"/>
+      {/* Right side setback */}
+      <rect x={bldRight} y={bldY} width={sideSb * scale} height={bldSvgH} fill="#ede8dc"/>
 
-      {/* ── Render each room ── */}
+      {/* Garden labels */}
+      {(landBottom - bldBottom) > 18 && (
+        <text x={landX + 6} y={bldBottom + (landBottom - bldBottom) / 2 + 4}
+          fill="#5a7a3a" fontSize={8} fontFamily="'Cairo','Arial',sans-serif">
+          {lang === "ar" ? "حديقة أمامية" : "Front Garden"}
+        </text>
+      )}
+      {(bldY - landY) > 18 && (
+        <text x={landX + 6} y={landY + (bldY - landY) / 2 + 4}
+          fill="#5a7a3a" fontSize={8} fontFamily="'Cairo','Arial',sans-serif">
+          {lang === "ar" ? "حديقة خلفية" : "Back Garden"}
+        </text>
+      )}
+      {/* Side setback labels */}
+      {sideSb * scale > 18 && (
+        <>
+          <text x={landX + (sideSb * scale) / 2} y={bldY + bldSvgH / 2}
+            textAnchor="middle" fill="#8a7a5a" fontSize={7}
+            fontFamily="'Cairo','Arial',sans-serif"
+            transform={`rotate(-90,${landX + (sideSb * scale) / 2},${bldY + bldSvgH / 2})`}>
+            {sideSb}م
+          </text>
+          <text x={bldRight + (sideSb * scale) / 2} y={bldY + bldSvgH / 2}
+            textAnchor="middle" fill="#8a7a5a" fontSize={7}
+            fontFamily="'Cairo','Arial',sans-serif"
+            transform={`rotate(-90,${bldRight + (sideSb * scale) / 2},${bldY + bldSvgH / 2})`}>
+            {sideSb}م
+          </text>
+        </>
+      )}
+
+      {/* ── Trees ── */}
+      {trees.map((t, i) => (
+        <g key={i}>
+          <circle cx={t.cx} cy={t.cy} r={treeR} fill="#b8dba0" stroke="#4a7c3f" strokeWidth="0.8"/>
+          <circle cx={t.cx} cy={t.cy} r={treeR * 0.35} fill="#4a7c3f" stroke="none"/>
+        </g>
+      ))}
+
+      {/* ════ LAYER 3 — DRIVEWAY ════ */}
+      <rect x={vGateX} y={bldBottom} width={vGateW} height={landBottom - bldBottom}
+        fill="#d4c9a8" stroke="none"/>
+      <line x1={vGateCX} y1={bldBottom} x2={vGateCX} y2={landBottom}
+        stroke="#b0a080" strokeWidth="1.5" strokeDasharray="8,4"/>
+
+      {/* ════ LAYER 4 — FENCE (0.3m thick) ════ */}
+      {/* Back wall */}
+      <rect x={landX} y={landY} width={landSvgW} height={wallT} fill="#2d2d2d"/>
+      {/* Left wall */}
+      <rect x={landX} y={landY} width={wallT} height={landSvgH} fill="#2d2d2d"/>
+      {/* Right wall */}
+      <rect x={landX + landSvgW - wallT} y={landY} width={wallT} height={landSvgH} fill="#2d2d2d"/>
+      {/* Front wall — split around gates */}
+      <rect x={landX} y={landBottom - wallT} width={vGateX - landX} height={wallT} fill="#2d2d2d"/>
+      <rect x={vGateX + vGateW} y={landBottom - wallT}
+        width={pGateX - (vGateX + vGateW)} height={wallT} fill="#2d2d2d"/>
+      <rect x={pGateX + pGateW} y={landBottom - wallT}
+        width={(landX + landSvgW) - (pGateX + pGateW)} height={wallT} fill="#2d2d2d"/>
+
+      {/* ════ LAYER 5 — BUILDING FOOTPRINT ════ */}
+      {/* Building interior grid */}
+      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
+        fill={`url(#grid-u${floor})`}/>
+      {/* Building white fill (rooms will paint over grid) */}
+      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
+        fill="#ffffff" fillOpacity="0.7" stroke="none"/>
+
+      {/* ════ LAYER 6 — INTERIOR ROOMS ════ */}
       {floorSpaces.map((space, i) => {
-        const { x, y, w, h } = toSVG(space);
-        const { wm, hm } = getDims(space);
-        const type = space.type ?? "other";
-        const fill = type === "staircase" ? "#f0f0f0" : "#ffffff";
-        const nameAr = space.nameAr || space.name || "";
-        const nameEn = space.name || "";
-        const label = lang === "ar" ? nameAr : nameEn;
-        const area = space.area
+        const { x, y, w, h } = roomToSVG(space);
+        const { wm, hm } = getRoomDims(space);
+        const type  = space.type ?? "other";
+        const fill  = type === "staircase" ? "#f0f0f0" : "#ffffff";
+        const label = lang === "ar" ? (space.nameAr || space.name || "") : (space.name || "");
+        const area  = space.area
           ? parseFloat(space.area).toFixed(1)
           : (wm > 0 && hm > 0 ? (wm * hm).toFixed(1) : null);
         const cx = x + w / 2;
         const cy = y + h / 2;
-        const nameFontSize = w > 80 ? 11 : w > 50 ? 9 : 7;
-        const areaFontSize = w > 80 ? 8.5 : 7;
+        const nameFontSize = w > 70 ? 10 : w > 45 ? 8.5 : 7;
+        const areaFontSize = w > 70 ? 8 : 6.5;
 
         return (
           <g key={i}>
-            {/* ── Room fill ── */}
+            {/* Room fill */}
             <rect x={x} y={y} width={w} height={h} fill={fill}/>
-
-            {/* ── Thick walls (architectural double-line style) ── */}
             {/* Outer wall */}
-            <rect
-              x={x - HW} y={y - HW}
-              width={w + WALL_T} height={h + WALL_T}
-              fill="none" stroke="#1A1A1A" strokeWidth={WALL_T}
-            />
+            <rect x={x - HW} y={y - HW} width={w + WALL_T} height={h + WALL_T}
+              fill="none" stroke="#1A1A1A" strokeWidth={WALL_T}/>
             {/* Inner wall line */}
-            <rect
-              x={x + HW} y={y + HW}
-              width={w - WALL_T} height={h - WALL_T}
-              fill="none" stroke="#4B5563" strokeWidth="0.5"
-            />
-
-            {/* ── Staircase pattern ── */}
+            <rect x={x + HW} y={y + HW} width={w - WALL_T} height={h - WALL_T}
+              fill="none" stroke="#4B5563" strokeWidth="0.4"/>
+            {/* Staircase */}
             {type === "staircase" && <StaircaseSymbol x={x+2} y={y+2} w={w-4} h={h-4}/>}
-
-            {/* ── Window symbol (exterior walls only) ── */}
-            {HAS_WINDOW.has(type) && w > 30 && h > 20 && (
-              <WindowSymbol x={x} y={y} w={w} h={h} space={space}/>
+            {/* Window */}
+            {HAS_WINDOW.has(type) && w > 28 && h > 18 && (
+              <WindowSymbol x={x} y={y} w={w} h={h}/>
             )}
-
-            {/* ── Door symbol ── */}
-            {HAS_DOOR.has(type) && w > 25 && h > 25 && (
+            {/* Door */}
+            {HAS_DOOR.has(type) && w > 22 && h > 22 && (
               <DoorSymbol x={x} y={y} w={w} h={h} type={type}/>
             )}
-
-            {/* ── Room label ── */}
-            {w > 35 && h > 25 && (
+            {/* Room label */}
+            {w > 30 && h > 22 && (
               <>
-                <text
-                  x={cx} y={cy - (area ? 7 : 0)}
+                <text x={cx} y={cy - (area ? 6 : 0)}
                   textAnchor="middle" dominantBaseline="middle"
                   fill="#111827" fontSize={nameFontSize} fontWeight="700"
-                  fontFamily="'Cairo','Arial',sans-serif"
-                >
-                  {label.length > 14 ? label.substring(0, 14) + "…" : label}
+                  fontFamily="'Cairo','Arial',sans-serif">
+                  {label.length > 13 ? label.substring(0, 13) + "…" : label}
                 </text>
                 {area && (
-                  <text
-                    x={cx} y={cy + 7}
+                  <text x={cx} y={cy + 7}
                     textAnchor="middle" dominantBaseline="middle"
                     fill="#6B7280" fontSize={areaFontSize}
-                    fontFamily="'Share Tech Mono','Courier New',monospace"
-                  >
-                    {area} m²
+                    fontFamily="'Share Tech Mono','Courier New',monospace">
+                    {area} م²
                   </text>
                 )}
               </>
             )}
-
-            {/* ── Internal dimension cotes ── */}
-            {w > 60 && wm > 0 && (
-              <DimLine
-                x1={x + 6} y1={y + h - 14} x2={x + w - 6} y2={y + h - 14}
-                label={`${wm.toFixed(2)}م`} axis="h"
-              />
+            {/* Internal dim cotes */}
+            {w > 55 && wm > 0 && (
+              <DimLine x1={x+5} y1={y+h-12} x2={x+w-5} y2={y+h-12}
+                label={`${wm.toFixed(2)}م`} axis="h"/>
             )}
-            {h > 55 && hm > 0 && (
-              <DimLine
-                x1={x + w - 14} y1={y + 6} x2={x + w - 14} y2={y + h - 6}
-                label={`${hm.toFixed(2)}م`} axis="v"
-              />
+            {h > 48 && hm > 0 && (
+              <DimLine x1={x+w-12} y1={y+5} x2={x+w-12} y2={y+h-5}
+                label={`${hm.toFixed(2)}م`} axis="v"/>
             )}
           </g>
         );
       })}
 
-      {/* ── Outer building boundary (very thick) ── */}
-      <rect
-        x={PAD_L - HW} y={PAD_T - HW}
-        width={innerW + WALL_T} height={innerH + WALL_T}
-        fill="none" stroke="#000000" strokeWidth={WALL_T + 2}
-      />
+      {/* ════ LAYER 7 — GATE SYMBOLS ════ */}
+      {/* Vehicle gate leaves (two leaves, each swings inward) */}
+      <rect x={vGateX} y={landBottom - wallT - leafL} width={wallT * 1.5} height={leafL}
+        fill="#555" stroke="#333" strokeWidth="0.8"/>
+      <rect x={vGateX + vGateW - wallT * 1.5} y={landBottom - wallT - leafL} width={wallT * 1.5} height={leafL}
+        fill="#555" stroke="#333" strokeWidth="0.8"/>
+      {/* Vehicle gate swing arcs */}
+      <path
+        d={`M ${vGateX} ${landBottom - wallT} A ${leafL} ${leafL} 0 0 1 ${vGateX + leafL} ${landBottom - wallT - leafL}`}
+        fill="none" stroke="#888" strokeWidth="0.8" strokeDasharray="4,3"/>
+      <path
+        d={`M ${vGateX + vGateW} ${landBottom - wallT} A ${leafL} ${leafL} 0 0 0 ${vGateX + vGateW - leafL} ${landBottom - wallT - leafL}`}
+        fill="none" stroke="#888" strokeWidth="0.8" strokeDasharray="4,3"/>
+      {/* Vehicle gate label */}
+      <text x={vGateCX} y={landBottom - wallT - leafL - 5}
+        textAnchor="middle" fill="#374151" fontSize={8} fontWeight="700"
+        fontFamily="'Cairo','Arial',sans-serif">
+        {lang === "ar" ? "بوابة سيارات" : "Vehicle Gate"}
+      </text>
 
-      {/* ── Top dimension (building width) ── */}
-      <g>
-        <line x1={PAD_L} y1={PAD_T - 20} x2={PAD_L + innerW} y2={PAD_T - 20} stroke="#374151" strokeWidth="1"/>
-        <line x1={PAD_L} y1={PAD_T - 25} x2={PAD_L} y2={PAD_T - 15} stroke="#374151" strokeWidth="1"/>
-        <line x1={PAD_L + innerW} y1={PAD_T - 25} x2={PAD_L + innerW} y2={PAD_T - 15} stroke="#374151" strokeWidth="1"/>
-        <polygon points={`${PAD_L},${PAD_T-20} ${PAD_L+7},${PAD_T-22} ${PAD_L+7},${PAD_T-18}`} fill="#374151"/>
-        <polygon points={`${PAD_L+innerW},${PAD_T-20} ${PAD_L+innerW-7},${PAD_T-22} ${PAD_L+innerW-7},${PAD_T-18}`} fill="#374151"/>
-        <rect x={PAD_L + innerW/2 - 22} y={PAD_T - 28} width="44" height="13" fill="#FFFFFF"/>
-        <text x={PAD_L + innerW / 2} y={PAD_T - 21}
-          textAnchor="middle" fill="#374151" fontSize="10"
-          fontFamily="'Share Tech Mono',monospace" fontWeight="700">
-          {buildingW.toFixed(2)} م
+      {/* Pedestrian gate (single leaf) */}
+      <rect x={pGateX} y={landBottom - wallT - pGateW} width={wallT * 1.2} height={pGateW}
+        fill="#777" stroke="#444" strokeWidth="0.7"/>
+      <path
+        d={`M ${pGateX} ${landBottom - wallT} A ${pGateW} ${pGateW} 0 0 1 ${pGateX + pGateW} ${landBottom - wallT - pGateW}`}
+        fill="none" stroke="#888" strokeWidth="0.7" strokeDasharray="3,2"/>
+      <text x={pGateX + pGateW / 2} y={landBottom - wallT - pGateW - 4}
+        textAnchor="middle" fill="#6b7280" fontSize={7}
+        fontFamily="'Cairo','Arial',sans-serif">
+        {lang === "ar" ? "مشاة" : "Ped."}
+      </text>
+
+      {/* ════ LAYER 8 — GARAGE DOOR ════ */}
+      <rect x={garageX} y={bldBottom - garageH} width={garageW} height={garageH}
+        fill="#e5e7eb" stroke="#374151" strokeWidth="1"/>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <line key={i}
+          x1={garageX + 2} y1={bldBottom - garageH + (garageH / 6) * (i + 1)}
+          x2={garageX + garageW - 2} y2={bldBottom - garageH + (garageH / 6) * (i + 1)}
+          stroke="#9ca3af" strokeWidth="0.6"/>
+      ))}
+      <text x={garageX + garageW / 2} y={bldBottom - garageH - 4}
+        textAnchor="middle" fill="#374151" fontSize={7}
+        fontFamily="'Cairo','Arial',sans-serif">
+        {lang === "ar" ? "موقف سيارة" : "Garage"}
+      </text>
+
+      {/* ════ LAYER 9 — BUILDING BOUNDARY (poché walls) ════ */}
+      <rect x={bldX} y={bldY} width={bldSvgW} height={bldSvgH}
+        fill="none" stroke="#000000" strokeWidth={WALL_T + 1}/>
+
+      {/* ════ LAYER 10 — LAND BOUNDARY ════ */}
+      <rect x={landX} y={landY} width={landSvgW} height={landSvgH}
+        fill="none" stroke="#1a1a1a" strokeWidth="4"/>
+
+      {/* ════ ANNOTATIONS ════ */}
+      {/* Street strip */}
+      <rect x={landX} y={landBottom + 2} width={landSvgW} height={16}
+        fill="#c8c0b0" stroke="none"/>
+      <text x={landX + landSvgW / 2} y={landBottom + 14}
+        textAnchor="middle" fill="#374151" fontSize={9} fontWeight="700"
+        fontFamily="'Cairo','Arial',sans-serif">
+        {lang === "ar" ? "◄ الشارع ►" : "◄ STREET ►"}
+      </text>
+
+      {/* Land dimensions (top + left) */}
+      <line x1={landX} y1={landY - 18} x2={landX + landSvgW} y2={landY - 18} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={landX} y1={landY - 23} x2={landX} y2={landY - 13} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={landX + landSvgW} y1={landY - 23} x2={landX + landSvgW} y2={landY - 13} stroke="#374151" strokeWidth="0.8"/>
+      <rect x={landX + landSvgW / 2 - 22} y={landY - 25} width="44" height="12" fill="#fff"/>
+      <text x={landX + landSvgW / 2} y={landY - 15} textAnchor="middle"
+        fill="#374151" fontSize={9} fontWeight="700" fontFamily="'Share Tech Mono',monospace">
+        {landW.toFixed(1)} م
+      </text>
+
+      <line x1={landX - 18} y1={landY} x2={landX - 18} y2={landBottom} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={landX - 23} y1={landY} x2={landX - 13} y2={landY} stroke="#374151" strokeWidth="0.8"/>
+      <line x1={landX - 23} y1={landBottom} x2={landX - 13} y2={landBottom} stroke="#374151" strokeWidth="0.8"/>
+      <rect x={landX - 33} y={landY + landSvgH / 2 - 22} width="13" height="44" fill="#fff"/>
+      <text x={landX - 26} y={landY + landSvgH / 2} textAnchor="middle"
+        fill="#374151" fontSize={9} fontWeight="700" fontFamily="'Share Tech Mono',monospace"
+        transform={`rotate(-90,${landX - 26},${landY + landSvgH / 2})`}>
+        {landD.toFixed(1)} م
+      </text>
+
+      {/* Building dimensions */}
+      <text x={bldX + bldSvgW / 2} y={bldY - 5} textAnchor="middle"
+        fill="#374151" fontSize={8} fontFamily="'Share Tech Mono',monospace">
+        {bldW.toFixed(1)}م × {bldH.toFixed(1)}م
+      </text>
+
+      {/* Setback callout labels */}
+      {frontSb * scale > 20 && (
+        <text x={landX + landSvgW - 6} y={bldBottom + (landBottom - bldBottom) / 2 + 4}
+          textAnchor="end" fill="#6b7280" fontSize={7.5}
+          fontFamily="'Cairo','Arial',sans-serif">
+          {lang === "ar" ? `ارتداد أمامي ${frontSb}م` : `Front ${frontSb}m`}
         </text>
-      </g>
-
-      {/* ── Left dimension (building depth) ── */}
-      <g>
-        <line x1={PAD_L - 20} y1={PAD_T} x2={PAD_L - 20} y2={PAD_T + innerH} stroke="#374151" strokeWidth="1"/>
-        <line x1={PAD_L - 25} y1={PAD_T} x2={PAD_L - 15} y2={PAD_T} stroke="#374151" strokeWidth="1"/>
-        <line x1={PAD_L - 25} y1={PAD_T + innerH} x2={PAD_L - 15} y2={PAD_T + innerH} stroke="#374151" strokeWidth="1"/>
-        <polygon points={`${PAD_L-20},${PAD_T} ${PAD_L-22},${PAD_T+7} ${PAD_L-18},${PAD_T+7}`} fill="#374151"/>
-        <polygon points={`${PAD_L-20},${PAD_T+innerH} ${PAD_L-22},${PAD_T+innerH-7} ${PAD_L-18},${PAD_T+innerH-7}`} fill="#374151"/>
-        <rect x={PAD_L - 33} y={PAD_T + innerH/2 - 22} width="13" height="44" fill="#FFFFFF"/>
-        <text x={PAD_L - 27} y={PAD_T + innerH / 2}
-          textAnchor="middle" fill="#374151" fontSize="10"
-          fontFamily="'Share Tech Mono',monospace" fontWeight="700"
-          transform={`rotate(-90,${PAD_L - 27},${PAD_T + innerH / 2})`}>
-          {buildingH.toFixed(2)} م
+      )}
+      {backSb * scale > 16 && (
+        <text x={landX + landSvgW - 6} y={landY + (bldY - landY) / 2 + 4}
+          textAnchor="end" fill="#6b7280" fontSize={7.5}
+          fontFamily="'Cairo','Arial',sans-serif">
+          {lang === "ar" ? `ارتداد خلفي ${backSb}م` : `Back ${backSb}m`}
         </text>
-      </g>
+      )}
 
-      {/* ── North arrow ── */}
-      {/* ── North arrow — clean minimal architectural style ── */}
-      <g transform={`translate(${SVG_W - 38}, ${PAD_T + 20})`}>
-        <circle cx="0" cy="0" r="14" fill="none" stroke="#374151" strokeWidth="0.8"/>
-        <line x1="0" y1="10" x2="0" y2="-10" stroke="#374151" strokeWidth="1"/>
-        <polygon points="0,-13 -3,-6 3,-6" fill="#374151"/>
-        <text x="0" y="24" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600"
+      {/* North arrow */}
+      <g transform={`translate(${landX + landSvgW - 2}, ${landY + 22})`}>
+        <circle cx="0" cy="0" r="13" fill="#fff" stroke="#374151" strokeWidth="0.8"/>
+        <line x1="0" y1="9" x2="0" y2="-9" stroke="#374151" strokeWidth="1"/>
+        <polygon points="0,-12 -3,-5 3,-5" fill="#374151"/>
+        <text x="0" y="22" textAnchor="middle" fill="#374151" fontSize={8} fontWeight="600"
           fontFamily="'Share Tech Mono',monospace">N</text>
       </g>
 
-      {/* ── Title block ── */}
-      <rect x="0" y={SVG_H - 50} width={SVG_W} height="50" fill="#F9FAFB"/>
-      <line x1="0" y1={SVG_H - 50} x2={SVG_W} y2={SVG_H - 50} stroke="#1A1A1A" strokeWidth="2"/>
-      <line x1="0" y1={SVG_H - 28} x2={SVG_W} y2={SVG_H - 28} stroke="#D1D5DB" strokeWidth="0.5"/>
-
-      <text x="14" y={SVG_H - 34} fill="#111827" fontSize="13" fontWeight="800"
+      {/* Title block */}
+      <rect x="0" y={SVG_H - 46} width={SVG_W} height="46" fill="#F9FAFB"/>
+      <line x1="0" y1={SVG_H - 46} x2={SVG_W} y2={SVG_H - 46} stroke="#1A1A1A" strokeWidth="1.5"/>
+      <line x1="0" y1={SVG_H - 24} x2={SVG_W} y2={SVG_H - 24} stroke="#D1D5DB" strokeWidth="0.5"/>
+      <text x="14" y={SVG_H - 29} fill="#111827" fontSize="12" fontWeight="800"
         fontFamily="'Cairo',Arial,sans-serif">
         {floorLabel}
       </text>
-      <text x="14" y={SVG_H - 13} fill="#6B7280" fontSize="8.5"
+      <text x="14" y={SVG_H - 10} fill="#6B7280" fontSize="8"
         fontFamily="'Share Tech Mono',monospace">
-        {`${buildingW.toFixed(2)}م × ${buildingH.toFixed(2)}م  |  SCALE 1:100  |  SOAR.AI`}
+        {`${bldW.toFixed(2)}م × ${bldH.toFixed(2)}م  |  SCALE 1:100  |  SOAR.AI`}
       </text>
-      <text x={SVG_W - 14} y={SVG_H - 34} textAnchor="end" fill="#374151" fontSize="9"
+      <text x={SVG_W - 14} y={SVG_H - 29} textAnchor="end" fill="#374151" fontSize="8"
         fontFamily="'Share Tech Mono',monospace">
         {floorSpaces.length} {lang === "ar" ? "مساحة" : "spaces"}
       </text>
-      <text x={SVG_W - 14} y={SVG_H - 13} textAnchor="end" fill="#9CA3AF" fontSize="8"
+      <text x={SVG_W - 14} y={SVG_H - 10} textAnchor="end" fill="#9CA3AF" fontSize="7.5"
         fontFamily="'Share Tech Mono',monospace">
         {new Date().getFullYear()} © SOAR.AI
       </text>
@@ -800,7 +699,7 @@ export default function BlueprintView() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const titleText = lang === "ar"
-        ? (data?.titleAr || blueprint.title || "\u0645\u062e\u0637\u0637 SOAR.AI")
+        ? (data?.titleAr || blueprint.title || "مخطط SOAR.AI")
         : (blueprint.title || "SOAR.AI Blueprint");
       pdf.setFontSize(13);
       pdf.setTextColor(40, 40, 40);
@@ -862,7 +761,6 @@ export default function BlueprintView() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* PDF export - available for all subscribers */}
             <Button
               onClick={handleDownloadPDF}
               variant="outline"
@@ -870,11 +768,11 @@ export default function BlueprintView() {
               disabled={pdfLoading}
             >
               {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileDown className="w-4 h-4"/>}
-              {lang === "ar" ? "\u062a\u062d\u0645\u064a\u0644 PDF" : "Download PDF"}
+              {lang === "ar" ? "تحميل PDF" : "Download PDF"}
             </Button>
             <Button onClick={handleDownloadSVG} variant="outline" className="gap-2 shrink-0">
               <Download className="w-4 h-4"/>
-              {lang === "ar" ? "\u062a\u062d\u0645\u064a\u0644 SVG" : "Download SVG"}
+              {lang === "ar" ? "تحميل SVG" : "Download SVG"}
             </Button>
             <Button
               onClick={() => setDxfFloor(floorsArr[0] ?? 0)}
@@ -883,49 +781,22 @@ export default function BlueprintView() {
               disabled={dxfLoading}
             >
               {dxfLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4"/>}
-              {lang === "ar" ? "\u062a\u0635\u062f\u064a\u0631 DXF (AutoCAD)" : "Export DXF (AutoCAD)"}
+              {lang === "ar" ? "تصدير DXF (AutoCAD)" : "Export DXF (AutoCAD)"}
             </Button>
-            {/* Edit button - available for all paid plans including student */}
             {canEdit && (
               <Button
                 onClick={() => navigate(`/blueprints/${blueprintId}/edit`)}
                 className="gap-2 shrink-0 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <Edit3 className="w-4 h-4"/>
-                {lang === "ar" ? "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u062e\u0637\u0637" : "Edit Blueprint"}
+                {lang === "ar" ? "تعديل المخطط" : "Edit Blueprint"}
               </Button>
             )}
           </div>
         </div>
 
-        {/* Floor plans */}
+        {/* Floor plans — each floor shows full site context */}
         <div ref={svgRef} className="space-y-8">
-          {/* Site Plan — shown once above floor plans */}
-          {summary.landWidth && summary.buildingWidth && (
-            <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-              <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
-                <Ruler className="w-4 h-4 text-primary"/>
-                <span className="text-sm font-semibold text-foreground">
-                  {lang === "ar" ? "مخطط الموقع" : "Site Plan"}
-                </span>
-                <span className="text-xs text-muted-foreground font-mono ms-auto">
-                  {summary.landWidth}م × {summary.landDepth}م
-                </span>
-              </div>
-              <div className="p-4">
-                <SitePlan
-                  landW={summary.landWidth}
-                  landD={summary.landDepth}
-                  bldW={summary.buildingWidth}
-                  bldD={summary.buildingDepth}
-                  frontSetback={summary.frontSetback ?? 3}
-                  backSetback={summary.backSetback ?? 2}
-                  sideSetback={summary.sideSetback ?? 1.5}
-                  lang={lang}
-                />
-              </div>
-            </div>
-          )}
           {floorsArr.map(floor => (
             <div key={floor} className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
               <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
@@ -940,12 +811,17 @@ export default function BlueprintView() {
                 </span>
               </div>
               <div className="p-4">
-                <FloorPlan
+                <UnifiedFloorPlan
                   spaces={spaces}
                   floor={floor}
                   lang={lang}
                   bldW={summary.buildingWidth}
                   bldH={summary.buildingDepth}
+                  landW={summary.landWidth}
+                  landD={summary.landDepth}
+                  frontSetback={summary.frontSetback ?? 3}
+                  backSetback={summary.backSetback ?? 2}
+                  sideSetback={summary.sideSetback ?? 1.5}
                 />
               </div>
             </div>
@@ -959,7 +835,7 @@ export default function BlueprintView() {
               { icon: Layers, label: lang === "ar" ? "الطوابق" : "Floors", value: summary.totalFloors ?? "—" },
               { icon: Ruler, label: lang === "ar" ? "المساحة الكلية" : "Total Area", value: summary.totalArea ? `${summary.totalArea} m²` : "—" },
               { icon: Brain, label: lang === "ar" ? "عدد الغرف" : "Rooms", value: summary.totalRooms ?? "—" },
-              // estimatedCost hidden: { icon: FileText, label: "Est. Cost", value: summary.estimatedCost }
+              // estimatedCost hidden
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
