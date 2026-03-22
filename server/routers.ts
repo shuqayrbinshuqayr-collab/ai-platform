@@ -860,11 +860,37 @@ Provide the report in a structured and detailed format.`;
             project.landWidth  ?? lW + correctedSetbacks.side * 2,
             project.landLength ?? lD + correctedSetbacks.front + correctedSetbacks.back,
           );
-          const scaledRooms = scaleTemplate(
+          let scaledRooms = scaleTemplate(
             template, lW, lD,
             correctedSetbacks.side, correctedSetbacks.back,
             codeCheck.corrected.numberOfFloors + 1,
           );
+
+          // Pad sparse upper floors (< 3 rooms) with basic zone rooms
+          const numFloors = codeCheck.corrected.numberOfFloors;
+          const bedsPerFloor = Math.ceil((project.bedrooms ?? 3) / Math.max(numFloors, 1));
+          for (let f = 1; f <= numFloors; f++) {
+            const floorRooms = scaledRooms.filter(r => r.floor === f);
+            if (floorRooms.length < 3) {
+              const sX = correctedSetbacks.side, sY = correctedSetbacks.back;
+              const bedCount = Math.min(bedsPerFloor, 3);
+              const bedW = parseFloat((lW / bedCount).toFixed(2));
+              const padRooms: any[] = [
+                { type: "corridor",       nameAr: "ممر",             nameEn: "Corridor",       x: sX,           y: sY,            w: lW,          h: parseFloat((lD * 0.12).toFixed(2)), area: 0, floor: f },
+                { type: "staircase",      nameAr: "درج",             nameEn: "Staircase",      x: sX,           y: sY + lD*0.12,  w: lW*0.20,     h: parseFloat((lD * 0.35).toFixed(2)), area: 0, floor: f },
+                { type: "master_bedroom", nameAr: "غرفة نوم ماستر", nameEn: "Master Bedroom", x: sX + lW*0.20, y: sY + lD*0.12,  w: lW*0.40,     h: parseFloat((lD * 0.35).toFixed(2)), area: 0, floor: f },
+                { type: "bathroom",       nameAr: "حمام",            nameEn: "Bathroom",       x: sX + lW*0.60, y: sY + lD*0.12,  w: lW*0.40,     h: parseFloat((lD * 0.35).toFixed(2)), area: 0, floor: f },
+                ...Array.from({ length: bedCount }, (_, b) => ({
+                  type: "bedroom", nameAr: `غرفة نوم ${b+1}`, nameEn: `Bedroom ${b+1}`,
+                  x: sX + b * bedW, y: sY + lD * 0.47, w: bedW, h: parseFloat((lD * 0.53).toFixed(2)), area: 0, floor: f,
+                })),
+              ];
+              // Remove area=0 placeholder, compute real areas
+              padRooms.forEach(r => { r.area = parseFloat((r.w * r.h).toFixed(1)); });
+              scaledRooms = [...scaledRooms.filter(r => r.floor !== f), ...padRooms];
+            }
+          }
+
           const bAreaT  = parseFloat((lW * lD).toFixed(1));
           const totalAreaT = parseFloat((bAreaT * (codeCheck.corrected.numberOfFloors + 1)).toFixed(1));
           const zoneLayout = {

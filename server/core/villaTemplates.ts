@@ -127,16 +127,43 @@ export function scaleTemplate(
   sY: number = 0,
   maxFloors: number = 3,
 ): RoomTemplate[] {
-  const sx = template.buildingWidth  > 0 ? targetBW / template.buildingWidth  : 1;
-  const sy = template.buildingDepth > 0 ? targetBD / template.buildingDepth : 1;
-  return template.rooms
-    .filter(r => r.floor < maxFloors)
-    .map(r => ({
-      ...r,
-      x:    parseFloat((r.x * sx + sX).toFixed(2)),
-      y:    parseFloat((r.y * sy + sY).toFixed(2)),
-      w:    parseFloat((r.w * sx).toFixed(2)),
-      h:    parseFloat((r.h * sy).toFixed(2)),
-      area: parseFloat((r.w * sx * r.h * sy).toFixed(1)),
-    }));
+  const eligible = template.rooms.filter(r => r.floor < maxFloors);
+  if (!eligible.length) return [];
+
+  // Normalize per-floor: each floor's rooms are shifted so their bounding box
+  // starts at (0,0), then scaled to fill the target building footprint exactly.
+  // This removes the "front setback gap" baked into the DXF coordinates.
+  const floors = Array.from(new Set(eligible.map(r => r.floor))).sort((a, b) => a - b);
+  const result: RoomTemplate[] = [];
+
+  for (const f of floors) {
+    const fRooms = eligible.filter(r => r.floor === f);
+
+    // Bounding box of this floor's rooms
+    const minX = Math.min(...fRooms.map(r => r.x));
+    const minY = Math.min(...fRooms.map(r => r.y));
+    const maxX = Math.max(...fRooms.map(r => r.x + r.w));
+    const maxY = Math.max(...fRooms.map(r => r.y + r.h));
+    const normW = maxX - minX || 1;
+    const normH = maxY - minY || 1;
+
+    const sx = targetBW / normW;
+    const sy = targetBD / normH;
+
+    // Remove rooms whose bbox area is > 60% of floor area (parking carport overlay)
+    const floorArea = normW * normH;
+    const filtered = fRooms.filter(r => (r.w * r.h) / floorArea < 0.6);
+
+    for (const r of filtered) {
+      result.push({
+        ...r,
+        x:    parseFloat(((r.x - minX) * sx + sX).toFixed(2)),
+        y:    parseFloat(((r.y - minY) * sy + sY).toFixed(2)),
+        w:    parseFloat((r.w * sx).toFixed(2)),
+        h:    parseFloat((r.h * sy).toFixed(2)),
+        area: parseFloat((r.w * sx * r.h * sy).toFixed(1)),
+      });
+    }
+  }
+  return result;
 }
