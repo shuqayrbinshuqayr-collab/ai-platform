@@ -482,7 +482,6 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   if (!firstFloor) return "";
   const rooms = firstFloor.rooms as any[];
 
-  // Extra width for outside-building rooms (parking to the right)
   const extRoomW = rooms
     .filter(r => r._outsideBuilding)
     .reduce((s, r) => Math.max(s, (r.x - bw + r.width) * SCALE + MARGIN * 0.5), 0);
@@ -490,70 +489,45 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   const svgW = Math.ceil(bw * SCALE) + MARGIN * 2 + Math.ceil(extRoomW);
   const svgH = Math.ceil(bd * SCALE) + MARGIN * 2 + TITLE_H + FOOTER_H;
 
-  const ox = MARGIN;           // origin X (left edge of building)
-  const oy = MARGIN + TITLE_H; // origin Y (top edge of building)
-  const WT = WALL_THICKNESS * SCALE; // wall thickness in px
+  const ox = MARGIN;
+  const oy = MARGIN + TITLE_H;
 
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" style="background:white">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" style="background:white;font-family:Arial,sans-serif">`;
 
-  // ── Defs ──────────────────────────────────────────────────────────────────
-  svg += `<defs>`;
-  svg += `<marker id="dim_arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">`;
-  svg += `<polygon points="0,0 6,3 0,6" fill="#000000"/>`;
-  svg += `</marker>`;
-  svg += `</defs>`;
-
-  // ── White background ──────────────────────────────────────────────────────
+  // White background
   svg += `<rect width="${svgW}" height="${svgH}" fill="white"/>`;
 
-  // ── Title block — CAD-style B&W header ───────────────────────────────────
-  svg += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="white"/>`;
-  svg += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="none" stroke="#000000" stroke-width="1"/>`;
-  svg += `<line x1="0" y1="${TITLE_H}" x2="${svgW}" y2="${TITLE_H}" stroke="#000000" stroke-width="2"/>`;
-  // Left: project name
-  svg += `<text x="16" y="26" fill="#000000" font-size="18" font-weight="900" font-family="Arial, sans-serif">SOAR.AI</text>`;
-  svg += `<text x="16" y="44" fill="#000000" font-size="9" font-family="Arial, sans-serif">منصة المخططات المعمارية الذكية</text>`;
-  svg += `<line x1="120" y1="8" x2="120" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
-  // Center: title
-  const conceptNames = [
-    "المفهوم العصري المفتوح", "المفهوم التراثي السعودي", "المفهوم الوظيفي الذكي",
-    "المفهوم الفاخر الموسّع", "المفهوم المتوسطي", "المفهوم الاقتصادي الأمثل"
-  ];
-  svg += `<text x="${svgW/2}" y="26" text-anchor="middle" fill="#000000" font-size="13" font-weight="bold" font-family="Arial, sans-serif">${conceptNames[conceptIndex] ?? `المفهوم ${conceptIndex+1}`}</text>`;
-  svg += `<text x="${svgW/2}" y="44" text-anchor="middle" fill="#000000" font-size="9" font-family="Arial, sans-serif">مخطط الدور الأرضي — Ground Floor Plan</text>`;
-  svg += `<line x1="${svgW-160}" y1="8" x2="${svgW-160}" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
-  // Right: info grid
-  svg += `<text x="${svgW-12}" y="20" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مقياس 1:100</text>`;
-  svg += `<text x="${svgW-12}" y="32" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مساحة الأرض: ${layout.landArea} م²</text>`;
-  svg += `<text x="${svgW-12}" y="44" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مساحة البناء: ${layout.buildingArea} م²</text>`;
-  svg += `<text x="${svgW-12}" y="56" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">${layout.summary.totalFloors} دور — ${layout.summary.bedrooms} غرف نوم</text>`;
+  // ─── Layer accumulators (rendered bottom-to-top) ──────────────────────────
+  let gBoundary  = '';
+  let gHatch     = '';
+  let gWalls     = '';
+  let gOpenings  = '';
+  let gStairs    = '';
+  let gDimensions = '';
+  let gLabels    = '';
+  let gSymbols   = '';
+  let gTitleBlock = '';
 
-  // ── Land boundary (dashed) ────────────────────────────────────────────────
+  // ── layer-boundary: property line + setback labels ────────────────────────
   const sb = layout.setbacks;
   const landW = bw + sb.side * 2;
   const landD = bd + sb.front + sb.back;
   const lx = ox - sb.side * SCALE;
   const ly = oy - sb.front * SCALE;
-  svg += `<rect x="${lx}" y="${ly}" width="${landW*SCALE}" height="${landD*SCALE}" fill="none" stroke="#888888" stroke-width="0.8" stroke-dasharray="10,5"/>`;
-  svg += `<text x="${lx+4}" y="${ly-5}" fill="#555555" font-size="8" font-family="Arial">حدود الأرض</text>`;
+  gBoundary += `<rect x="${lx}" y="${ly}" width="${landW*SCALE}" height="${landD*SCALE}" fill="none" stroke="#555555" stroke-width="0.5" stroke-dasharray="8,4"/>`;
+  gBoundary += `<text x="${lx+4}" y="${ly-6}" fill="#555555" font-size="7">حدود الأرض</text>`;
+  gBoundary += `<text x="${ox+bw*SCALE/2}" y="${ly+sb.front*SCALE/2+4}" text-anchor="middle" fill="#777777" font-size="7">إرتداد أمامي ${sb.front}م</text>`;
+  gBoundary += `<text x="${ox+bw*SCALE/2}" y="${oy+bd*SCALE+sb.back*SCALE/2+4}" text-anchor="middle" fill="#777777" font-size="7">إرتداد خلفي ${sb.back}م</text>`;
 
-  // Setback labels
-  svg += `<text x="${ox + bw*SCALE/2}" y="${ly + sb.front*SCALE/2 + 4}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">إرتداد أمامي ${sb.front}م</text>`;
-  svg += `<text x="${ox + bw*SCALE/2}" y="${oy + bd*SCALE + sb.back*SCALE/2 + 4}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">إرتداد خلفي ${sb.back}م</text>`;
+  // ── Room rendering helpers ─────────────────────────────────────────────────
+  const WI = 6; // wall inset px for door/window positioning
+  const WIN_MIN = Math.round(1.2 * SCALE);
 
-  // ── Building outer walls: exterior wall 12px, white fill ────────────────
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="#ffffff" stroke="#000000" stroke-width="12"/>`;
-
-  // ── Room rendering: double-rect walls + doors + windows + stairs ──────────
-  const WI = 6;             // interior wall inset px (6px ≈ 0.14m)
-  const WIN_MIN = Math.round(1.2 * SCALE);   // 120cm min window
-
-  // Door width per room type (STEP 2)
   const doorWidthForType = (t: string): number => {
     if (t.includes("majlis") || t.includes("entrance") || t.includes("foyer") || t.includes("living")) return Math.round(1.2 * SCALE);
     if (t.includes("bathroom") || t.includes("bath")) return Math.round(0.8 * SCALE);
     if (t.includes("wc") || t.includes("toilet")) return Math.round(0.7 * SCALE);
-    return Math.round(0.9 * SCALE); // bedroom default
+    return Math.round(0.9 * SCALE);
   };
 
   rooms.forEach(room => {
@@ -561,16 +535,17 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const ry = oy + room.y * SCALE;
     const rw = room.width  * SCALE;
     const rh = room.height * SCALE;
-    const fill = ROOM_FILL[room.type] ?? "#F8FAFC";
+    const fill = ROOM_FILL[room.type] ?? "#f5f5f5";
 
-    // ── Outside-building rooms (parking) — dashed grey box ─────────────────
+    // ── Outside-building rooms (parking) ─────────────────────────────────
     if (room._outsideBuilding) {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#f0f0f0" stroke="#000000" stroke-width="1" stroke-dasharray="6,3"/>`;
-      const parkFontSize = Math.min(Math.min(rw, rh) * 0.3, 28);
-      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+parkFontSize*0.35}" text-anchor="middle" fill="#000000" font-size="${parkFontSize}" font-weight="900" font-family="Arial" opacity="0.12">P</text>`;
-      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+8}" text-anchor="middle" fill="#000000" font-size="8" font-family="Arial">${room.nameAr ?? "موقف"}</text>`;
-      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+18}" text-anchor="middle" fill="#444444" font-size="7" font-family="Arial">${(room.width??0).toFixed(1)}×${(room.height??0).toFixed(1)} م</text>`;
-      svg += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#555555" stroke-width="0.8" stroke-dasharray="4,3"/>`;
+      gHatch += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#f0f0f0"/>`;
+      gWalls += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="6,3"/>`;
+      const pfs = Math.min(Math.min(rw, rh) * 0.3, 28);
+      gLabels += `<text x="${rx+rw/2}" y="${ry+rh/2+pfs*0.35}" text-anchor="middle" fill="#000000" font-size="${pfs}" font-weight="900" opacity="0.10">P</text>`;
+      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+8}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600">${room.nameAr ?? "موقف"}</text>`;
+      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+20}" text-anchor="middle" fill="#333333" font-size="8">${(room.width??0).toFixed(2)}×${(room.height??0).toFixed(2)}</text>`;
+      gWalls += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#555555" stroke-width="0.5" stroke-dasharray="4,3"/>`;
       return;
     }
 
@@ -579,41 +554,94 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const onRight  = room.x + room.width  > bw - 0.3;
     const onBottom = room.y + room.height > bd - 0.3;
     const isExterior = onTop || onLeft || onRight || onBottom;
-    const wallFill = "#000000"; // CAD: all walls black
-    const wallSW   = isExterior ? 2 : 1;
 
-    // ── LAYER 1: Outer rect (wall fill) + Inner rect (room fill) ───────────
-    svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${wallFill}" stroke="${wallFill}" stroke-width="${wallSW}"/>`;
-    if (rw > WI * 2 + 4 && rh > WI * 2 + 4) {
-      svg += `<rect x="${rx+WI}" y="${ry+WI}" width="${rw-WI*2}" height="${rh-WI*2}" fill="${fill}"/>`;
+    // layer-hatch: room fill (light gray, no stroke)
+    if (rw > WI * 2 + 2 && rh > WI * 2 + 2) {
+      gHatch += `<rect x="${rx+WI}" y="${ry+WI}" width="${rw-WI*2}" height="${rh-WI*2}" fill="${fill}"/>`;
     }
 
-    // ── LAYER 2: Staircase steps (25cm per step) + up arrow ────────────────
-    if (room.type === "staircase") {
-      const stepPx   = Math.round(0.25 * SCALE);
-      const stepsN   = Math.max(3, Math.floor((rh - WI * 2) / stepPx));
-      const ix = rx + WI + 1, iw = rw - WI * 2 - 2;
-      for (let s = 1; s <= stepsN; s++) {
-        const sy = ry + WI + s * stepPx;
-        if (sy < ry + rh - WI) {
-          svg += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#000000" stroke-width="0.8"/>`;
-        }
-      }
-      // Break line (zigzag) at mid height
-      const midy = ry + rh / 2;
-      svg += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#000000" stroke-width="1.5"/>`;
-      // Up arrow
-      const ax = rx + rw / 2;
-      svg += `<line x1="${ax}" y1="${ry+rh*0.78}" x2="${ax}" y2="${ry+rh*0.18}" stroke="#000000" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
-      svg += `<text x="${ax}" y="${ry+rh*0.9+4}" text-anchor="middle" fill="#000000" font-size="8" font-family="Arial">صعود ${stepsN} درجة</text>`;
-    }
+    // layer-walls: wall boundaries
+    // Interior wall: stroke 2.5; exterior rooms get outer face reinforced by building border
+    const wallSW = isExterior ? 2.5 : 2.0;
+    gWalls += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#000000" stroke-width="${wallSW}"/>`;
 
-    // ── LAYER 2b: Parking watermark ─────────────────────────────────────────
+    // Parking watermark
     if (room.type === "parking" || room.type === "garage") {
-      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#000000" font-size="${Math.min(rw,rh)*0.35}" font-weight="900" font-family="Arial" opacity="0.12">P</text>`;
+      gHatch += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#000000" font-size="${Math.min(rw,rh)*0.32}" font-weight="900" opacity="0.08">P</text>`;
     }
 
-    // ── LAYER 3: Windows — only on exterior walls, 3 parallel lines ────────
+    // layer-openings: doors
+    const isGarage = (room.type ?? "").includes("parking") || (room.type ?? "").includes("garage");
+    const isWC = room.type === "wc" || room.type === "toilet";
+
+    if (!isGarage && rw > WI * 2 + 12 && rh > WI * 2 + 12) {
+      const t = (room.type ?? "").toLowerCase();
+      const doorLen = doorWidthForType(t);
+      const isBigDoor = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("entrance");
+      const wall = room.doorWall ?? (onBottom ? "south" : onLeft ? "west" : "east");
+
+      const drawDoor = (dwLen: number, offsetFactor: number) => {
+        switch (wall) {
+          case "north": {
+            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
+            // Gap: cover wall stroke with room fill
+            gOpenings += `<rect x="${dx}" y="${ry-2}" width="${dwLen}" height="${WI+4}" fill="${fill}"/>`;
+            if (isWC) {
+              gOpenings += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              gOpenings += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+            } else {
+              gOpenings += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8"/>`;
+              gOpenings += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+            }
+            break;
+          }
+          case "south": {
+            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
+            gOpenings += `<rect x="${dx}" y="${ry+rh-WI-2}" width="${dwLen}" height="${WI+4}" fill="${fill}"/>`;
+            if (isWC) {
+              gOpenings += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              gOpenings += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+            } else {
+              gOpenings += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8"/>`;
+              gOpenings += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+            }
+            break;
+          }
+          case "east": {
+            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
+            gOpenings += `<rect x="${rx+rw-WI-2}" y="${dy}" width="${WI+4}" height="${dwLen}" fill="${fill}"/>`;
+            if (isWC) {
+              gOpenings += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              gOpenings += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+            } else {
+              gOpenings += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
+              gOpenings += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+            }
+            break;
+          }
+          default: { // west
+            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
+            gOpenings += `<rect x="${rx-2}" y="${dy}" width="${WI+4}" height="${dwLen}" fill="${fill}"/>`;
+            if (isWC) {
+              gOpenings += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              gOpenings += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+            } else {
+              gOpenings += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
+              gOpenings += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+            }
+          }
+        }
+      };
+
+      if (isBigDoor) {
+        drawDoor(Math.round(doorLen * 0.5), 0.2);
+        drawDoor(Math.round(doorLen * 0.5), 0.5);
+      } else {
+        drawDoor(doorLen, 0.25);
+      }
+    }
+
+    // layer-openings: windows
     const noWindow = ["corridor", "storage", "wc", "toilet", "parking", "garage", "distributor"].includes(room.type ?? "");
     if (isExterior && !noWindow) {
       const isMajlis = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("living");
@@ -622,15 +650,15 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
 
       const drawWin = (wx: number, wy: number, horiz: boolean) => {
         if (horiz) {
-          svg += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${WI}" fill="white"/>`;
-          svg += `<line x1="${wx}" y1="${wy}"         x2="${wx+winPx}" y2="${wy}"         stroke="#000000" stroke-width="0.8"/>`;
-          svg += `<line x1="${wx}" y1="${wy+WI/2}"    x2="${wx+winPx}" y2="${wy+WI/2}"    stroke="#000000" stroke-width="0.8"/>`;
-          svg += `<line x1="${wx}" y1="${wy+WI}"       x2="${wx+winPx}" y2="${wy+WI}"       stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${WI}" fill="white"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy}"      x2="${wx+winPx}" y2="${wy}"      stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy+WI/2}" x2="${wx+winPx}" y2="${wy+WI/2}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy+WI}"   x2="${wx+winPx}" y2="${wy+WI}"   stroke="#000000" stroke-width="0.8"/>`;
         } else {
-          svg += `<rect x="${wx}" y="${wy}" width="${WI}" height="${winPx}" fill="white"/>`;
-          svg += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
-          svg += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
-          svg += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<rect x="${wx}" y="${wy}" width="${WI}" height="${winPx}" fill="white"/>`;
+          gOpenings += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
         }
       };
 
@@ -646,132 +674,115 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       }
     }
 
-    // ── LAYER 4: Doors — gap + leaf + quarter-arc swing ────────────────────
-    // Garage = no door; WC = pocket door (dashed lines in wall gap)
-    const isGarage = (room.type ?? "").includes("parking") || (room.type ?? "").includes("garage");
-    const isWC = room.type === "wc" || room.type === "toilet";
-
-    if (!isGarage && rw > WI * 2 + 12 && rh > WI * 2 + 12) {
-      const t = (room.type ?? "").toLowerCase();
-      const doorLen = doorWidthForType(t);
-      const isBigDoor = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("entrance");
-      const wall = room.doorWall ?? (onTop ? "north" : onBottom ? "south" : onLeft ? "west" : "east");
-
-      const drawDoor = (dwLen: number, offsetFactor: number) => {
-        switch (wall) {
-          case "north": {
-            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
-            svg += `<rect x="${dx}" y="${ry}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
-            if (isWC) {
-              svg += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8"/>`;
-              svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
-          }
-          case "south": {
-            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
-            svg += `<rect x="${dx}" y="${ry+rh-WI}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
-            if (isWC) {
-              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8"/>`;
-              svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
-          }
-          case "east": {
-            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
-            svg += `<rect x="${rx+rw-WI}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
-            if (isWC) {
-              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
-              svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
-          }
-          default: { // west
-            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
-            svg += `<rect x="${rx}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
-            if (isWC) {
-              svg += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
-              svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-          }
+    // layer-stairs: staircase steps
+    if (room.type === "staircase") {
+      const stepPx = Math.round(0.25 * SCALE);
+      const stepsN = Math.max(3, Math.floor((rh - WI * 2) / stepPx));
+      const ix = rx + WI + 1, iw = rw - WI * 2 - 2;
+      for (let s = 1; s <= stepsN; s++) {
+        const sy = ry + WI + s * stepPx;
+        if (sy < ry + rh - WI) {
+          gStairs += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#333333" stroke-width="0.7"/>`;
         }
-      };
-
-      if (isBigDoor) {
-        // Double door: two leaves side by side
-        drawDoor(Math.round(doorLen * 0.5), 0.2);
-        drawDoor(Math.round(doorLen * 0.5), 0.5);
-      } else {
-        drawDoor(doorLen, 0.25);
       }
+      const midy = ry + rh / 2;
+      gStairs += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#333333" stroke-width="1.2"/>`;
+      const ax = rx + rw / 2;
+      gStairs += `<line x1="${ax}" y1="${ry+rh*0.75}" x2="${ax}" y2="${ry+rh*0.22}" stroke="#000000" stroke-width="1"/>`;
+      gStairs += `<polygon points="${ax},${ry+rh*0.18} ${ax-3},${ry+rh*0.26} ${ax+3},${ry+rh*0.26}" fill="#000000"/>`;
+      gStairs += `<text x="${ax}" y="${ry+rh*0.88}" text-anchor="middle" fill="#000000" font-size="7">صعود ${stepsN} درجة</text>`;
     }
 
-    // ── LAYER 5: Adaptive room labels — CAD B&W, all black ───────────────
+    // layer-labels: room text
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
-    const minPx = Math.min(rw, rh);
+    const innerMin = Math.min(rw - WI * 2, rh - WI * 2);
 
-    if (minPx >= 60) {
-      // Full: name 10px bold + area 8px + dims 8px
-      svg += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="#000000" font-size="10" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      svg += `<text x="${cx}" y="${cy + 3}"  text-anchor="middle" fill="#000000" font-size="8"  font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
-      svg += `<text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#444444" font-size="8"  font-weight="300" font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
-    } else if (minPx >= 40) {
-      // Medium: name 9px + area 7px
-      svg += `<text x="${cx}" y="${cy - 3}" text-anchor="middle" fill="#000000" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      svg += `<text x="${cx}" y="${cy + 9}" text-anchor="middle" fill="#000000" font-size="7" font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
-    } else if (minPx >= 25) {
-      // Small: name 7px only
-      svg += `<text x="${cx}" y="${cy + 3}" text-anchor="middle" fill="#000000" font-size="7" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+    if (innerMin >= 60) {
+      gLabels += `<text x="${cx}" y="${cy - 5}" text-anchor="middle" fill="#000000" font-size="10" font-weight="600">${room.nameAr}</text>`;
+      gLabels += `<text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="#333333" font-size="8">${(room.area ?? 0).toFixed(1)} م²</text>`;
+      gLabels += `<text x="${cx}" y="${cy + 19}" text-anchor="middle" fill="#555555" font-size="7">${(room.width ?? 0).toFixed(2)}×${(room.height ?? 0).toFixed(2)}</text>`;
+    } else if (innerMin >= 40) {
+      gLabels += `<text x="${cx}" y="${cy}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600">${room.nameAr}</text>`;
+      gLabels += `<text x="${cx}" y="${cy + 11}" text-anchor="middle" fill="#333333" font-size="7">${(room.area ?? 0).toFixed(1)} م²</text>`;
+    } else if (innerMin >= 25) {
+      gLabels += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#000000" font-size="7" font-weight="600">${room.nameAr}</text>`;
     }
-    // < 25px: hide all text
   });
 
-  // ── Outer building border — exterior wall 12px redraw on top ──────────────
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#000000" stroke-width="12"/>`;
+  // Building exterior border — 4px, drawn on top of all room walls
+  gWalls += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#000000" stroke-width="4"/>`;
 
-  // ── Dimension lines — tick marks, all black ───────────────────────────────
-  const dimOffset = 28;
+  // ── layer-dimensions ──────────────────────────────────────────────────────
+  // Column widths for room-by-room string
+  const cw0 = parseFloat((bw * 0.28).toFixed(2));
+  const cw1 = parseFloat((bw * 0.42).toFixed(2));
+  const cw2 = parseFloat((bw - cw0 - cw1).toFixed(2));
 
-  // Width dimension (bottom) — tick marks
-  const dimBotY = oy + bd*SCALE + dimOffset;
-  svg += `<line x1="${ox}" y1="${dimBotY}" x2="${ox+bw*SCALE}" y2="${dimBotY}" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<line x1="${ox}" y1="${dimBotY-5}" x2="${ox}" y2="${dimBotY+5}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<line x1="${ox+bw*SCALE}" y1="${dimBotY-5}" x2="${ox+bw*SCALE}" y2="${dimBotY+5}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<text x="${ox+bw*SCALE/2}" y="${dimBotY+14}" text-anchor="middle" fill="#000000" font-size="10" font-weight="bold" font-family="Arial">${bw.toFixed(2)} م</text>`;
+  // Room-by-room string (inner, offset 22px)
+  const dimInnerY = oy + bd*SCALE + 22;
+  gDimensions += `<line x1="${ox}" y1="${dimInnerY}" x2="${ox+bw*SCALE}" y2="${dimInnerY}" stroke="#000000" stroke-width="0.4"/>`;
+  let colPx = 0;
+  [cw0, cw1, cw2].forEach((cw) => {
+    const px1 = ox + colPx * SCALE;
+    const px2 = ox + (colPx + cw) * SCALE;
+    // Extension lines
+    gDimensions += `<line x1="${px1}" y1="${oy+bd*SCALE+3}" x2="${px1}" y2="${dimInnerY+4}" stroke="#000000" stroke-width="0.3"/>`;
+    gDimensions += `<line x1="${px2}" y1="${oy+bd*SCALE+3}" x2="${px2}" y2="${dimInnerY+4}" stroke="#000000" stroke-width="0.3"/>`;
+    // Tick marks
+    gDimensions += `<line x1="${px1}" y1="${dimInnerY-3}" x2="${px1}" y2="${dimInnerY+3}" stroke="#000000" stroke-width="0.8"/>`;
+    gDimensions += `<line x1="${px2}" y1="${dimInnerY-3}" x2="${px2}" y2="${dimInnerY+3}" stroke="#000000" stroke-width="0.8"/>`;
+    // Text above line
+    gDimensions += `<text x="${(px1+px2)/2}" y="${dimInnerY-4}" text-anchor="middle" fill="#000000" font-size="8">${cw.toFixed(2)}</text>`;
+    colPx += cw;
+  });
 
-  // Depth dimension (right) — tick marks
-  const dimRightX = ox + bw*SCALE + dimOffset;
-  svg += `<line x1="${dimRightX}" y1="${oy}" x2="${dimRightX}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<line x1="${dimRightX-5}" y1="${oy}" x2="${dimRightX+5}" y2="${oy}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<line x1="${dimRightX-5}" y1="${oy+bd*SCALE}" x2="${dimRightX+5}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<text x="${dimRightX+16}" y="${oy+bd*SCALE/2+4}" text-anchor="middle" fill="#000000" font-size="10" font-weight="bold" font-family="Arial" transform="rotate(90,${dimRightX+16},${oy+bd*SCALE/2+4})">${bd.toFixed(2)} م</text>`;
+  // Overall width string (outer, offset 42px)
+  const dimOuterY = oy + bd*SCALE + 44;
+  gDimensions += `<line x1="${ox}" y1="${dimOuterY}" x2="${ox+bw*SCALE}" y2="${dimOuterY}" stroke="#000000" stroke-width="0.4"/>`;
+  // Extension lines from wall to outer string
+  gDimensions += `<line x1="${ox}" y1="${oy+bd*SCALE+3}" x2="${ox}" y2="${dimOuterY+4}" stroke="#000000" stroke-width="0.3"/>`;
+  gDimensions += `<line x1="${ox+bw*SCALE}" y1="${oy+bd*SCALE+3}" x2="${ox+bw*SCALE}" y2="${dimOuterY+4}" stroke="#000000" stroke-width="0.3"/>`;
+  // Tick marks
+  gDimensions += `<line x1="${ox}" y1="${dimOuterY-4}" x2="${ox}" y2="${dimOuterY+4}" stroke="#000000" stroke-width="1.0"/>`;
+  gDimensions += `<line x1="${ox+bw*SCALE}" y1="${dimOuterY-4}" x2="${ox+bw*SCALE}" y2="${dimOuterY+4}" stroke="#000000" stroke-width="1.0"/>`;
+  gDimensions += `<text x="${ox+bw*SCALE/2}" y="${dimOuterY-4}" text-anchor="middle" fill="#000000" font-size="9" font-weight="bold">${bw.toFixed(2)}</text>`;
 
-  // Column division ticks (top)
-  const leftW   = parseFloat((bw * 0.28).toFixed(2));
-  const centerW = parseFloat((bw * 0.42).toFixed(2));
-  const rightW  = parseFloat((bw - leftW - centerW).toFixed(2));
-  const dimTopY = oy - 18;
-  svg += `<line x1="${ox}" y1="${dimTopY}" x2="${ox+bw*SCALE}" y2="${dimTopY}" stroke="#555555" stroke-width="0.6"/>`;
-  [leftW, leftW+centerW].forEach(xm => {
+  // Overall depth (right side, offset 42px)
+  const dimRightX = ox + bw*SCALE + 44;
+  gDimensions += `<line x1="${dimRightX}" y1="${oy}" x2="${dimRightX}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="0.4"/>`;
+  gDimensions += `<line x1="${ox+bw*SCALE+3}" y1="${oy}" x2="${dimRightX+4}" y2="${oy}" stroke="#000000" stroke-width="0.3"/>`;
+  gDimensions += `<line x1="${ox+bw*SCALE+3}" y1="${oy+bd*SCALE}" x2="${dimRightX+4}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="0.3"/>`;
+  gDimensions += `<line x1="${dimRightX-4}" y1="${oy}" x2="${dimRightX+4}" y2="${oy}" stroke="#000000" stroke-width="1.0"/>`;
+  gDimensions += `<line x1="${dimRightX-4}" y1="${oy+bd*SCALE}" x2="${dimRightX+4}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="1.0"/>`;
+  gDimensions += `<text x="${dimRightX+6}" y="${oy+bd*SCALE/2}" text-anchor="middle" fill="#000000" font-size="9" font-weight="bold" transform="rotate(90,${dimRightX+6},${oy+bd*SCALE/2})">${bd.toFixed(2)}</text>`;
+
+  // Column center-lines (light dashed)
+  [cw0, cw0+cw1].forEach(xm => {
     const px = ox + xm*SCALE;
-    svg += `<line x1="${px}" y1="${dimTopY-4}" x2="${px}" y2="${dimTopY+4}" stroke="#555555" stroke-width="0.8"/>`;
-    svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#888888" stroke-width="0.5" stroke-dasharray="4,3"/>`;
+    gDimensions += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#aaaaaa" stroke-width="0.4" stroke-dasharray="4,4"/>`;
   });
 
-  // ── STEP 6: SBC Validation warnings in left margin ───────────────────────
+  // ── layer-symbols: north arrow, scale bar, SBC warnings ──────────────────
+  // North arrow — top-right inside building
+  const nax = ox + bw*SCALE - 24, nay = oy + 26;
+  gSymbols += `<circle cx="${nax}" cy="${nay}" r="15" fill="white" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<line x1="${nax}" y1="${nay+11}" x2="${nax}" y2="${nay-11}" stroke="#000000" stroke-width="1"/>`;
+  gSymbols += `<polygon points="${nax},${nay-14} ${nax-4},${nay-5} ${nax+4},${nay-5}" fill="#000000"/>`;
+  gSymbols += `<polygon points="${nax},${nay+14} ${nax-4},${nay+5} ${nax+4},${nay+5}" fill="white" stroke="#000000" stroke-width="0.5"/>`;
+  gSymbols += `<text x="${nax}" y="${nay+28}" text-anchor="middle" fill="#000000" font-size="9" font-weight="700">N</text>`;
+
+  // Scale bar — bottom left of plan area
+  const sbX = ox + 4;
+  const sbY = oy + bd*SCALE + 57;
+  gSymbols += `<text x="${sbX}" y="${sbY-4}" fill="#000000" font-size="8">مقياس 1:100</text>`;
+  for (let i = 0; i < 5; i++) {
+    gSymbols += `<rect x="${sbX+i*SCALE}" y="${sbY}" width="${SCALE}" height="6" fill="${i%2===0?"#000000":"white"}" stroke="#000000" stroke-width="0.8"/>`;
+    gSymbols += `<text x="${sbX+i*SCALE}" y="${sbY+16}" fill="#000000" font-size="7">${i}</text>`;
+  }
+  gSymbols += `<text x="${sbX+5*SCALE}" y="${sbY+16}" fill="#000000" font-size="7">5م</text>`;
+
+  // SBC warnings — left margin
   const SBC_MIN: Record<string, number> = {
     master_bedroom: 16, bedroom: 9, majlis: 20, family_living: 16,
     living: 16, kitchen: 6, bathroom: 4, toilet: 2.4, maid_room: 6,
@@ -780,98 +791,77 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   rooms.forEach(r => {
     const minArea = SBC_MIN[r.type ?? ""];
     if (minArea && (r.area ?? 0) < minArea) {
-      sbcWarnings.push(`⚠ ${r.nameAr}: ${(r.area??0).toFixed(1)}م² (أدنى ${minArea}م²)`);
-    }
-    if (r.type !== "corridor" && r.type !== "wc" && r.type !== "toilet" && r.type !== "parking") {
-      if (Math.min(r.width ?? 99, r.height ?? 99) < 2.5) {
-        sbcWarnings.push(`⚠ ${r.nameAr}: عرض ${Math.min(r.width??99,r.height??99).toFixed(1)}م < 2.5م`);
-      }
+      sbcWarnings.push(`⚠ ${r.nameAr}: ${(r.area??0).toFixed(1)}م²`);
     }
   });
   if (sbcWarnings.length > 0) {
-    const warnX = ox - MARGIN + 4;
-    const warnY0 = oy + 10;
-    svg += `<text x="${warnX}" y="${warnY0}" fill="#000000" font-size="7" font-weight="bold" font-family="Arial">تحقق SBC:</text>`;
-    sbcWarnings.slice(0, 6).forEach((w, i) => {
-      svg += `<text x="${warnX}" y="${warnY0 + 12 + i * 11}" fill="#444444" font-size="7" font-family="Arial">${w}</text>`;
+    const warnX = 4, warnY0 = oy + 10;
+    gSymbols += `<text x="${warnX}" y="${warnY0}" fill="#000000" font-size="7" font-weight="bold">SBC:</text>`;
+    sbcWarnings.slice(0, 7).forEach((w, i) => {
+      gSymbols += `<text x="${warnX}" y="${warnY0 + 11 + i * 10}" fill="#444444" font-size="6">${w}</text>`;
     });
   }
 
-  // ── North arrow — top-right corner, CAD B&W ──────────────────────────────
-  const nax = ox + bw*SCALE - 22, nay = oy + 24;
-  svg += `<circle cx="${nax}" cy="${nay}" r="14" fill="none" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<line x1="${nax}" y1="${nay+10}" x2="${nax}" y2="${nay-10}" stroke="#000000" stroke-width="1"/>`;
-  svg += `<polygon points="${nax},${nay-13} ${nax-3},${nay-6} ${nax+3},${nay-6}" fill="#000000"/>`;
-  svg += `<text x="${nax}" y="${nay+26}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600" font-family="Arial">N</text>`;
-
-  // ── Scale bar ─────────────────────────────────────────────────────────────
-  const sbX = ox + bw*SCALE - 5*SCALE - 10;
-  const sbY = oy + bd*SCALE + dimOffset + 20;
-  svg += `<text x="${sbX}" y="${sbY-4}" fill="#000000" font-size="8" font-family="Arial">مقياس:</text>`;
-  for (let i = 0; i < 5; i++) {
-    svg += `<rect x="${sbX+40+i*SCALE}" y="${sbY}" width="${SCALE}" height="6" fill="${i%2===0?"#000000":"white"}" stroke="#000000" stroke-width="0.8"/>`;
-    svg += `<text x="${sbX+40+i*SCALE}" y="${sbY+16}" fill="#000000" font-size="7" font-family="Arial">${i}م</text>`;
-  }
-  svg += `<text x="${sbX+40+5*SCALE}" y="${sbY+16}" fill="#000000" font-size="7" font-family="Arial">5م</text>`;
-
-  // ── Legend box — CAD B&W, simple black border ────────────────────────────
-  const legBoxW = 160, legBoxH = 110;
+  // Legend box — bottom right
+  const legBoxW = 158, legBoxH = 108;
   const legX = ox + bw*SCALE - legBoxW;
-  const legY = oy + bd*SCALE + dimOffset + 14;
-  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="${legBoxH}" fill="white" stroke="#000000" stroke-width="1"/>`;
-  svg += `<line x1="${legX}" y1="${legY+14}" x2="${legX+legBoxW}" y2="${legY+14}" stroke="#000000" stroke-width="1"/>`;
-  svg += `<text x="${legX+legBoxW/2}" y="${legY+10}" text-anchor="middle" fill="#000000" font-size="8" font-weight="bold" font-family="Arial">مفتاح الرموز — Legend</text>`;
-
-  const li = legY + 20;
-  const lRow = 16;
-  const lSx = legX + 6;
-  const lTx = legX + 30;
-
-  // 1. Exterior wall
-  svg += `<rect x="${lSx}" y="${li+0*lRow}" width="20" height="8" fill="#000000"/>`;
-  svg += `<rect x="${lSx+2}" y="${li+0*lRow+2}" width="16" height="4" fill="white"/>`;
-  svg += `<text x="${lTx}" y="${li+0*lRow+8}" fill="#000000" font-size="8" font-family="Arial">جدار خارجي / Ext. Wall</text>`;
-
-  // 2. Interior wall
-  svg += `<rect x="${lSx}" y="${li+1*lRow+1}" width="20" height="5" fill="#000000"/>`;
-  svg += `<rect x="${lSx+1}" y="${li+1*lRow+2}" width="18" height="3" fill="white"/>`;
-  svg += `<text x="${lTx}" y="${li+1*lRow+8}" fill="#000000" font-size="8" font-family="Arial">جدار داخلي / Int. Wall</text>`;
-
-  // 3. Door (leaf + dashed arc)
-  svg += `<line x1="${lSx}" y1="${li+2*lRow}" x2="${lSx+12}" y2="${li+2*lRow}" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<path d="M ${lSx} ${li+2*lRow} A 12 12 0 0 1 ${lSx+12} ${li+2*lRow+12}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="2,2"/>`;
-  svg += `<text x="${lTx}" y="${li+2*lRow+8}" fill="#000000" font-size="8" font-family="Arial">باب / Single Door</text>`;
-
-  // 4. Window (3 parallel lines)
-  svg += `<line x1="${lSx}" y1="${li+3*lRow}"   x2="${lSx+20}" y2="${li+3*lRow}"   stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<line x1="${lSx}" y1="${li+3*lRow+3}" x2="${lSx+20}" y2="${li+3*lRow+3}" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<line x1="${lSx}" y1="${li+3*lRow+6}" x2="${lSx+20}" y2="${li+3*lRow+6}" stroke="#000000" stroke-width="0.8"/>`;
-  svg += `<text x="${lTx}" y="${li+3*lRow+8}" fill="#000000" font-size="8" font-family="Arial">نافذة / Window</text>`;
-
-  // 5. Staircase
+  const legY = oy + bd*SCALE + 57;
+  gSymbols += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="${legBoxH}" fill="white" stroke="#000000" stroke-width="1"/>`;
+  gSymbols += `<line x1="${legX}" y1="${legY+14}" x2="${legX+legBoxW}" y2="${legY+14}" stroke="#000000" stroke-width="1"/>`;
+  gSymbols += `<text x="${legX+legBoxW/2}" y="${legY+10}" text-anchor="middle" fill="#000000" font-size="8" font-weight="bold">مفتاح الرموز — Legend</text>`;
+  const li = legY + 20, lRow = 15, lSx = legX + 6, lTx = legX + 30;
+  gSymbols += `<rect x="${lSx}" y="${li+0*lRow}" width="20" height="8" fill="#000000"/>`;
+  gSymbols += `<rect x="${lSx+2}" y="${li+0*lRow+2}" width="16" height="4" fill="white"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+0*lRow+8}" fill="#000000" font-size="8">جدار خارجي / Ext. Wall</text>`;
+  gSymbols += `<rect x="${lSx}" y="${li+1*lRow+1}" width="20" height="5" fill="#000000"/>`;
+  gSymbols += `<rect x="${lSx+1}" y="${li+1*lRow+2}" width="18" height="3" fill="white"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+1*lRow+8}" fill="#000000" font-size="8">جدار داخلي / Int. Wall</text>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+2*lRow}" x2="${lSx+12}" y2="${li+2*lRow}" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<path d="M ${lSx} ${li+2*lRow} A 12 12 0 0 1 ${lSx+12} ${li+2*lRow+12}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="2,2"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+2*lRow+8}" fill="#000000" font-size="8">باب / Door</text>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+3*lRow}"   x2="${lSx+20}" y2="${li+3*lRow}"   stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+3*lRow+3}" x2="${lSx+20}" y2="${li+3*lRow+3}" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+3*lRow+6}" x2="${lSx+20}" y2="${li+3*lRow+6}" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+3*lRow+8}" fill="#000000" font-size="8">نافذة / Window</text>`;
   for (let s = 0; s < 4; s++) {
-    svg += `<line x1="${lSx}" y1="${li+4*lRow+s*2}" x2="${lSx+18}" y2="${li+4*lRow+s*2}" stroke="#000000" stroke-width="0.8"/>`;
+    gSymbols += `<line x1="${lSx}" y1="${li+4*lRow+s*2}" x2="${lSx+18}" y2="${li+4*lRow+s*2}" stroke="#333333" stroke-width="0.7"/>`;
   }
-  svg += `<line x1="${lSx+9}" y1="${li+4*lRow+10}" x2="${lSx+9}" y2="${li+4*lRow+2}" stroke="#000000" stroke-width="1" marker-end="url(#dim_arrow)"/>`;
-  svg += `<text x="${lTx}" y="${li+4*lRow+8}" fill="#000000" font-size="8" font-family="Arial">درج UP / Staircase</text>`;
+  gSymbols += `<line x1="${lSx+9}" y1="${li+4*lRow+10}" x2="${lSx+9}" y2="${li+4*lRow+2}" stroke="#000000" stroke-width="1"/>`;
+  gSymbols += `<polygon points="${lSx+9},${li+4*lRow+2} ${lSx+6},${li+4*lRow+7} ${lSx+12},${li+4*lRow+7}" fill="#000000"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+4*lRow+8}" fill="#000000" font-size="8">درج / Staircase</text>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+5*lRow}" x2="${lSx+20}" y2="${li+5*lRow}" stroke="#000000" stroke-width="0.4"/>`;
+  gSymbols += `<line x1="${lSx}" y1="${li+5*lRow-4}" x2="${lSx}" y2="${li+5*lRow+4}" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<line x1="${lSx+20}" y1="${li+5*lRow-4}" x2="${lSx+20}" y2="${li+5*lRow+4}" stroke="#000000" stroke-width="0.8"/>`;
+  gSymbols += `<text x="${lTx}" y="${li+5*lRow+8}" fill="#000000" font-size="8">كوتة / Dimension</text>`;
 
-  // 6. Opening
-  svg += `<line x1="${lSx}" y1="${li+5*lRow}" x2="${lSx+20}" y2="${li+5*lRow}" stroke="#555555" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-  svg += `<line x1="${lSx}" y1="${li+5*lRow-3}" x2="${lSx}" y2="${li+5*lRow+3}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<line x1="${lSx+20}" y1="${li+5*lRow-3}" x2="${lSx+20}" y2="${li+5*lRow+3}" stroke="#000000" stroke-width="1.2"/>`;
-  svg += `<text x="${lTx}" y="${li+5*lRow+8}" fill="#000000" font-size="8" font-family="Arial">فتحة / Opening</text>`;
+  // ── layer-titleblock: header + footer ─────────────────────────────────────
+  // Header
+  gTitleBlock += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="white"/>`;
+  gTitleBlock += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="none" stroke="#000000" stroke-width="1"/>`;
+  gTitleBlock += `<line x1="0" y1="${TITLE_H}" x2="${svgW}" y2="${TITLE_H}" stroke="#000000" stroke-width="2"/>`;
+  gTitleBlock += `<text x="16" y="26" fill="#000000" font-size="18" font-weight="900">SOAR.AI</text>`;
+  gTitleBlock += `<text x="16" y="44" fill="#000000" font-size="9">منصة المخططات المعمارية الذكية</text>`;
+  gTitleBlock += `<line x1="120" y1="8" x2="120" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
+  const conceptNames = [
+    "المفهوم العصري المفتوح", "المفهوم التراثي السعودي", "المفهوم الوظيفي الذكي",
+    "المفهوم الفاخر الموسّع", "المفهوم المتوسطي", "المفهوم الاقتصادي الأمثل"
+  ];
+  gTitleBlock += `<text x="${svgW/2}" y="26" text-anchor="middle" fill="#000000" font-size="13" font-weight="bold">${conceptNames[conceptIndex] ?? `المفهوم ${conceptIndex+1}`}</text>`;
+  gTitleBlock += `<text x="${svgW/2}" y="44" text-anchor="middle" fill="#000000" font-size="9">مخطط الدور الأرضي — Ground Floor Plan</text>`;
+  gTitleBlock += `<line x1="${svgW-160}" y1="8" x2="${svgW-160}" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
+  gTitleBlock += `<text x="${svgW-12}" y="20" text-anchor="end" fill="#000000" font-size="8">مقياس 1:100</text>`;
+  gTitleBlock += `<text x="${svgW-12}" y="32" text-anchor="end" fill="#000000" font-size="8">مساحة الأرض: ${layout.landArea} م²</text>`;
+  gTitleBlock += `<text x="${svgW-12}" y="44" text-anchor="end" fill="#000000" font-size="8">مساحة البناء: ${layout.buildingArea} م²</text>`;
+  gTitleBlock += `<text x="${svgW-12}" y="56" text-anchor="end" fill="#000000" font-size="8">${layout.summary.totalFloors} دور — ${layout.summary.bedrooms} غرف نوم</text>`;
 
-  // ── Footer title block — CAD B&W, simple black border ───────────────────
+  // Footer title block
   const footerY = svgH - FOOTER_H;
-  svg += `<rect x="0" y="${footerY}" width="${svgW}" height="${FOOTER_H}" fill="white" stroke="#000000" stroke-width="1"/>`;
-  svg += `<line x1="0" y1="${footerY}" x2="${svgW}" y2="${footerY}" stroke="#000000" stroke-width="2"/>`;
-
-  // Vertical dividers
-  const cols = [svgW*0.25, svgW*0.5, svgW*0.75];
-  cols.forEach(colX => {
-    svg += `<line x1="${colX}" y1="${footerY}" x2="${colX}" y2="${svgH}" stroke="#000000" stroke-width="0.5"/>`;
+  gTitleBlock += `<rect x="0" y="${footerY}" width="${svgW}" height="${FOOTER_H}" fill="white"/>`;
+  gTitleBlock += `<line x1="0" y1="${footerY}" x2="${svgW}" y2="${footerY}" stroke="#000000" stroke-width="1.5"/>`;
+  gTitleBlock += `<rect x="0" y="${footerY}" width="${svgW}" height="${FOOTER_H}" fill="none" stroke="#000000" stroke-width="1"/>`;
+  [svgW*0.25, svgW*0.5, svgW*0.75].forEach(fx => {
+    gTitleBlock += `<line x1="${fx}" y1="${footerY}" x2="${fx}" y2="${svgH}" stroke="#000000" stroke-width="0.5"/>`;
   });
-
   const footerData = [
     { label: "المشروع", value: "SOAR.AI", cx: svgW*0.125 },
     { label: "المساحة الكلية", value: `${layout.summary.totalArea} م²`, cx: svgW*0.375 },
@@ -879,14 +869,23 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     { label: "الأدوار", value: `${layout.summary.totalFloors} دور`, cx: svgW*0.875 },
   ];
   footerData.forEach(({ label, value, cx }) => {
-    svg += `<text x="${cx}" y="${footerY+20}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">${label}</text>`;
-    svg += `<text x="${cx}" y="${footerY+40}" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold" font-family="Arial">${value}</text>`;
+    gTitleBlock += `<text x="${cx}" y="${footerY+18}" text-anchor="middle" fill="#555555" font-size="8">${label}</text>`;
+    gTitleBlock += `<text x="${cx}" y="${footerY+36}" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">${value}</text>`;
   });
-
-  // Date and copyright
   const today = new Date().toLocaleDateString("ar-SA");
-  svg += `<text x="${svgW-8}" y="${footerY+60}" text-anchor="end" fill="#555555" font-size="8" font-family="Arial">${today}</text>`;
-  svg += `<text x="8" y="${footerY+60}" fill="#555555" font-size="8" font-family="Arial">SOAR.AI © 2025 — جميع الحقوق محفوظة</text>`;
+  gTitleBlock += `<text x="${svgW-8}" y="${footerY+56}" text-anchor="end" fill="#555555" font-size="8">${today}</text>`;
+  gTitleBlock += `<text x="8" y="${footerY+56}" fill="#555555" font-size="8">SOAR.AI © 2025 — جميع الحقوق محفوظة</text>`;
+
+  // ── Assemble layers bottom-to-top ──────────────────────────────────────────
+  svg += `<g id="layer-boundary">${gBoundary}</g>`;
+  svg += `<g id="layer-hatch">${gHatch}</g>`;
+  svg += `<g id="layer-walls">${gWalls}</g>`;
+  svg += `<g id="layer-openings">${gOpenings}</g>`;
+  svg += `<g id="layer-stairs">${gStairs}</g>`;
+  svg += `<g id="layer-dimensions">${gDimensions}</g>`;
+  svg += `<g id="layer-labels">${gLabels}</g>`;
+  svg += `<g id="layer-symbols">${gSymbols}</g>`;
+  svg += `<g id="layer-titleblock">${gTitleBlock}</g>`;
 
   svg += `</svg>`;
   return svg;
