@@ -173,6 +173,12 @@ function generateZoneLayout(
   const bArea = parseFloat((bW * bD).toFixed(1));
   const totalArea = parseFloat((bArea * (upperFloors + 1)).toFixed(1));
 
+  // ── DEBUG ──────────────────────────────────────────────────────────────
+  console.error("BUILDING:", bW, "x", bD, "setbacks:", JSON.stringify(setbacks));
+  console.error("ZONE ROOMS:", JSON.stringify(allRooms.map(r =>
+    `${r.nameEn}(f${r.floor}): x=${r.x.toFixed(1)} y=${r.y.toFixed(1)} w=${r.w.toFixed(1)} h=${r.h.toFixed(1)} area=${r.area}`
+  )));
+
   return {
     buildingWidth: bW,
     buildingDepth: bD,
@@ -994,6 +1000,9 @@ Provide the report in a structured and detailed format.`;
               w: parseFloat((r.w / bW * 100).toFixed(2)),
               h: parseFloat((r.h / bD * 100).toFixed(2)),
             }));
+            console.error(`CONCEPT${conceptIndex} FINAL SPACES (${finalSpaces.length}):`,
+              JSON.stringify(finalSpaces.map(s => `${s.name}(f${s.floor}): x=${s.x} y=${s.y} w=${s.w} h=${s.h}`))
+            );
 
             const structuredData = {
               ...aiData,

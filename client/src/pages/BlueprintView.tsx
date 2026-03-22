@@ -33,6 +33,9 @@ function FloorPlan({
   spaces: any[]; floor: number; lang: string; bldW?: number; bldH?: number;
 }) {
   const floorSpaces = spaces.filter(s => (s.floor ?? 0) === floor);
+  console.log(`[FloorPlan] floor=${floor} spaces=${floorSpaces.length} bldW=${bldW} bldH=${bldH}`,
+    floorSpaces.map(s => `${s.name}(${s.type}): x=${s.x} y=${s.y} w=${s.w} h=${s.h}`)
+  );
   if (floorSpaces.length === 0) return null;
 
   const SVG_W = 640;
