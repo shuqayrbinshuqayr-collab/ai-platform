@@ -33,8 +33,13 @@ function FloorPlan({
   spaces: any[]; floor: number; lang: string; bldW?: number; bldH?: number;
 }) {
   const floorSpaces = spaces.filter(s => (s.floor ?? 0) === floor);
-  console.log(`[FloorPlan] floor=${floor} spaces=${floorSpaces.length} bldW=${bldW} bldH=${bldH}`,
-    floorSpaces.map(s => `${s.name}(${s.type}): x=${s.x} y=${s.y} w=${s.w} h=${s.h}`)
+  const firstS = floorSpaces[0];
+  console.log(
+    `[FloorPlan] floor=${floor} rooms=${floorSpaces.length} bldW=${bldW} bldH=${bldH}`,
+    `isMeterMode=${firstS?.width !== undefined && firstS?.w === undefined}`,
+    `SVG inner=${640-65-35}×${540-45-65}`,
+    `first room → x=${firstS?.x} y=${firstS?.y} w=${firstS?.w} h=${firstS?.h}`,
+    `  in meters: ${((firstS?.w ?? 0)/100*(bldW??10)).toFixed(2)}m × ${((firstS?.h ?? 0)/100*(bldH??20)).toFixed(2)}m`,
   );
   if (floorSpaces.length === 0) return null;
 

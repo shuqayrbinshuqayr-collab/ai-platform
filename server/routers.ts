@@ -147,25 +147,33 @@ function generateZoneLayout(
 
   const allRooms = groundRooms.map(r => toSpace(r, 0));
 
-  // ── UPPER FLOORS: bedroom strips ──────────────────────────────────────
+  // Fix 2: Column-sum assertions — each row must tile to exactly 100% width
+  // PUBLIC:  30+45+25=100 | FAMILY: 45+10+20+25=100 | SERVICE: 30+35+20+15=100 or 30+35+35=100
+  console.assert(Math.abs(0.30 + 0.45 + 0.25 - 1.0) < 0.001, "PUBLIC cols must sum to 1");
+  console.assert(Math.abs(0.45 + 0.10 + 0.20 + 0.25 - 1.0) < 0.001, "FAMILY cols must sum to 1");
+  console.assert(Math.abs(0.30 + 0.35 + 0.20 + 0.15 - 1.0) < 0.001, "SERVICE cols (with maid) must sum to 1");
+  console.assert(Math.abs(0.30 + 0.35 + 0.35 - 1.0) < 0.001, "SERVICE cols (no maid) must sum to 1");
+  // Row heights: 35+30+35=100
+  console.assert(Math.abs(0.35 + 0.30 + 0.35 - 1.0) < 0.001, "Row heights must sum to 1");
+
+  // ── UPPER FLOORS: gapless 3-row layout ────────────────────────────────
+  // Row 1: corridor full width (0→12%)
+  // Row 2: staircase+master+bathroom all h=35% (12→47%)
+  // Row 3: bedroom strip full width (47→100%, h=53%)
+  // 12+35+53=100 — no gaps
   const upperFloors = opts.numberOfFloors;
   const bedsPerFloor = Math.ceil(opts.bedrooms / Math.max(upperFloors, 1));
   for (let f = 1; f <= upperFloors; f++) {
-    // Corridor at top
-    allRooms.push(toSpace({ type: "corridor", nameAr: "ممر", nameEn: "Corridor", x: 0, y: 0, w: bW, h: bD * 0.12 }, f));
-    // Staircase left
-    allRooms.push(toSpace({ type: "staircase", nameAr: "درج", nameEn: "Staircase", x: 0, y: bD * 0.12, w: bW * 0.20, h: bD * 0.30 }, f));
-    // Master bedroom
-    allRooms.push(toSpace({ type: "master_bedroom", nameAr: "غرفة نوم ماستر", nameEn: "Master Bedroom", x: bW * 0.20, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
-    // Bathroom
-    allRooms.push(toSpace({ type: "bathroom", nameAr: "حمام", nameEn: "Bathroom", x: bW * 0.60, y: bD * 0.12, w: bW * 0.40, h: bD * 0.20 }, f));
-    // Bedrooms strip
+    allRooms.push(toSpace({ type: "corridor",        nameAr: "ممر",              nameEn: "Corridor",       x: 0,        y: 0,         w: bW,        h: bD * 0.12 }, f));
+    allRooms.push(toSpace({ type: "staircase",       nameAr: "درج",              nameEn: "Staircase",      x: 0,        y: bD * 0.12, w: bW * 0.20, h: bD * 0.35 }, f));
+    allRooms.push(toSpace({ type: "master_bedroom",  nameAr: "غرفة نوم ماستر",  nameEn: "Master Bedroom", x: bW * 0.20, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
+    allRooms.push(toSpace({ type: "bathroom",        nameAr: "حمام",             nameEn: "Bathroom",       x: bW * 0.60, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
     const bedCount = Math.min(bedsPerFloor, 3);
     const bedW = bW / bedCount;
     for (let b = 0; b < bedCount; b++) {
       allRooms.push(toSpace({
         type: "bedroom", nameAr: `غرفة نوم ${b + 1}`, nameEn: `Bedroom ${b + 1}`,
-        x: b * bedW, y: bD * 0.47, w: bedW, h: bD * 0.53
+        x: b * bedW, y: bD * 0.47, w: bedW, h: bD * 0.53,
       }, f));
     }
   }
@@ -930,8 +938,21 @@ Provide the report in a structured and detailed format.`;
             ? parseFloat((project.landLength - correctedSetbacks.front - correctedSetbacks.back).toFixed(2))
             : undefined;
 
-          const lW = userBuildingWidth ?? Math.sqrt((project.landArea ?? 300) * 0.6);
-          const lD = userBuildingDepth ?? (project.landArea ?? 300) / lW;
+          let lW = userBuildingWidth ?? Math.sqrt((project.landArea ?? 300) * 0.6);
+          let lD = userBuildingDepth ?? (project.landArea ?? 300) / lW;
+
+          // Fix 1: Reduce setbacks if resulting building footprint is too small
+          if (lW < 8 && project.landWidth) {
+            correctedSetbacks.side = 1.5;
+            lW = parseFloat((project.landWidth - 1.5 * 2).toFixed(2));
+            console.error(`SETBACK REDUCED: side → 1.5m, new bW=${lW}`);
+          }
+          if (lD < 10 && project.landLength) {
+            correctedSetbacks.back = 2;
+            lD = parseFloat((project.landLength - correctedSetbacks.front - 2).toFixed(2));
+            console.error(`SETBACK REDUCED: back → 2m, new bD=${lD}`);
+          }
+
           const zoneLayout = generateZoneLayout(lW, lD, correctedSetbacks, {
             hasMajlis:  (project.majlis ?? 1) > 0,
             hasParking: (project.garages ?? 1) > 0,
