@@ -13,7 +13,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
-import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
+import { CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
 import { canGenerateBlueprint, canCreateProject } from "./db";
@@ -87,6 +87,110 @@ function checkSaudiBuildingCode(project: {
   };
 
   return { warnings, warningsAr, corrected, isCompliant: warnings.length === 0 };
+}
+
+// ─── Deterministic Zone Layout Engine ────────────────────────────────────────
+// Pure math — no AI, no BSP. Fixed 3-row Saudi villa grid.
+function generateZoneLayout(
+  landWidth: number, landDepth: number,
+  setbacks: { front: number; back: number; side: number },
+  opts: { hasMajlis: boolean; hasParking: boolean; hasMaid: boolean; numberOfFloors: number; bedrooms: number; bathrooms: number; landArea: number }
+) {
+  const bW = parseFloat((landWidth - setbacks.side * 2).toFixed(2));
+  const bD = parseFloat((landDepth - setbacks.front - setbacks.back).toFixed(2));
+  const sX = setbacks.side;
+  const sY = setbacks.back;
+
+  const groundRooms: any[] = [];
+
+  // ── TOP ROW (y=0 → bD×0.35): PUBLIC zone ──────────────────────────────
+  groundRooms.push({ type: "entrance",     nameAr: "بهو المدخل",   nameEn: "Entrance Hall",  x: 0,        y: 0,        w: bW * 0.30, h: bD * 0.35 });
+  if (opts.hasMajlis) {
+    groundRooms.push({ type: "majlis",     nameAr: "مجلس رجال",    nameEn: "Men's Majlis",   x: bW * 0.30, y: 0,       w: bW * 0.45, h: bD * 0.35 });
+    if (opts.hasParking) {
+      groundRooms.push({ type: "parking",  nameAr: "موقف سيارة",   nameEn: "Parking",        x: bW * 0.75, y: 0,       w: bW * 0.25, h: bD * 0.35 });
+    }
+  } else {
+    const rightW = opts.hasParking ? bW * 0.45 : bW * 0.70;
+    groundRooms.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living", x: bW * 0.30, y: 0,      w: rightW,    h: bD * 0.35 });
+    if (opts.hasParking) {
+      groundRooms.push({ type: "parking",  nameAr: "موقف سيارة",   nameEn: "Parking",        x: bW * 0.75, y: 0,       w: bW * 0.25, h: bD * 0.35 });
+    }
+  }
+
+  // ── MIDDLE ROW (y=bD×0.35 → bD×0.65): FAMILY zone ────────────────────
+  groundRooms.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living",  x: 0,        y: bD * 0.35, w: bW * 0.45, h: bD * 0.30 });
+  groundRooms.push({ type: "corridor",     nameAr: "ممر",          nameEn: "Corridor",        x: bW * 0.45, y: bD * 0.35, w: bW * 0.10, h: bD * 0.30 });
+  groundRooms.push({ type: "staircase",    nameAr: "درج",          nameEn: "Staircase",       x: bW * 0.55, y: bD * 0.35, w: bW * 0.20, h: bD * 0.30 });
+  groundRooms.push({ type: "bathroom",     nameAr: "حمام",         nameEn: "Bathroom",        x: bW * 0.75, y: bD * 0.35, w: bW * 0.25, h: bD * 0.30 });
+
+  // ── BOTTOM ROW (y=bD×0.65 → bD): SERVICE zone ─────────────────────────
+  groundRooms.push({ type: "kitchen",      nameAr: "مطبخ",         nameEn: "Kitchen",         x: 0,         y: bD * 0.65, w: bW * 0.30, h: bD * 0.35 });
+  groundRooms.push({ type: "dining",       nameAr: "غرفة طعام",   nameEn: "Dining Room",     x: bW * 0.30, y: bD * 0.65, w: bW * 0.35, h: bD * 0.35 });
+  if (opts.hasMaid) {
+    groundRooms.push({ type: "maid_room",  nameAr: "غرفة خادمة",  nameEn: "Maid Room",       x: bW * 0.65, y: bD * 0.65, w: bW * 0.20, h: bD * 0.35 });
+    groundRooms.push({ type: "storage",    nameAr: "مخزن",         nameEn: "Storage",         x: bW * 0.85, y: bD * 0.65, w: bW * 0.15, h: bD * 0.35 });
+  } else {
+    groundRooms.push({ type: "storage",    nameAr: "مخزن",         nameEn: "Storage",         x: bW * 0.65, y: bD * 0.65, w: bW * 0.35, h: bD * 0.35 });
+  }
+
+  // Apply setback offset + compute area + add floor=0
+  const toSpace = (r: any, floor: number) => ({
+    ...r,
+    x: parseFloat((r.x + sX).toFixed(2)),
+    y: parseFloat((r.y + sY).toFixed(2)),
+    w: parseFloat(r.w.toFixed(2)),
+    h: parseFloat(r.h.toFixed(2)),
+    area: parseFloat((r.w * r.h).toFixed(1)),
+    floor,
+  });
+
+  const allRooms = groundRooms.map(r => toSpace(r, 0));
+
+  // ── UPPER FLOORS: bedroom strips ──────────────────────────────────────
+  const upperFloors = opts.numberOfFloors;
+  const bedsPerFloor = Math.ceil(opts.bedrooms / Math.max(upperFloors, 1));
+  for (let f = 1; f <= upperFloors; f++) {
+    // Corridor at top
+    allRooms.push(toSpace({ type: "corridor", nameAr: "ممر", nameEn: "Corridor", x: 0, y: 0, w: bW, h: bD * 0.12 }, f));
+    // Staircase left
+    allRooms.push(toSpace({ type: "staircase", nameAr: "درج", nameEn: "Staircase", x: 0, y: bD * 0.12, w: bW * 0.20, h: bD * 0.30 }, f));
+    // Master bedroom
+    allRooms.push(toSpace({ type: "master_bedroom", nameAr: "غرفة نوم ماستر", nameEn: "Master Bedroom", x: bW * 0.20, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
+    // Bathroom
+    allRooms.push(toSpace({ type: "bathroom", nameAr: "حمام", nameEn: "Bathroom", x: bW * 0.60, y: bD * 0.12, w: bW * 0.40, h: bD * 0.20 }, f));
+    // Bedrooms strip
+    const bedCount = Math.min(bedsPerFloor, 3);
+    const bedW = bW / bedCount;
+    for (let b = 0; b < bedCount; b++) {
+      allRooms.push(toSpace({
+        type: "bedroom", nameAr: `غرفة نوم ${b + 1}`, nameEn: `Bedroom ${b + 1}`,
+        x: b * bedW, y: bD * 0.47, w: bedW, h: bD * 0.53
+      }, f));
+    }
+  }
+
+  const bArea = parseFloat((bW * bD).toFixed(1));
+  const totalArea = parseFloat((bArea * (upperFloors + 1)).toFixed(1));
+
+  return {
+    buildingWidth: bW,
+    buildingDepth: bD,
+    buildingArea: bArea,
+    setbacks,
+    rooms: allRooms,
+    summary: {
+      totalFloors: upperFloors + 1,
+      totalRooms: allRooms.length,
+      totalArea,
+      bedrooms: opts.bedrooms,
+      bathrooms: opts.bathrooms,
+      buildingWidth: bW,
+      buildingDepth: bD,
+      buildingArea: bArea,
+      estimatedCost: `SAR ${Math.round(totalArea * 1800).toLocaleString()} – ${Math.round(totalArea * 2500).toLocaleString()}`,
+    },
+  };
 }
 
 // ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
@@ -820,23 +924,16 @@ Provide the report in a structured and detailed format.`;
             ? parseFloat((project.landLength - correctedSetbacks.front - correctedSetbacks.back).toFixed(2))
             : undefined;
 
-          console.error("BSP INPUT:", userBuildingWidth, userBuildingDepth, "setbacks:", correctedSetbacks);
-          const bspLayout = generateBSPLayout({
-            landArea: project.landArea ?? 300,
-            buildingType: (project.buildingType === "villa" ? "villa" : "apartment") as "villa" | "apartment",
+          const lW = userBuildingWidth ?? Math.sqrt((project.landArea ?? 300) * 0.6);
+          const lD = userBuildingDepth ?? (project.landArea ?? 300) / lW;
+          const zoneLayout = generateZoneLayout(lW, lD, correctedSetbacks, {
+            hasMajlis:  (project.majlis ?? 1) > 0,
+            hasParking: (project.garages ?? 1) > 0,
+            hasMaid:    (project.maidRooms ?? 0) > 0,
             numberOfFloors: codeCheck.corrected.numberOfFloors,
             bedrooms: project.bedrooms ?? 3,
             bathrooms: project.bathrooms ?? 2,
-            conceptIndex: i,
-            extras: {
-              majlis: project.majlis ?? 1,
-              parking: project.garages ?? 1,
-              maidRoom: project.maidRooms ?? 0,
-              balcony: project.balconies ?? 1,
-            },
-            setbacks: correctedSetbacks,
-            buildingWidth: userBuildingWidth,
-            buildingDepth: userBuildingDepth,
+            landArea: project.landArea ?? 300,
           });
 
           // 4b: AI enrichment (titles, descriptions, highlights) — slim prompt, 300 tokens max
@@ -879,57 +976,40 @@ Provide the report in a structured and detailed format.`;
               aiData = {};
             }
 
-            // ── Room placement: 100% deterministic BSP engine (no GPT-4o coordinates) ──
+            // ── Room placement: 100% deterministic zone engine ──────────────
             const conceptTitle = CONCEPT_TITLES[i];
+            const { buildingWidth: bW, buildingDepth: bD } = zoneLayout;
 
-            // BSP spaces — deterministic, guaranteed to fill building with no gaps
-            const finalSpaces = bspLayout.floors.flatMap(f =>
-              f.rooms.map(r => ({
-                name: r.nameEn,
-                nameAr: r.nameAr,
-                floor: r.floor,
-                width: r.width,
-                length: r.height,
-                area: r.area,
-                type: r.type,
-                x: (r.x / bspLayout.buildingWidth) * 100,
-                y: (r.y / bspLayout.buildingDepth) * 100,
-                w: (r.width / bspLayout.buildingWidth) * 100,
-                h: (r.height / bspLayout.buildingDepth) * 100,
-              }))
-            );
+            // Convert absolute meter coords → percentage (0-100) for client renderer
+            const finalSpaces = zoneLayout.rooms.map(r => ({
+              name:    r.nameEn,
+              nameAr:  r.nameAr,
+              floor:   r.floor,
+              width:   r.w,
+              length:  r.h,
+              area:    r.area,
+              type:    r.type,
+              x: parseFloat(((r.x - correctedSetbacks.side)  / bW * 100).toFixed(2)),
+              y: parseFloat(((r.y - correctedSetbacks.back)  / bD * 100).toFixed(2)),
+              w: parseFloat((r.w / bW * 100).toFixed(2)),
+              h: parseFloat((r.h / bD * 100).toFixed(2)),
+            }));
 
             const structuredData = {
               ...aiData,
-              title: aiData.title ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
+              title:   aiData.title   ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
               titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
               spaces: finalSpaces,
-              summary: {
-                totalFloors: bspLayout.summary.totalFloors,
-                totalRooms: bspLayout.summary.totalRooms,
-                totalArea: bspLayout.summary.totalArea,
-                estimatedCost: bspLayout.summary.estimatedCost,
-                bedrooms: bspLayout.summary.bedrooms,
-                bathrooms: bspLayout.summary.bathrooms,
-                buildingWidth: bspLayout.buildingWidth,
-                buildingDepth: bspLayout.buildingDepth,
-                buildingArea: bspLayout.buildingArea,
-              },
+              summary: zoneLayout.summary,
               regulatoryCompliance: {
                 isCompliant: codeCheck.isCompliant,
-                buildingFootprint: bspLayout.buildingArea,
-                actualCoverageRatio: Math.round((bspLayout.buildingArea / (project.landArea ?? 300)) * 100),
-                setbacks: bspLayout.setbacks,
+                buildingFootprint: zoneLayout.buildingArea,
+                actualCoverageRatio: Math.round((zoneLayout.buildingArea / (project.landArea ?? 300)) * 100),
+                setbacks: correctedSetbacks,
                 complianceNotes: aiData.complianceNotes ?? ["Saudi Building Code verified", "Setbacks applied"],
                 complianceNotesAr: aiData.complianceNotesAr ?? ["تم التحقق من الكود السعودي", "تم تطبيق الإرتدادات"],
               },
-              svgData: bspLayout.svgData,
-              bspLayout: {
-                floors: bspLayout.floors,
-                buildingWidth: bspLayout.buildingWidth,
-                buildingDepth: bspLayout.buildingDepth,
-                setbacks: bspLayout.setbacks,
-              },
+              svgData: null,
             };
 
             const blueprintId = await createBlueprint({
