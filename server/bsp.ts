@@ -97,29 +97,6 @@ function dim(type: RoomType): { w: number; h: number } {
   return { w: rnd(wMin, wMax), h: rnd(hMin, hMax) };
 }
 
-// ─── CAD B&W: Poché walls — all rooms white interior, staircase light gray ────
-const ROOM_FILL: Record<string, string> = {
-  master_bedroom: "#ffffff",
-  bedroom:        "#ffffff",
-  majlis:         "#ffffff",
-  family_living:  "#ffffff",
-  living:         "#ffffff",
-  kitchen:        "#ffffff",
-  dining:         "#ffffff",
-  bathroom:       "#ffffff",
-  toilet:         "#ffffff",
-  entrance:       "#ffffff",
-  balcony:        "#ffffff",
-  staircase:      "#f0f0f0",
-  corridor:       "#ffffff",
-  distributor:    "#ffffff",
-  maid_room:      "#ffffff",
-  storage:        "#ffffff",
-  parking:        "#ffffff",
-  laundry:        "#ffffff",
-  office:         "#ffffff",
-  prayer:         "#ffffff",
-};
 
 
 // ─── Ground floor program ─────────────────────────────────────────────────────
@@ -329,29 +306,42 @@ function buildFloorGrid(params: {
     });
   }
 
-  // Fix 3 + Fix 4: enforce aspect ratio ≤ 1:2.5 AND area caps (from saudiCode.ts)
+  // Enforce aspect ratio ≤ 1:2.5 AND area caps (from saudiCode.ts)
   const MAX_AREA = PRACTICAL_ROOM_AREA_CAPS as Partial<Record<RoomType, number>>;
   const MAJLIS_MAX = PRACTICAL_ROOM_AREA_CAPS.majlis;
 
-  return rooms.map(room => {
+  const capped = rooms.map(room => {
     if (room.type === "corridor" || room.type === "parking" || room.type === "staircase" || room.type === "balcony" || room.type === "distributor") return room;
 
-    // Aspect ratio cap
     let { width, height } = room;
     const ratio = Math.max(width, height) / Math.min(width, height);
     if (ratio > 2.5) {
       height = parseFloat((width * 2.5).toFixed(2));
     }
-
-    // Area cap
     const maxArea = room.type === "majlis" ? MAJLIS_MAX : (MAX_AREA[room.type] ?? 30);
     if (width * height > maxArea) {
       height = parseFloat((maxArea / width).toFixed(2));
     }
-
-    const area = parseFloat((width * height).toFixed(1));
-    return { ...room, width, height, area };
+    return { ...room, width, height, area: parseFloat((width * height).toFixed(1)) };
   });
+
+  // Fill bottom gaps caused by area/aspect caps shrinking the last room in each column
+  const colDefs: { cx: number; cw: number; type: RoomType; nameAr: string; nameEn: string; dw: "north"|"south"|"east"|"west" }[] = [
+    { cx: leftX,   cw: leftW,   type: "storage",   nameAr: "مخزن",   nameEn: "Storage",   dw: "east"  },
+    { cx: centerX, cw: centerW, type: "corridor",  nameAr: "ممر",    nameEn: "Corridor",  dw: "south" },
+    { cx: rightX,  cw: rightW,  type: "storage",   nameAr: "مخزن",   nameEn: "Storage",   dw: "west"  },
+  ];
+  colDefs.forEach(({ cx, cw, type, nameAr, nameEn, dw }) => {
+    const colRooms = capped.filter(r => Math.abs(r.x - cx) < 0.1);
+    if (!colRooms.length) return;
+    const maxY = Math.max(...colRooms.map(r => r.y + r.height));
+    const gap  = parseFloat((bd - maxY).toFixed(2));
+    if (gap >= 0.5) {
+      capped.push(placeRoom(type, nameAr, nameEn, cx, maxY, cw, gap, false, dw));
+    }
+  });
+
+  return capped;
 }
 
 // ─── Main Layout Generator ────────────────────────────────────────────────────
@@ -514,7 +504,7 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const ry = oy + room.y * SCALE;
     const rw = room.width  * SCALE;
     const rh = room.height * SCALE;
-    const fill = ROOM_FILL[room.type] ?? "#ffffff";
+    const fill = room.type === "staircase" ? "#f0f0f0" : "#ffffff";
 
     // ── Outside-building rooms (parking annex) ────────────────────────────
     if (room._outsideBuilding) {
@@ -605,7 +595,8 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
         drawDoor(Math.round(dLen * 0.5), 0.2);
         drawDoor(Math.round(dLen * 0.5), 0.55);
       } else {
-        drawDoor(dLen, 0.25);
+        // Staircase door at top of east wall — adjacent to corridor/distributor
+        drawDoor(dLen, room.type === "staircase" ? 0.02 : 0.25);
       }
     }
 
