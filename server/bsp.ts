@@ -97,7 +97,7 @@ function dim(type: RoomType): { w: number; h: number } {
   return { w: rnd(wMin, wMax), h: rnd(hMin, hMax) };
 }
 
-// ─── CAD B&W: all rooms white interior, all labels black ─────────────────────
+// ─── CAD B&W: Poché walls — all rooms white interior, staircase light gray ────
 const ROOM_FILL: Record<string, string> = {
   master_bedroom: "#ffffff",
   bedroom:        "#ffffff",
@@ -106,43 +106,21 @@ const ROOM_FILL: Record<string, string> = {
   living:         "#ffffff",
   kitchen:        "#ffffff",
   dining:         "#ffffff",
-  bathroom:       "#f6f6f6",
-  toilet:         "#f6f6f6",
+  bathroom:       "#ffffff",
+  toilet:         "#ffffff",
   entrance:       "#ffffff",
-  balcony:        "#f2f2f2",
-  staircase:      "#eeeeee",
-  corridor:       "#f8f8f8",
-  distributor:    "#f8f8f8",
+  balcony:        "#ffffff",
+  staircase:      "#f0f0f0",
+  corridor:       "#ffffff",
+  distributor:    "#ffffff",
   maid_room:      "#ffffff",
-  storage:        "#eeeeee",
-  parking:        "#ebebeb",
+  storage:        "#ffffff",
+  parking:        "#ffffff",
   laundry:        "#ffffff",
   office:         "#ffffff",
   prayer:         "#ffffff",
 };
 
-const ROOM_STROKE: Record<string, string> = {
-  master_bedroom: "#000000",
-  bedroom:        "#000000",
-  majlis:         "#000000",
-  family_living:  "#000000",
-  living:         "#000000",
-  kitchen:        "#000000",
-  dining:         "#000000",
-  bathroom:       "#000000",
-  toilet:         "#000000",
-  entrance:       "#000000",
-  balcony:        "#000000",
-  staircase:      "#000000",
-  corridor:       "#000000",
-  distributor:    "#000000",
-  maid_room:      "#000000",
-  storage:        "#000000",
-  parking:        "#000000",
-  laundry:        "#000000",
-  office:         "#000000",
-  prayer:         "#000000",
-};
 
 // ─── Ground floor program ─────────────────────────────────────────────────────
 interface RoomSpec {
@@ -278,14 +256,14 @@ function buildFloorGrid(params: {
   const centerSlots: CenterSlot[] = [];
 
   if (floor === 0) {
-    // Fix 1: distributor capped at 2.0m depth
-    centerSlots.push({ type: "distributor", nameAr: "موزع",          nameEn: "Distributor",  prefH: distH,        hasWindow: false, doorWall: "south" });
-    centerSlots.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living",prefH: rnd(4.0, 5.0), hasWindow: true,  doorWall: "south" });
-    const gndBeds = Math.min(1, bedrooms);
-    for (let b = 0; b < gndBeds; b++) {
-      centerSlots.push({ type: "bedroom", nameAr: `غرفة نوم ${b+1}`, nameEn: `Bedroom ${b+1}`, prefH: rnd(3.6, 4.5), hasWindow: true, doorWall: "west" });
+    // Ground floor center: distributor + family living + prayer/office (NO bedrooms on ground floor)
+    centerSlots.push({ type: "distributor",  nameAr: "موزع",          nameEn: "Distributor",   prefH: distH,         hasWindow: false, doorWall: "south" });
+    centerSlots.push({ type: "family_living",nameAr: "صالة عائلية",   nameEn: "Family Living", prefH: rnd(4.0, 5.0), hasWindow: true,  doorWall: "south" });
+    if (conceptIndex % 2 === 0) {
+      centerSlots.push({ type: "prayer", nameAr: "غرفة صلاة", nameEn: "Prayer Room", prefH: rnd(2.5, 3.5), hasWindow: true, doorWall: "west" });
+    } else {
+      centerSlots.push({ type: "office", nameAr: "مكتب",      nameEn: "Office",      prefH: rnd(3.0, 4.0), hasWindow: true, doorWall: "west" });
     }
-    leftSlots.push({ type: "storage",  nameAr: "مخزن",         nameEn: "Storage",      prefH: rnd(2.0, 2.5), hasWindow: false, doorWall: "east" });
   } else {
     // Fix 1: corridor capped at 2.0m depth
     centerSlots.push({ type: "corridor",    nameAr: "ممر",           nameEn: "Corridor",     prefH: distH,        hasWindow: false, doorWall: "south" });
@@ -421,7 +399,7 @@ export function generateBSPLayout(params: {
   for (let f = 0; f < floors; f++) {
     const rooms = buildFloorGrid({
       bw, bd, floor: f,
-      bedrooms: f === 0 ? Math.min(1, bedrooms) : bedrooms,
+      bedrooms: f === 0 ? 0 : bedrooms,
       bathrooms,
       hasMajlis: (extras.majlis ?? 1) > 0,
       hasMaidRoom: (extras.maidRoom ?? 0) > 0,
@@ -519,12 +497,13 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   gBoundary += `<text x="${ox+bw*SCALE/2}" y="${ly+sb.front*SCALE/2+4}" text-anchor="middle" fill="#777777" font-size="7">إرتداد أمامي ${sb.front}م</text>`;
   gBoundary += `<text x="${ox+bw*SCALE/2}" y="${oy+bd*SCALE+sb.back*SCALE/2+4}" text-anchor="middle" fill="#777777" font-size="7">إرتداد خلفي ${sb.back}م</text>`;
 
-  // ── Room rendering helpers ─────────────────────────────────────────────────
-  const WI = 6; // wall inset px for door/window positioning
-  const WIN_MIN = Math.round(1.2 * SCALE);
+  // ── Wall thickness constants (Poché technique) ────────────────────────────
+  const EXT_W = Math.round(0.25 * SCALE);  // ~10px exterior wall (25 cm)
+  const INT_W = Math.round(0.15 * SCALE);  // ~6px interior wall  (15 cm)
+  const H_INT = Math.round(INT_W / 2);     // 3px per side of shared interior wall
 
-  const doorWidthForType = (t: string): number => {
-    if (t.includes("majlis") || t.includes("entrance") || t.includes("foyer") || t.includes("living")) return Math.round(1.2 * SCALE);
+  const doorWidthPx = (t: string): number => {
+    if (t.includes("majlis") || t.includes("entrance") || t.includes("living")) return Math.round(1.2 * SCALE);
     if (t.includes("bathroom") || t.includes("bath")) return Math.round(0.8 * SCALE);
     if (t.includes("wc") || t.includes("toilet")) return Math.round(0.7 * SCALE);
     return Math.round(0.9 * SCALE);
@@ -535,17 +514,17 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const ry = oy + room.y * SCALE;
     const rw = room.width  * SCALE;
     const rh = room.height * SCALE;
-    const fill = ROOM_FILL[room.type] ?? "#f5f5f5";
+    const fill = ROOM_FILL[room.type] ?? "#ffffff";
 
-    // ── Outside-building rooms (parking) ─────────────────────────────────
+    // ── Outside-building rooms (parking annex) ────────────────────────────
     if (room._outsideBuilding) {
-      gHatch += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#f0f0f0"/>`;
-      gWalls += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="6,3"/>`;
+      gHatch  += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#000000"/>`;
+      gHatch  += `<rect x="${rx+4}" y="${ry+4}" width="${rw-8}" height="${rh-8}" fill="#f0f0f0"/>`;
       const pfs = Math.min(Math.min(rw, rh) * 0.3, 28);
       gLabels += `<text x="${rx+rw/2}" y="${ry+rh/2+pfs*0.35}" text-anchor="middle" fill="#000000" font-size="${pfs}" font-weight="900" opacity="0.10">P</text>`;
-      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+8}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600">${room.nameAr ?? "موقف"}</text>`;
-      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+20}" text-anchor="middle" fill="#333333" font-size="8">${(room.width??0).toFixed(2)}×${(room.height??0).toFixed(2)}</text>`;
-      gWalls += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#555555" stroke-width="0.5" stroke-dasharray="4,3"/>`;
+      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+8}"   text-anchor="middle" fill="#000000" font-size="9"  font-weight="600">${room.nameAr ?? "موقف"}</text>`;
+      gLabels += `<text x="${rx+rw/2}" y="${ry+rh*0.72+20}"  text-anchor="middle" fill="#333333" font-size="8">${(room.width??0).toFixed(2)}×${(room.height??0).toFixed(2)}</text>`;
+      gWalls  += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#555555" stroke-width="0.5" stroke-dasharray="4,3"/>`;
       return;
     }
 
@@ -553,165 +532,144 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const onLeft   = room.x < 0.3;
     const onRight  = room.x + room.width  > bw - 0.3;
     const onBottom = room.y + room.height > bd - 0.3;
-    const isExterior = onTop || onLeft || onRight || onBottom;
 
-    // layer-hatch: room fill (light gray, no stroke)
-    if (rw > WI * 2 + 2 && rh > WI * 2 + 2) {
-      gHatch += `<rect x="${rx+WI}" y="${ry+WI}" width="${rw-WI*2}" height="${rh-WI*2}" fill="${fill}"/>`;
+    // Per-side wall inset (px): exterior = full wall, interior = half (shared with neighbour)
+    const lI = onLeft   ? EXT_W : H_INT;
+    const rI = onRight  ? EXT_W : H_INT;
+    const tI = onTop    ? EXT_W : H_INT;
+    const bI = onBottom ? EXT_W : H_INT;
+
+    // Interior (usable space) bounds
+    const ix = rx + lI,      iy = ry + tI;
+    const iw = rw - lI - rI, ih = rh - tI - bI;
+
+    // ── layer-hatch: Poché walls ──────────────────────────────────────────
+    // Full room rect = black (wall body); inset rect = room fill (white)
+    gHatch += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#000000"/>`;
+    if (iw > 2 && ih > 2) {
+      gHatch += `<rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="${fill}"/>`;
     }
 
-    // layer-walls: wall boundaries
-    // Interior wall: stroke 2.5; exterior rooms get outer face reinforced by building border
-    const wallSW = isExterior ? 2.5 : 2.0;
-    gWalls += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#000000" stroke-width="${wallSW}"/>`;
+    // ── layer-openings: door ──────────────────────────────────────────────
+    if (room.hasDoor && iw > 12 && ih > 12) {
+      const t     = (room.type ?? "").toLowerCase();
+      const dLen  = doorWidthPx(t);
+      const wall  = room.doorWall ?? (onBottom ? "south" : onLeft ? "west" : "east");
+      const isSliding = room.type === "kitchen" || room.type === "maid_room";
+      const isPocket  = room.type === "toilet"  || room.type === "bathroom";
+      const isBigDoor = room.type === "majlis"  || room.type === "entrance";
 
-    // Parking watermark
-    if (room.type === "parking" || room.type === "garage") {
-      gHatch += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#000000" font-size="${Math.min(rw,rh)*0.32}" font-weight="900" opacity="0.08">P</text>`;
-    }
-
-    // layer-openings: doors
-    const isGarage = (room.type ?? "").includes("parking") || (room.type ?? "").includes("garage");
-    const isWC = room.type === "wc" || room.type === "toilet";
-
-    if (!isGarage && rw > WI * 2 + 12 && rh > WI * 2 + 12) {
-      const t = (room.type ?? "").toLowerCase();
-      const doorLen = doorWidthForType(t);
-      const isBigDoor = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("entrance");
-      const wall = room.doorWall ?? (onBottom ? "south" : onLeft ? "west" : "east");
-
-      const drawDoor = (dwLen: number, offsetFactor: number) => {
-        switch (wall) {
-          case "north": {
-            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
-            // Gap: cover wall stroke with room fill
-            gOpenings += `<rect x="${dx}" y="${ry-2}" width="${dwLen}" height="${WI+4}" fill="${fill}"/>`;
-            if (isWC) {
-              gOpenings += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              gOpenings += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              gOpenings += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8"/>`;
-              gOpenings += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
+      const drawDoor = (dl: number, frac: number) => {
+        if (wall === "south" || wall === "north") {
+          const isS   = wall === "south";
+          const wallY = isS ? ry + rh - bI : ry;
+          const wallT = isS ? bI : tI;
+          const faceY = isS ? ry + rh - bI : ry + tI;  // inner face of wall
+          const dx    = ix + (iw - dl) * frac;
+          // Clear gap in Poché wall
+          gOpenings += `<rect x="${dx}" y="${wallY}" width="${dl}" height="${wallT}" fill="${fill}"/>`;
+          if (isSliding) {
+            gOpenings += `<rect x="${dx}" y="${wallY}" width="${dl}" height="${wallT}" fill="none" stroke="#000000" stroke-width="0.8"/>`;
+            gOpenings += `<line x1="${dx+dl*0.1}" y1="${faceY}" x2="${dx+dl*0.9}" y2="${faceY}" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+          } else if (isPocket) {
+            gOpenings += `<rect x="${dx}" y="${wallY}" width="${dl}" height="${wallT}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+          } else {
+            const dir = isS ? -1 : 1;  // -1 = swing up into room (south wall), +1 = down (north wall)
+            gOpenings += `<line x1="${dx}" y1="${faceY}" x2="${dx}" y2="${faceY + dir * dl}" stroke="#000000" stroke-width="0.8"/>`;
+            const af = isS ? 1 : 0;
+            gOpenings += `<path d="M ${dx+dl} ${faceY} A ${dl} ${dl} 0 0 ${af} ${dx} ${faceY + dir * dl}" fill="none" stroke="#000000" stroke-width="0.6" stroke-dasharray="3,2"/>`;
           }
-          case "south": {
-            const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
-            gOpenings += `<rect x="${dx}" y="${ry+rh-WI-2}" width="${dwLen}" height="${WI+4}" fill="${fill}"/>`;
-            if (isWC) {
-              gOpenings += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              gOpenings += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              gOpenings += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8"/>`;
-              gOpenings += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
-          }
-          case "east": {
-            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
-            gOpenings += `<rect x="${rx+rw-WI-2}" y="${dy}" width="${WI+4}" height="${dwLen}" fill="${fill}"/>`;
-            if (isWC) {
-              gOpenings += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              gOpenings += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              gOpenings += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
-              gOpenings += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
-            break;
-          }
-          default: { // west
-            const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
-            gOpenings += `<rect x="${rx-2}" y="${dy}" width="${WI+4}" height="${dwLen}" fill="${fill}"/>`;
-            if (isWC) {
-              gOpenings += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-              gOpenings += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
-            } else {
-              gOpenings += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
-              gOpenings += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-            }
+        } else {
+          const isW   = wall === "west";
+          const wallX = isW ? rx : rx + rw - rI;
+          const wallT = isW ? lI : rI;
+          const faceX = isW ? rx + lI : rx + rw - rI;  // inner face of wall
+          const dy    = iy + (ih - dl) * frac;
+          // Clear gap in Poché wall
+          gOpenings += `<rect x="${wallX}" y="${dy}" width="${wallT}" height="${dl}" fill="${fill}"/>`;
+          if (isSliding) {
+            gOpenings += `<rect x="${wallX}" y="${dy}" width="${wallT}" height="${dl}" fill="none" stroke="#000000" stroke-width="0.8"/>`;
+            gOpenings += `<line x1="${faceX}" y1="${dy+dl*0.1}" x2="${faceX}" y2="${dy+dl*0.9}" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+          } else if (isPocket) {
+            gOpenings += `<rect x="${wallX}" y="${dy}" width="${wallT}" height="${dl}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+          } else {
+            const dir = isW ? 1 : -1;  // 1 = swing right (west wall), -1 = swing left (east wall)
+            gOpenings += `<line x1="${faceX}" y1="${dy}" x2="${faceX + dir * dl}" y2="${dy}" stroke="#000000" stroke-width="0.8"/>`;
+            const af = isW ? 1 : 0;
+            gOpenings += `<path d="M ${faceX} ${dy+dl} A ${dl} ${dl} 0 0 ${af} ${faceX + dir * dl} ${dy}" fill="none" stroke="#000000" stroke-width="0.6" stroke-dasharray="3,2"/>`;
           }
         }
       };
 
       if (isBigDoor) {
-        drawDoor(Math.round(doorLen * 0.5), 0.2);
-        drawDoor(Math.round(doorLen * 0.5), 0.5);
+        drawDoor(Math.round(dLen * 0.5), 0.2);
+        drawDoor(Math.round(dLen * 0.5), 0.55);
       } else {
-        drawDoor(doorLen, 0.25);
+        drawDoor(dLen, 0.25);
       }
     }
 
-    // layer-openings: windows
-    const noWindow = ["corridor", "storage", "wc", "toilet", "parking", "garage", "distributor"].includes(room.type ?? "");
-    if (isExterior && !noWindow) {
-      const isMajlis = (room.type ?? "").includes("majlis") || (room.type ?? "").includes("living");
-      const isBath = (room.type ?? "").includes("bath") || room.type === "wc" || room.type === "toilet";
-      const winPx = isBath ? Math.round(0.6 * SCALE) : Math.min(Math.max(WIN_MIN, 50), onTop || onBottom ? rw * 0.5 : rh * 0.5);
+    // ── layer-openings: window ────────────────────────────────────────────
+    const noWin = ["corridor","storage","wc","toilet","parking","garage","distributor","staircase","laundry"].includes(room.type ?? "");
+    if (!noWin && room.hasWindow && (onTop || onLeft || onRight || onBottom)) {
+      const isMajl = room.type === "majlis" || room.type === "family_living" || room.type === "living";
+      const isBath = room.type === "bathroom" || room.type === "toilet";
+      const winPx  = isBath
+        ? Math.round(0.6 * SCALE)
+        : Math.min(Math.max(Math.round(1.2 * SCALE), 50), onTop || onBottom ? iw * 0.5 : ih * 0.5);
 
-      const drawWin = (wx: number, wy: number, horiz: boolean) => {
+      const drawWin = (wx: number, wy: number, horiz: boolean, wallT: number) => {
         if (horiz) {
-          gOpenings += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${WI}" fill="white"/>`;
-          gOpenings += `<line x1="${wx}" y1="${wy}"      x2="${wx+winPx}" y2="${wy}"      stroke="#000000" stroke-width="0.8"/>`;
-          gOpenings += `<line x1="${wx}" y1="${wy+WI/2}" x2="${wx+winPx}" y2="${wy+WI/2}" stroke="#000000" stroke-width="0.8"/>`;
-          gOpenings += `<line x1="${wx}" y1="${wy+WI}"   x2="${wx+winPx}" y2="${wy+WI}"   stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${wallT}" fill="${fill}"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy}"          x2="${wx+winPx}" y2="${wy}"          stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy+wallT*0.5}" x2="${wx+winPx}" y2="${wy+wallT*0.5}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx}" y1="${wy+wallT}"    x2="${wx+winPx}" y2="${wy+wallT}"    stroke="#000000" stroke-width="0.8"/>`;
         } else {
-          gOpenings += `<rect x="${wx}" y="${wy}" width="${WI}" height="${winPx}" fill="white"/>`;
-          gOpenings += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
-          gOpenings += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
-          gOpenings += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<rect x="${wx}" y="${wy}" width="${wallT}" height="${winPx}" fill="${fill}"/>`;
+          gOpenings += `<line x1="${wx}"          y1="${wy}" x2="${wx}"          y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx+wallT*0.5}" y1="${wy}" x2="${wx+wallT*0.5}" y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          gOpenings += `<line x1="${wx+wallT}"    y1="${wy}" x2="${wx+wallT}"    y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
         }
       };
 
-      if (onTop) {
-        drawWin(rx + (rw - winPx) / 2, ry, true);
-        if (isMajlis && rw - winPx > winPx + 20) drawWin(rx + rw * 0.65, ry, true);
-      } else if (onBottom) {
-        drawWin(rx + (rw - winPx) / 2, ry + rh - WI, true);
-      } else if (onLeft) {
-        drawWin(rx, ry + (rh - winPx) / 2, false);
-      } else if (onRight) {
-        drawWin(rx + rw - WI, ry + (rh - winPx) / 2, false);
-      }
+      if (onTop)    drawWin(ix + (iw - winPx) / 2, ry, true, tI);
+      if (onBottom) drawWin(ix + (iw - winPx) / 2, ry + rh - bI, true, bI);
+      if (onLeft)   drawWin(rx, iy + (ih - winPx) / 2, false, lI);
+      if (onRight)  drawWin(rx + rw - rI, iy + (ih - winPx) / 2, false, rI);
+      if (isMajl && onTop && iw > winPx * 1.8) drawWin(ix + iw * 0.65, ry, true, tI);
     }
 
-    // layer-stairs: staircase steps
-    if (room.type === "staircase") {
+    // ── layer-stairs ──────────────────────────────────────────────────────
+    if (room.type === "staircase" && iw > 4 && ih > 4) {
       const stepPx = Math.round(0.25 * SCALE);
-      const stepsN = Math.max(3, Math.floor((rh - WI * 2) / stepPx));
-      const ix = rx + WI + 1, iw = rw - WI * 2 - 2;
+      const stepsN = Math.max(3, Math.floor(ih / stepPx));
       for (let s = 1; s <= stepsN; s++) {
-        const sy = ry + WI + s * stepPx;
-        if (sy < ry + rh - WI) {
-          gStairs += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#333333" stroke-width="0.7"/>`;
-        }
+        const sy = iy + s * stepPx;
+        if (sy < iy + ih - 1) gStairs += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#333333" stroke-width="0.7"/>`;
       }
-      const midy = ry + rh / 2;
-      gStairs += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#333333" stroke-width="1.2"/>`;
-      const ax = rx + rw / 2;
-      gStairs += `<line x1="${ax}" y1="${ry+rh*0.75}" x2="${ax}" y2="${ry+rh*0.22}" stroke="#000000" stroke-width="1"/>`;
-      gStairs += `<polygon points="${ax},${ry+rh*0.18} ${ax-3},${ry+rh*0.26} ${ax+3},${ry+rh*0.26}" fill="#000000"/>`;
-      gStairs += `<text x="${ax}" y="${ry+rh*0.88}" text-anchor="middle" fill="#000000" font-size="7">صعود ${stepsN} درجة</text>`;
+      const ax = ix + iw / 2;
+      gStairs += `<line x1="${ax}" y1="${iy+ih*0.8}" x2="${ax}" y2="${iy+ih*0.2}" stroke="#000000" stroke-width="1"/>`;
+      gStairs += `<polygon points="${ax},${iy+ih*0.16} ${ax-3},${iy+ih*0.25} ${ax+3},${iy+ih*0.25}" fill="#000000"/>`;
+      gStairs += `<text x="${ax}" y="${iy+ih*0.92}" text-anchor="middle" fill="#000000" font-size="7">صعود ${stepsN} درجة</text>`;
     }
 
-    // layer-labels: room text
-    const cx = rx + rw / 2;
-    const cy = ry + rh / 2;
-    const innerMin = Math.min(rw - WI * 2, rh - WI * 2);
-
-    if (innerMin >= 60) {
-      gLabels += `<text x="${cx}" y="${cy - 5}" text-anchor="middle" fill="#000000" font-size="10" font-weight="600">${room.nameAr}</text>`;
-      gLabels += `<text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="#333333" font-size="8">${(room.area ?? 0).toFixed(1)} م²</text>`;
+    // ── layer-labels ──────────────────────────────────────────────────────
+    const cx = ix + iw / 2, cy = iy + ih / 2;
+    const innerMin = Math.min(iw, ih);
+    if (innerMin >= 55) {
+      gLabels += `<text x="${cx}" y="${cy - 5}"  text-anchor="middle" fill="#000000" font-size="10" font-weight="600">${room.nameAr}</text>`;
+      gLabels += `<text x="${cx}" y="${cy + 8}"  text-anchor="middle" fill="#333333" font-size="8">${(room.area ?? 0).toFixed(1)} م²</text>`;
       gLabels += `<text x="${cx}" y="${cy + 19}" text-anchor="middle" fill="#555555" font-size="7">${(room.width ?? 0).toFixed(2)}×${(room.height ?? 0).toFixed(2)}</text>`;
-    } else if (innerMin >= 40) {
-      gLabels += `<text x="${cx}" y="${cy}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600">${room.nameAr}</text>`;
+    } else if (innerMin >= 38) {
+      gLabels += `<text x="${cx}" y="${cy}"      text-anchor="middle" fill="#000000" font-size="9" font-weight="600">${room.nameAr}</text>`;
       gLabels += `<text x="${cx}" y="${cy + 11}" text-anchor="middle" fill="#333333" font-size="7">${(room.area ?? 0).toFixed(1)} م²</text>`;
-    } else if (innerMin >= 25) {
-      gLabels += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#000000" font-size="7" font-weight="600">${room.nameAr}</text>`;
+    } else if (innerMin >= 22) {
+      gLabels += `<text x="${cx}" y="${cy + 4}"  text-anchor="middle" fill="#000000" font-size="7" font-weight="600">${room.nameAr}</text>`;
     }
   });
 
-  // Building exterior border — 4px, drawn on top of all room walls
-  gWalls += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#000000" stroke-width="4"/>`;
+  // Building exterior border (clean 2px outline on top of Poché)
+  gWalls += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#000000" stroke-width="2"/>`;
 
   // ── layer-dimensions ──────────────────────────────────────────────────────
   // Column widths for room-by-room string
