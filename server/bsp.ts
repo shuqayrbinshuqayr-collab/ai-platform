@@ -97,51 +97,51 @@ function dim(type: RoomType): { w: number; h: number } {
   return { w: rnd(wMin, wMax), h: rnd(hMin, hMax) };
 }
 
-// ─── Room colors (AutoCAD-style white background) ─────────────────────────────
+// ─── CAD B&W: all rooms white interior, all labels black ─────────────────────
 const ROOM_FILL: Record<string, string> = {
-  master_bedroom: "#FFF8F0",
-  bedroom:        "#F0F4FF",
-  majlis:         "#FFFBEB",
-  family_living:  "#F0FFF4",
-  living:         "#F0FFF4",
-  kitchen:        "#F0FFFA",
-  dining:         "#FFF0F5",
-  bathroom:       "#EFF8FF",
-  toilet:         "#EFF8FF",
-  entrance:       "#FFFDE7",
-  balcony:        "#E8F5E9",
-  staircase:      "#F5F5F5",
-  corridor:       "#FAFAFA",
-  distributor:    "#FAFAFA",
-  maid_room:      "#F3E8FF",
-  storage:        "#F5F5F5",
-  parking:        "#ECEFF1",
-  laundry:        "#E3F2FD",
-  office:         "#EDE7F6",
-  prayer:         "#FFF9C4",
+  master_bedroom: "#ffffff",
+  bedroom:        "#ffffff",
+  majlis:         "#ffffff",
+  family_living:  "#ffffff",
+  living:         "#ffffff",
+  kitchen:        "#ffffff",
+  dining:         "#ffffff",
+  bathroom:       "#f6f6f6",
+  toilet:         "#f6f6f6",
+  entrance:       "#ffffff",
+  balcony:        "#f2f2f2",
+  staircase:      "#eeeeee",
+  corridor:       "#f8f8f8",
+  distributor:    "#f8f8f8",
+  maid_room:      "#ffffff",
+  storage:        "#eeeeee",
+  parking:        "#ebebeb",
+  laundry:        "#ffffff",
+  office:         "#ffffff",
+  prayer:         "#ffffff",
 };
 
 const ROOM_STROKE: Record<string, string> = {
-  master_bedroom: "#B45309",
-  bedroom:        "#3730A3",
-  majlis:         "#92400E",
-  family_living:  "#166534",
-  living:         "#166534",
-  kitchen:        "#065F46",
-  dining:         "#9F1239",
-  bathroom:       "#1E40AF",
-  toilet:         "#1E40AF",
-  entrance:       "#78350F",
-  balcony:        "#14532D",
-  staircase:      "#374151",
-  corridor:       "#6B7280",
-  distributor:    "#6B7280",
-  maid_room:      "#6B21A8",
-  storage:        "#4B5563",
-  parking:        "#374151",
-  laundry:        "#1D4ED8",
-  office:         "#4338CA",
-  prayer:         "#92400E",
+  master_bedroom: "#000000",
+  bedroom:        "#000000",
+  majlis:         "#000000",
+  family_living:  "#000000",
+  living:         "#000000",
+  kitchen:        "#000000",
+  dining:         "#000000",
+  bathroom:       "#000000",
+  toilet:         "#000000",
+  entrance:       "#000000",
+  balcony:        "#000000",
+  staircase:      "#000000",
+  corridor:       "#000000",
+  distributor:    "#000000",
+  maid_room:      "#000000",
+  storage:        "#000000",
+  parking:        "#000000",
+  laundry:        "#000000",
+  office:         "#000000",
+  prayer:         "#000000",
 };
 
 // ─── Ground floor program ─────────────────────────────────────────────────────
@@ -499,31 +499,34 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   // ── Defs ──────────────────────────────────────────────────────────────────
   svg += `<defs>`;
   svg += `<marker id="dim_arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">`;
-  svg += `<polygon points="0,0 6,3 0,6" fill="#1e293b"/>`;
+  svg += `<polygon points="0,0 6,3 0,6" fill="#000000"/>`;
   svg += `</marker>`;
   svg += `</defs>`;
 
   // ── White background ──────────────────────────────────────────────────────
   svg += `<rect width="${svgW}" height="${svgH}" fill="white"/>`;
 
-  // ── Title block ───────────────────────────────────────────────────────────
-  svg += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="#0F172A"/>`;
-  // Left: SOAR.AI logo
-  svg += `<text x="16" y="30" fill="#F97316" font-size="22" font-weight="900" font-family="Arial, sans-serif">SOAR</text>`;
-  svg += `<text x="72" y="30" fill="white" font-size="22" font-weight="900" font-family="Arial, sans-serif">.AI</text>`;
-  svg += `<text x="16" y="52" fill="#94A3B8" font-size="10" font-family="Arial, sans-serif">منصة المخططات المعمارية الذكية</text>`;
+  // ── Title block — CAD-style B&W header ───────────────────────────────────
+  svg += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="white"/>`;
+  svg += `<rect x="0" y="0" width="${svgW}" height="${TITLE_H}" fill="none" stroke="#000000" stroke-width="1"/>`;
+  svg += `<line x1="0" y1="${TITLE_H}" x2="${svgW}" y2="${TITLE_H}" stroke="#000000" stroke-width="2"/>`;
+  // Left: project name
+  svg += `<text x="16" y="26" fill="#000000" font-size="18" font-weight="900" font-family="Arial, sans-serif">SOAR.AI</text>`;
+  svg += `<text x="16" y="44" fill="#000000" font-size="9" font-family="Arial, sans-serif">منصة المخططات المعمارية الذكية</text>`;
+  svg += `<line x1="120" y1="8" x2="120" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
   // Center: title
   const conceptNames = [
     "المفهوم العصري المفتوح", "المفهوم التراثي السعودي", "المفهوم الوظيفي الذكي",
     "المفهوم الفاخر الموسّع", "المفهوم المتوسطي", "المفهوم الاقتصادي الأمثل"
   ];
-  svg += `<text x="${svgW/2}" y="28" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Arial, sans-serif">${conceptNames[conceptIndex] ?? `المفهوم ${conceptIndex+1}`}</text>`;
-  svg += `<text x="${svgW/2}" y="48" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="Arial, sans-serif">مخطط الدور الأرضي — Floor Plan</text>`;
-  // Right: info
-  svg += `<text x="${svgW-12}" y="22" text-anchor="end" fill="#94A3B8" font-size="9" font-family="Arial, sans-serif">مقياس 1:100</text>`;
-  svg += `<text x="${svgW-12}" y="36" text-anchor="end" fill="#94A3B8" font-size="9" font-family="Arial, sans-serif">مساحة الأرض: ${layout.landArea} م²</text>`;
-  svg += `<text x="${svgW-12}" y="50" text-anchor="end" fill="#F97316" font-size="9" font-family="Arial, sans-serif">مساحة البناء: ${layout.buildingArea} م²</text>`;
-  svg += `<text x="${svgW-12}" y="64" text-anchor="end" fill="#94A3B8" font-size="9" font-family="Arial, sans-serif">${layout.summary.totalFloors} دور — ${layout.summary.bedrooms} غرف نوم</text>`;
+  svg += `<text x="${svgW/2}" y="26" text-anchor="middle" fill="#000000" font-size="13" font-weight="bold" font-family="Arial, sans-serif">${conceptNames[conceptIndex] ?? `المفهوم ${conceptIndex+1}`}</text>`;
+  svg += `<text x="${svgW/2}" y="44" text-anchor="middle" fill="#000000" font-size="9" font-family="Arial, sans-serif">مخطط الدور الأرضي — Ground Floor Plan</text>`;
+  svg += `<line x1="${svgW-160}" y1="8" x2="${svgW-160}" y2="${TITLE_H-8}" stroke="#000000" stroke-width="0.5"/>`;
+  // Right: info grid
+  svg += `<text x="${svgW-12}" y="20" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مقياس 1:100</text>`;
+  svg += `<text x="${svgW-12}" y="32" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مساحة الأرض: ${layout.landArea} م²</text>`;
+  svg += `<text x="${svgW-12}" y="44" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">مساحة البناء: ${layout.buildingArea} م²</text>`;
+  svg += `<text x="${svgW-12}" y="56" text-anchor="end" fill="#000000" font-size="8" font-family="Arial, sans-serif">${layout.summary.totalFloors} دور — ${layout.summary.bedrooms} غرف نوم</text>`;
 
   // ── Land boundary (dashed) ────────────────────────────────────────────────
   const sb = layout.setbacks;
@@ -531,15 +534,15 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   const landD = bd + sb.front + sb.back;
   const lx = ox - sb.side * SCALE;
   const ly = oy - sb.front * SCALE;
-  svg += `<rect x="${lx}" y="${ly}" width="${landW*SCALE}" height="${landD*SCALE}" fill="none" stroke="#94A3B8" stroke-width="1" stroke-dasharray="10,5"/>`;
-  svg += `<text x="${lx+4}" y="${ly-5}" fill="#94A3B8" font-size="8" font-family="Arial">حدود الأرض</text>`;
+  svg += `<rect x="${lx}" y="${ly}" width="${landW*SCALE}" height="${landD*SCALE}" fill="none" stroke="#888888" stroke-width="0.8" stroke-dasharray="10,5"/>`;
+  svg += `<text x="${lx+4}" y="${ly-5}" fill="#555555" font-size="8" font-family="Arial">حدود الأرض</text>`;
 
   // Setback labels
-  svg += `<text x="${ox + bw*SCALE/2}" y="${ly + sb.front*SCALE/2 + 4}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Arial">إرتداد أمامي ${sb.front}م</text>`;
-  svg += `<text x="${ox + bw*SCALE/2}" y="${oy + bd*SCALE + sb.back*SCALE/2 + 4}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Arial">إرتداد خلفي ${sb.back}م</text>`;
+  svg += `<text x="${ox + bw*SCALE/2}" y="${ly + sb.front*SCALE/2 + 4}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">إرتداد أمامي ${sb.front}م</text>`;
+  svg += `<text x="${ox + bw*SCALE/2}" y="${oy + bd*SCALE + sb.back*SCALE/2 + 4}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">إرتداد خلفي ${sb.back}م</text>`;
 
-  // ── Building outer walls: STEP 1 exterior wall 12px ─────────────────────
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="#E2E8F0" stroke="#1a1a1a" stroke-width="12"/>`;
+  // ── Building outer walls: exterior wall 12px, white fill ────────────────
+  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="#ffffff" stroke="#000000" stroke-width="12"/>`;
 
   // ── Room rendering: double-rect walls + doors + windows + stairs ──────────
   const WI = 6;             // interior wall inset px (6px ≈ 0.14m)
@@ -562,13 +565,12 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
 
     // ── Outside-building rooms (parking) — dashed grey box ─────────────────
     if (room._outsideBuilding) {
-      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#e8e8e8" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="6,3"/>`;
+      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#f0f0f0" stroke="#000000" stroke-width="1" stroke-dasharray="6,3"/>`;
       const parkFontSize = Math.min(Math.min(rw, rh) * 0.3, 28);
-      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+parkFontSize*0.35}" text-anchor="middle" fill="#64748B" font-size="${parkFontSize}" font-weight="900" font-family="Arial" opacity="0.35">P</text>`;
-      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+8}" text-anchor="middle" fill="#475569" font-size="8" font-family="Arial">${room.nameAr ?? "موقف"}</text>`;
-      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+18}" text-anchor="middle" fill="#94A3B8" font-size="7" font-family="Arial">${(room.width??0).toFixed(1)}×${(room.height??0).toFixed(1)} م</text>`;
-      // Dashed arrow connecting to building
-      svg += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,3"/>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+parkFontSize*0.35}" text-anchor="middle" fill="#000000" font-size="${parkFontSize}" font-weight="900" font-family="Arial" opacity="0.12">P</text>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+8}" text-anchor="middle" fill="#000000" font-size="8" font-family="Arial">${room.nameAr ?? "موقف"}</text>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+18}" text-anchor="middle" fill="#444444" font-size="7" font-family="Arial">${(room.width??0).toFixed(1)}×${(room.height??0).toFixed(1)} م</text>`;
+      svg += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#555555" stroke-width="0.8" stroke-dasharray="4,3"/>`;
       return;
     }
 
@@ -577,8 +579,8 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const onRight  = room.x + room.width  > bw - 0.3;
     const onBottom = room.y + room.height > bd - 0.3;
     const isExterior = onTop || onLeft || onRight || onBottom;
-    const wallFill = isExterior ? "#1a1a1a" : "#444444"; // STEP 1: exterior vs interior
-    const wallSW   = isExterior ? 3 : 1.5;               // stroke on outer rect
+    const wallFill = "#000000"; // CAD: all walls black
+    const wallSW   = isExterior ? 2 : 1;
 
     // ── LAYER 1: Outer rect (wall fill) + Inner rect (room fill) ───────────
     svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${wallFill}" stroke="${wallFill}" stroke-width="${wallSW}"/>`;
@@ -594,21 +596,21 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       for (let s = 1; s <= stepsN; s++) {
         const sy = ry + WI + s * stepPx;
         if (sy < ry + rh - WI) {
-          svg += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#555" stroke-width="1"/>`;
+          svg += `<line x1="${ix}" y1="${sy}" x2="${ix+iw}" y2="${sy}" stroke="#000000" stroke-width="0.8"/>`;
         }
       }
       // Break line (zigzag) at mid height
       const midy = ry + rh / 2;
-      svg += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#374151" stroke-width="1.5"/>`;
+      svg += `<polyline points="${ix},${midy-3} ${ix+iw*0.25},${midy+3} ${ix+iw*0.5},${midy-3} ${ix+iw*0.75},${midy+3} ${ix+iw},${midy-3}" fill="none" stroke="#000000" stroke-width="1.5"/>`;
       // Up arrow
       const ax = rx + rw / 2;
-      svg += `<line x1="${ax}" y1="${ry+rh*0.78}" x2="${ax}" y2="${ry+rh*0.18}" stroke="#1E293B" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
-      svg += `<text x="${ax}" y="${ry+rh*0.9+4}" text-anchor="middle" fill="#374151" font-size="8" font-family="Arial">صعود ${stepsN} درجة</text>`;
+      svg += `<line x1="${ax}" y1="${ry+rh*0.78}" x2="${ax}" y2="${ry+rh*0.18}" stroke="#000000" stroke-width="1.5" marker-end="url(#dim_arrow)"/>`;
+      svg += `<text x="${ax}" y="${ry+rh*0.9+4}" text-anchor="middle" fill="#000000" font-size="8" font-family="Arial">صعود ${stepsN} درجة</text>`;
     }
 
     // ── LAYER 2b: Parking watermark ─────────────────────────────────────────
     if (room.type === "parking" || room.type === "garage") {
-      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#64748B" font-size="${Math.min(rw,rh)*0.35}" font-weight="900" font-family="Arial" opacity="0.2">P</text>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+12}" text-anchor="middle" fill="#000000" font-size="${Math.min(rw,rh)*0.35}" font-weight="900" font-family="Arial" opacity="0.12">P</text>`;
     }
 
     // ── LAYER 3: Windows — only on exterior walls, 3 parallel lines ────────
@@ -621,14 +623,14 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       const drawWin = (wx: number, wy: number, horiz: boolean) => {
         if (horiz) {
           svg += `<rect x="${wx}" y="${wy}" width="${winPx}" height="${WI}" fill="white"/>`;
-          svg += `<line x1="${wx}" y1="${wy}"         x2="${wx+winPx}" y2="${wy}"         stroke="#4a90d9" stroke-width="1.5"/>`;
-          svg += `<line x1="${wx}" y1="${wy+WI/2}"    x2="${wx+winPx}" y2="${wy+WI/2}"    stroke="#4a90d9" stroke-width="1.5"/>`;
-          svg += `<line x1="${wx}" y1="${wy+WI}"       x2="${wx+winPx}" y2="${wy+WI}"       stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx}" y1="${wy}"         x2="${wx+winPx}" y2="${wy}"         stroke="#000000" stroke-width="0.8"/>`;
+          svg += `<line x1="${wx}" y1="${wy+WI/2}"    x2="${wx+winPx}" y2="${wy+WI/2}"    stroke="#000000" stroke-width="0.8"/>`;
+          svg += `<line x1="${wx}" y1="${wy+WI}"       x2="${wx+winPx}" y2="${wy+WI}"       stroke="#000000" stroke-width="0.8"/>`;
         } else {
           svg += `<rect x="${wx}" y="${wy}" width="${WI}" height="${winPx}" fill="white"/>`;
-          svg += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
-          svg += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
-          svg += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#4a90d9" stroke-width="1.5"/>`;
+          svg += `<line x1="${wx}"      y1="${wy}" x2="${wx}"      y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          svg += `<line x1="${wx+WI/2}" y1="${wy}" x2="${wx+WI/2}" y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
+          svg += `<line x1="${wx+WI}"   y1="${wy}" x2="${wx+WI}"   y2="${wy+winPx}" stroke="#000000" stroke-width="0.8"/>`;
         }
       };
 
@@ -661,12 +663,11 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
             const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${dx}" y="${ry}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
             if (isWC) {
-              // Pocket door: two parallel dashed lines
-              svg += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry}" x2="${dx+dwLen}" y2="${ry}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
             } else {
-              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-              svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+WI}" x2="${dx+dwLen}" y2="${ry+WI}" stroke="#000000" stroke-width="0.8"/>`;
+              svg += `<path d="M ${dx+dwLen} ${ry+WI} A ${dwLen} ${dwLen} 0 0 0 ${dx} ${ry+WI+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
             }
             break;
           }
@@ -674,11 +675,11 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
             const dx = rx + WI + (rw - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${dx}" y="${ry+rh-WI}" width="${dwLen}" height="${WI}" fill="${fill}"/>`;
             if (isWC) {
-              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+rh}" x2="${dx+dwLen}" y2="${ry+rh}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
             } else {
-              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-              svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+              svg += `<line x1="${dx}" y1="${ry+rh-WI}" x2="${dx+dwLen}" y2="${ry+rh-WI}" stroke="#000000" stroke-width="0.8"/>`;
+              svg += `<path d="M ${dx} ${ry+rh-WI} A ${dwLen} ${dwLen} 0 0 1 ${dx+dwLen} ${ry+rh-WI-dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
             }
             break;
           }
@@ -686,11 +687,11 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
             const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${rx+rw-WI}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
             if (isWC) {
-              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx+rw}" y1="${dy}" x2="${rx+rw}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
             } else {
-              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-              svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+              svg += `<line x1="${rx+rw-WI}" y1="${dy}" x2="${rx+rw-WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
+              svg += `<path d="M ${rx+rw-WI} ${dy+dwLen} A ${dwLen} ${dwLen} 0 0 1 ${rx+rw-WI-dwLen} ${dy}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
             }
             break;
           }
@@ -698,11 +699,11 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
             const dy = ry + WI + (rh - WI * 2 - dwLen) * offsetFactor;
             svg += `<rect x="${rx}" y="${dy}" width="${WI}" height="${dwLen}" fill="${fill}"/>`;
             if (isWC) {
-              svg += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
-              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#888" stroke-width="1" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx}" y1="${dy}" x2="${rx}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8" stroke-dasharray="4,2"/>`;
             } else {
-              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-              svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>`;
+              svg += `<line x1="${rx+WI}" y1="${dy}" x2="${rx+WI}" y2="${dy+dwLen}" stroke="#000000" stroke-width="0.8"/>`;
+              svg += `<path d="M ${rx+WI} ${dy} A ${dwLen} ${dwLen} 0 0 0 ${rx+WI+dwLen} ${dy+dwLen}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="3,2"/>`;
             }
           }
         }
@@ -717,58 +718,57 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       }
     }
 
-    // ── LAYER 5: Adaptive room labels — pixel-based font size ─────────────
+    // ── LAYER 5: Adaptive room labels — CAD B&W, all black ───────────────
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
-    const labelColor = ROOM_STROKE[room.type] ?? "#1E293B";
     const minPx = Math.min(rw, rh);
 
     if (minPx >= 60) {
-      // Full: name 11px bold + area 9px + dims 8px
-      svg += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="${labelColor}" font-size="11" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      svg += `<text x="${cx}" y="${cy + 4}"  text-anchor="middle" fill="#64748B"      font-size="9"  font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
-      svg += `<text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="#94A3B8"      font-size="8"  font-weight="300" font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
+      // Full: name 10px bold + area 8px + dims 8px
+      svg += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="#000000" font-size="10" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 3}"  text-anchor="middle" fill="#000000" font-size="8"  font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
+      svg += `<text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#444444" font-size="8"  font-weight="300" font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
     } else if (minPx >= 40) {
-      // Medium: name 9px + area 7px only
-      svg += `<text x="${cx}" y="${cy - 3}" text-anchor="middle" fill="${labelColor}" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
-      svg += `<text x="${cx}" y="${cy + 9}" text-anchor="middle" fill="#64748B"      font-size="7" font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
+      // Medium: name 9px + area 7px
+      svg += `<text x="${cx}" y="${cy - 3}" text-anchor="middle" fill="#000000" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 9}" text-anchor="middle" fill="#000000" font-size="7" font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
     } else if (minPx >= 25) {
       // Small: name 7px only
-      svg += `<text x="${cx}" y="${cy + 3}" text-anchor="middle" fill="${labelColor}" font-size="7" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 3}" text-anchor="middle" fill="#000000" font-size="7" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
     }
     // < 25px: hide all text
   });
 
   // ── Outer building border — exterior wall 12px redraw on top ──────────────
-  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#0F172A" stroke-width="12"/>`;
+  svg += `<rect x="${ox}" y="${oy}" width="${bw*SCALE}" height="${bd*SCALE}" fill="none" stroke="#000000" stroke-width="12"/>`;
 
-  // ── Dimension lines ───────────────────────────────────────────────────────
+  // ── Dimension lines — tick marks, all black ───────────────────────────────
   const dimOffset = 28;
 
-  // Width dimension (bottom)
+  // Width dimension (bottom) — tick marks
   const dimBotY = oy + bd*SCALE + dimOffset;
-  svg += `<line x1="${ox}" y1="${dimBotY}" x2="${ox+bw*SCALE}" y2="${dimBotY}" stroke="#1E293B" stroke-width="1"/>`;
-  svg += `<line x1="${ox}" y1="${dimBotY-6}" x2="${ox}" y2="${dimBotY+6}" stroke="#1E293B" stroke-width="1.5"/>`;
-  svg += `<line x1="${ox+bw*SCALE}" y1="${dimBotY-6}" x2="${ox+bw*SCALE}" y2="${dimBotY+6}" stroke="#1E293B" stroke-width="1.5"/>`;
-  svg += `<text x="${ox+bw*SCALE/2}" y="${dimBotY+14}" text-anchor="middle" fill="#1E293B" font-size="11" font-weight="bold" font-family="Arial">${bw.toFixed(2)} م</text>`;
+  svg += `<line x1="${ox}" y1="${dimBotY}" x2="${ox+bw*SCALE}" y2="${dimBotY}" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<line x1="${ox}" y1="${dimBotY-5}" x2="${ox}" y2="${dimBotY+5}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<line x1="${ox+bw*SCALE}" y1="${dimBotY-5}" x2="${ox+bw*SCALE}" y2="${dimBotY+5}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<text x="${ox+bw*SCALE/2}" y="${dimBotY+14}" text-anchor="middle" fill="#000000" font-size="10" font-weight="bold" font-family="Arial">${bw.toFixed(2)} م</text>`;
 
-  // Depth dimension (right)
+  // Depth dimension (right) — tick marks
   const dimRightX = ox + bw*SCALE + dimOffset;
-  svg += `<line x1="${dimRightX}" y1="${oy}" x2="${dimRightX}" y2="${oy+bd*SCALE}" stroke="#1E293B" stroke-width="1"/>`;
-  svg += `<line x1="${dimRightX-6}" y1="${oy}" x2="${dimRightX+6}" y2="${oy}" stroke="#1E293B" stroke-width="1.5"/>`;
-  svg += `<line x1="${dimRightX-6}" y1="${oy+bd*SCALE}" x2="${dimRightX+6}" y2="${oy+bd*SCALE}" stroke="#1E293B" stroke-width="1.5"/>`;
-  svg += `<text x="${dimRightX+16}" y="${oy+bd*SCALE/2+4}" text-anchor="middle" fill="#1E293B" font-size="11" font-weight="bold" font-family="Arial" transform="rotate(90,${dimRightX+16},${oy+bd*SCALE/2+4})">${bd.toFixed(2)} م</text>`;
+  svg += `<line x1="${dimRightX}" y1="${oy}" x2="${dimRightX}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<line x1="${dimRightX-5}" y1="${oy}" x2="${dimRightX+5}" y2="${oy}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<line x1="${dimRightX-5}" y1="${oy+bd*SCALE}" x2="${dimRightX+5}" y2="${oy+bd*SCALE}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<text x="${dimRightX+16}" y="${oy+bd*SCALE/2+4}" text-anchor="middle" fill="#000000" font-size="10" font-weight="bold" font-family="Arial" transform="rotate(90,${dimRightX+16},${oy+bd*SCALE/2+4})">${bd.toFixed(2)} م</text>`;
 
-  // Column dimension ticks (top)
+  // Column division ticks (top)
   const leftW   = parseFloat((bw * 0.28).toFixed(2));
   const centerW = parseFloat((bw * 0.42).toFixed(2));
   const rightW  = parseFloat((bw - leftW - centerW).toFixed(2));
   const dimTopY = oy - 18;
-  svg += `<line x1="${ox}" y1="${dimTopY}" x2="${ox+bw*SCALE}" y2="${dimTopY}" stroke="#94A3B8" stroke-width="0.8"/>`;
+  svg += `<line x1="${ox}" y1="${dimTopY}" x2="${ox+bw*SCALE}" y2="${dimTopY}" stroke="#555555" stroke-width="0.6"/>`;
   [leftW, leftW+centerW].forEach(xm => {
     const px = ox + xm*SCALE;
-    svg += `<line x1="${px}" y1="${dimTopY-4}" x2="${px}" y2="${dimTopY+4}" stroke="#94A3B8" stroke-width="1"/>`;
-    svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#94A3B8" stroke-width="0.5" stroke-dasharray="4,3"/>`;
+    svg += `<line x1="${px}" y1="${dimTopY-4}" x2="${px}" y2="${dimTopY+4}" stroke="#555555" stroke-width="0.8"/>`;
+    svg += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${oy+bd*SCALE}" stroke="#888888" stroke-width="0.5" stroke-dasharray="4,3"/>`;
   });
 
   // ── STEP 6: SBC Validation warnings in left margin ───────────────────────
@@ -791,89 +791,85 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   if (sbcWarnings.length > 0) {
     const warnX = ox - MARGIN + 4;
     const warnY0 = oy + 10;
-    svg += `<text x="${warnX}" y="${warnY0}" fill="#DC2626" font-size="7" font-weight="bold" font-family="Arial">تحقق SBC:</text>`;
+    svg += `<text x="${warnX}" y="${warnY0}" fill="#000000" font-size="7" font-weight="bold" font-family="Arial">تحقق SBC:</text>`;
     sbcWarnings.slice(0, 6).forEach((w, i) => {
-      svg += `<text x="${warnX}" y="${warnY0 + 12 + i * 11}" fill="#DC2626" font-size="7" font-family="Arial">${w}</text>`;
+      svg += `<text x="${warnX}" y="${warnY0 + 12 + i * 11}" fill="#444444" font-size="7" font-family="Arial">${w}</text>`;
     });
   }
 
-  // ── North arrow — top-right corner ──────────────────────────────────────
+  // ── North arrow — top-right corner, CAD B&W ──────────────────────────────
   const nax = ox + bw*SCALE - 22, nay = oy + 24;
-  // Thin circle
-  svg += `<circle cx="${nax}" cy="${nay}" r="14" fill="none" stroke="#374151" stroke-width="0.8"/>`;
-  // Arrow shaft pointing up
-  svg += `<line x1="${nax}" y1="${nay+10}" x2="${nax}" y2="${nay-10}" stroke="#374151" stroke-width="1"/>`;
-  // Arrowhead (small, thin)
-  svg += `<polygon points="${nax},${nay-13} ${nax-3},${nay-6} ${nax+3},${nay-6}" fill="#374151"/>`;
-  // Letter N below
-  svg += `<text x="${nax}" y="${nay+26}" text-anchor="middle" fill="#374151" font-size="9" font-weight="600" font-family="Arial">N</text>`;
+  svg += `<circle cx="${nax}" cy="${nay}" r="14" fill="none" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<line x1="${nax}" y1="${nay+10}" x2="${nax}" y2="${nay-10}" stroke="#000000" stroke-width="1"/>`;
+  svg += `<polygon points="${nax},${nay-13} ${nax-3},${nay-6} ${nax+3},${nay-6}" fill="#000000"/>`;
+  svg += `<text x="${nax}" y="${nay+26}" text-anchor="middle" fill="#000000" font-size="9" font-weight="600" font-family="Arial">N</text>`;
 
   // ── Scale bar ─────────────────────────────────────────────────────────────
   const sbX = ox + bw*SCALE - 5*SCALE - 10;
   const sbY = oy + bd*SCALE + dimOffset + 20;
-  svg += `<text x="${sbX}" y="${sbY-4}" fill="#475569" font-size="8" font-family="Arial">مقياس:</text>`;
+  svg += `<text x="${sbX}" y="${sbY-4}" fill="#000000" font-size="8" font-family="Arial">مقياس:</text>`;
   for (let i = 0; i < 5; i++) {
-    svg += `<rect x="${sbX+40+i*SCALE}" y="${sbY}" width="${SCALE}" height="6" fill="${i%2===0?"#1E293B":"white"}" stroke="#1E293B" stroke-width="0.5"/>`;
-    svg += `<text x="${sbX+40+i*SCALE}" y="${sbY+16}" fill="#475569" font-size="7" font-family="Arial">${i}م</text>`;
+    svg += `<rect x="${sbX+40+i*SCALE}" y="${sbY}" width="${SCALE}" height="6" fill="${i%2===0?"#000000":"white"}" stroke="#000000" stroke-width="0.8"/>`;
+    svg += `<text x="${sbX+40+i*SCALE}" y="${sbY+16}" fill="#000000" font-size="7" font-family="Arial">${i}م</text>`;
   }
-  svg += `<text x="${sbX+40+5*SCALE}" y="${sbY+16}" fill="#475569" font-size="7" font-family="Arial">5م</text>`;
+  svg += `<text x="${sbX+40+5*SCALE}" y="${sbY+16}" fill="#000000" font-size="7" font-family="Arial">5م</text>`;
 
-  // ── Full architectural legend box — bottom-right, outside building ───────
-  const legBoxW = 160, legBoxH = 118;
+  // ── Legend box — CAD B&W, simple black border ────────────────────────────
+  const legBoxW = 160, legBoxH = 110;
   const legX = ox + bw*SCALE - legBoxW;
   const legY = oy + bd*SCALE + dimOffset + 14;
-  // Box border
-  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="${legBoxH}" fill="white" stroke="#334155" stroke-width="1"/>`;
-  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="14" fill="#0F172A"/>`;
-  svg += `<text x="${legX+legBoxW/2}" y="${legY+10}" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">مفتاح الرموز — Legend</text>`;
+  svg += `<rect x="${legX}" y="${legY}" width="${legBoxW}" height="${legBoxH}" fill="white" stroke="#000000" stroke-width="1"/>`;
+  svg += `<line x1="${legX}" y1="${legY+14}" x2="${legX+legBoxW}" y2="${legY+14}" stroke="#000000" stroke-width="1"/>`;
+  svg += `<text x="${legX+legBoxW/2}" y="${legY+10}" text-anchor="middle" fill="#000000" font-size="8" font-weight="bold" font-family="Arial">مفتاح الرموز — Legend</text>`;
 
-  const li = legY + 20; // first item y
-  const lRow = 16;      // row height
-  const lSx = legX + 6; // symbol x
-  const lTx = legX + 30; // text x
+  const li = legY + 20;
+  const lRow = 16;
+  const lSx = legX + 6;
+  const lTx = legX + 30;
 
-  // 1. Exterior wall (thick dark rect)
-  svg += `<rect x="${lSx}" y="${li+0*lRow}" width="20" height="8" fill="#2d2d2d"/>`;
-  svg += `<rect x="${lSx+2}" y="${li+0*lRow+2}" width="16" height="4" fill="#E2E8F0"/>`;
-  svg += `<text x="${lTx}" y="${li+0*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">جدار خارجي / Ext. Wall</text>`;
+  // 1. Exterior wall
+  svg += `<rect x="${lSx}" y="${li+0*lRow}" width="20" height="8" fill="#000000"/>`;
+  svg += `<rect x="${lSx+2}" y="${li+0*lRow+2}" width="16" height="4" fill="white"/>`;
+  svg += `<text x="${lTx}" y="${li+0*lRow+8}" fill="#000000" font-size="8" font-family="Arial">جدار خارجي / Ext. Wall</text>`;
 
-  // 2. Interior wall (thinner dark rect)
-  svg += `<rect x="${lSx}" y="${li+1*lRow}" width="20" height="5" fill="#374151"/>`;
-  svg += `<rect x="${lSx+1}" y="${li+1*lRow+1}" width="18" height="3" fill="#F0F4FF"/>`;
-  svg += `<text x="${lTx}" y="${li+1*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">جدار داخلي / Int. Wall</text>`;
+  // 2. Interior wall
+  svg += `<rect x="${lSx}" y="${li+1*lRow+1}" width="20" height="5" fill="#000000"/>`;
+  svg += `<rect x="${lSx+1}" y="${li+1*lRow+2}" width="18" height="3" fill="white"/>`;
+  svg += `<text x="${lTx}" y="${li+1*lRow+8}" fill="#000000" font-size="8" font-family="Arial">جدار داخلي / Int. Wall</text>`;
 
-  // 3. Single door (leaf + arc)
-  svg += `<line x1="${lSx}" y1="${li+2*lRow}" x2="${lSx+12}" y2="${li+2*lRow}" stroke="#1a1a1a" stroke-width="1.5"/>`;
-  svg += `<path d="M ${lSx} ${li+2*lRow} A 12 12 0 0 1 ${lSx+12} ${li+2*lRow+12}" fill="none" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>`;
-  svg += `<text x="${lTx}" y="${li+2*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">باب / Single Door</text>`;
+  // 3. Door (leaf + dashed arc)
+  svg += `<line x1="${lSx}" y1="${li+2*lRow}" x2="${lSx+12}" y2="${li+2*lRow}" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<path d="M ${lSx} ${li+2*lRow} A 12 12 0 0 1 ${lSx+12} ${li+2*lRow+12}" fill="none" stroke="#000000" stroke-width="0.8" stroke-dasharray="2,2"/>`;
+  svg += `<text x="${lTx}" y="${li+2*lRow+8}" fill="#000000" font-size="8" font-family="Arial">باب / Single Door</text>`;
 
   // 4. Window (3 parallel lines)
-  svg += `<line x1="${lSx}" y1="${li+3*lRow}"   x2="${lSx+20}" y2="${li+3*lRow}"   stroke="#4a90d9" stroke-width="1.5"/>`;
-  svg += `<line x1="${lSx}" y1="${li+3*lRow+3}" x2="${lSx+20}" y2="${li+3*lRow+3}" stroke="#4a90d9" stroke-width="1.5"/>`;
-  svg += `<line x1="${lSx}" y1="${li+3*lRow+6}" x2="${lSx+20}" y2="${li+3*lRow+6}" stroke="#4a90d9" stroke-width="1.5"/>`;
-  svg += `<text x="${lTx}" y="${li+3*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">نافذة / Window</text>`;
+  svg += `<line x1="${lSx}" y1="${li+3*lRow}"   x2="${lSx+20}" y2="${li+3*lRow}"   stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<line x1="${lSx}" y1="${li+3*lRow+3}" x2="${lSx+20}" y2="${li+3*lRow+3}" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<line x1="${lSx}" y1="${li+3*lRow+6}" x2="${lSx+20}" y2="${li+3*lRow+6}" stroke="#000000" stroke-width="0.8"/>`;
+  svg += `<text x="${lTx}" y="${li+3*lRow+8}" fill="#000000" font-size="8" font-family="Arial">نافذة / Window</text>`;
 
-  // 5. Staircase (step lines + up arrow)
+  // 5. Staircase
   for (let s = 0; s < 4; s++) {
-    svg += `<line x1="${lSx}" y1="${li+4*lRow+s*2}" x2="${lSx+18}" y2="${li+4*lRow+s*2}" stroke="#555" stroke-width="1"/>`;
+    svg += `<line x1="${lSx}" y1="${li+4*lRow+s*2}" x2="${lSx+18}" y2="${li+4*lRow+s*2}" stroke="#000000" stroke-width="0.8"/>`;
   }
-  svg += `<line x1="${lSx+9}" y1="${li+4*lRow+10}" x2="${lSx+9}" y2="${li+4*lRow+2}" stroke="#1E293B" stroke-width="1" marker-end="url(#dim_arrow)"/>`;
-  svg += `<text x="${lTx}" y="${li+4*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">درج UP / Staircase</text>`;
+  svg += `<line x1="${lSx+9}" y1="${li+4*lRow+10}" x2="${lSx+9}" y2="${li+4*lRow+2}" stroke="#000000" stroke-width="1" marker-end="url(#dim_arrow)"/>`;
+  svg += `<text x="${lTx}" y="${li+4*lRow+8}" fill="#000000" font-size="8" font-family="Arial">درج UP / Staircase</text>`;
 
-  // 6. Opening/passage (diagonal threshold marks)
-  svg += `<line x1="${lSx}" y1="${li+5*lRow}" x2="${lSx+20}" y2="${li+5*lRow}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,2"/>`;
-  svg += `<line x1="${lSx}" y1="${li+5*lRow-3}" x2="${lSx}" y2="${li+5*lRow+3}" stroke="#374151" stroke-width="1.5"/>`;
-  svg += `<line x1="${lSx+20}" y1="${li+5*lRow-3}" x2="${lSx+20}" y2="${li+5*lRow+3}" stroke="#374151" stroke-width="1.5"/>`;
-  svg += `<text x="${lTx}" y="${li+5*lRow+8}" fill="#1E293B" font-size="8" font-family="Arial">فتحة / Opening</text>`;
+  // 6. Opening
+  svg += `<line x1="${lSx}" y1="${li+5*lRow}" x2="${lSx+20}" y2="${li+5*lRow}" stroke="#555555" stroke-width="0.8" stroke-dasharray="4,2"/>`;
+  svg += `<line x1="${lSx}" y1="${li+5*lRow-3}" x2="${lSx}" y2="${li+5*lRow+3}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<line x1="${lSx+20}" y1="${li+5*lRow-3}" x2="${lSx+20}" y2="${li+5*lRow+3}" stroke="#000000" stroke-width="1.2"/>`;
+  svg += `<text x="${lTx}" y="${li+5*lRow+8}" fill="#000000" font-size="8" font-family="Arial">فتحة / Opening</text>`;
 
-  // ── Footer title block ────────────────────────────────────────────────────
+  // ── Footer title block — CAD B&W, simple black border ───────────────────
   const footerY = svgH - FOOTER_H;
-  svg += `<rect x="0" y="${footerY}" width="${svgW}" height="${FOOTER_H}" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>`;
+  svg += `<rect x="0" y="${footerY}" width="${svgW}" height="${FOOTER_H}" fill="white" stroke="#000000" stroke-width="1"/>`;
+  svg += `<line x1="0" y1="${footerY}" x2="${svgW}" y2="${footerY}" stroke="#000000" stroke-width="2"/>`;
 
   // Vertical dividers
   const cols = [svgW*0.25, svgW*0.5, svgW*0.75];
-  cols.forEach(cx => {
-    svg += `<line x1="${cx}" y1="${footerY}" x2="${cx}" y2="${svgH}" stroke="#E2E8F0" stroke-width="1"/>`;
+  cols.forEach(colX => {
+    svg += `<line x1="${colX}" y1="${footerY}" x2="${colX}" y2="${svgH}" stroke="#000000" stroke-width="0.5"/>`;
   });
 
   const footerData = [
@@ -883,14 +879,14 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     { label: "الأدوار", value: `${layout.summary.totalFloors} دور`, cx: svgW*0.875 },
   ];
   footerData.forEach(({ label, value, cx }) => {
-    svg += `<text x="${cx}" y="${footerY+20}" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="Arial">${label}</text>`;
-    svg += `<text x="${cx}" y="${footerY+40}" text-anchor="middle" fill="#1E293B" font-size="12" font-weight="bold" font-family="Arial">${value}</text>`;
+    svg += `<text x="${cx}" y="${footerY+20}" text-anchor="middle" fill="#555555" font-size="8" font-family="Arial">${label}</text>`;
+    svg += `<text x="${cx}" y="${footerY+40}" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold" font-family="Arial">${value}</text>`;
   });
 
-  // Date
+  // Date and copyright
   const today = new Date().toLocaleDateString("ar-SA");
-  svg += `<text x="${svgW-8}" y="${footerY+60}" text-anchor="end" fill="#94A3B8" font-size="8" font-family="Arial">${today}</text>`;
-  svg += `<text x="8" y="${footerY+60}" fill="#94A3B8" font-size="8" font-family="Arial">SOAR.AI © 2025 — جميع الحقوق محفوظة</text>`;
+  svg += `<text x="${svgW-8}" y="${footerY+60}" text-anchor="end" fill="#555555" font-size="8" font-family="Arial">${today}</text>`;
+  svg += `<text x="8" y="${footerY+60}" fill="#555555" font-size="8" font-family="Arial">SOAR.AI © 2025 — جميع الحقوق محفوظة</text>`;
 
   svg += `</svg>`;
   return svg;
