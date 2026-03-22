@@ -193,8 +193,12 @@ function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
     return "private";
   };
 
+  // Separate parking — will be placed OUTSIDE building footprint
+  const parkingRooms = rooms.filter(r => is(r, "parking", "garage")).map(norm);
+  const nonParking   = rooms.filter(r => !is(r, "parking", "garage"));
+
   const zones: Record<string, any[]> = { guest: [], family: [], private: [], service: [] };
-  rooms.forEach(r => zones[classify(r)].push(norm(r)));
+  nonParking.forEach(r => zones[classify(r)].push(norm(r)));
 
   const result: any[] = [];
 
@@ -213,20 +217,22 @@ function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
+  // PARKING — OUTSIDE building footprint (right side setback area)
+  // ════════════════════════════════════════════════════════════════════════════
+  let extParkW = 0; // width consumed outside the building
+  parkingRooms.forEach(r => {
+    const w = snap(clamp(r.width ?? 3.0, 3.0, 6.5));
+    const h = clamp(snap(Math.min(r.height ?? 6.0, 18 / w)), 3.0, bD * 0.35);
+    result.push({ ...r, x: bW + 0.2 + extParkW, y: 0, width: w, height: h, _outsideBuilding: true });
+    extParkW += w + 0.2;
+  });
+
+  // ════════════════════════════════════════════════════════════════════════════
   // GUEST ZONE  (x: 0→mainW,  y: 0 → guestEnd)
   // ════════════════════════════════════════════════════════════════════════════
   {
     const y0 = 0, zH = guestEnd;
-
-    // Parking: right edge of guest zone (max 18m²)
-    const parking = zones.guest.filter(r => is(r, "parking", "garage"));
-    let parkRightEdge = mainW;
-    parking.forEach(r => {
-      const w = snap(clamp(r.width, 3.0, 6.5));
-      const h = clamp(snap(Math.min(r.height, 18 / w)), 2.5, zH);
-      parkRightEdge = mainW - w;
-      result.push({ ...r, x: parkRightEdge, y: y0, width: w, height: h });
-    });
+    const parkRightEdge = mainW; // no parking inside now
 
     // Majlis: NW corner, min 4m×5m
     let majlisW = 0, majlisH = 0;
@@ -347,17 +353,57 @@ function placeRoomsInZones(rooms: any[], bW: number, bD: number): any[] {
     floor: rooms[0]?.floor ?? 0,
   });
 
-  // ── STEP 5: Fill to 92% — convert leftover voids to storage ─────────────────
-  const covered = result.reduce((s, r) => s + r.width * r.height, 0);
-  const target  = bW * bD * 0.92;
-  if (covered < target && covered > 0) {
-    const sc = Math.sqrt(target / covered);
-    return result.map(r => {
-      const w = clamp(snap(r.width * sc),  1.0, bW);
-      const h = clamp(snap(r.height * sc), 1.0, bD);
-      return { ...r, x: clamp(r.x, 0, bW - w), y: clamp(r.y, 0, bD - h), width: w, height: h };
-    });
+  // ── STEP 5: Fill empty voids ≥ 2m² with corridor / storage / multipurpose ──
+  {
+    const GRID = 1.0;
+    const gW = Math.ceil(bW / GRID), gH = Math.ceil(bD / GRID);
+    const occupied = new Uint8Array(gW * gH);
+    const idx = (gx: number, gy: number) => gy * gW + gx;
+
+    // Mark occupied cells (inside-building rooms only)
+    for (const r of result) {
+      if ((r as any)._outsideBuilding) continue;
+      const x0 = Math.max(0, Math.floor(r.x / GRID));
+      const y0 = Math.max(0, Math.floor(r.y / GRID));
+      const x1 = Math.min(gW, Math.ceil((r.x + r.width) / GRID));
+      const y1 = Math.min(gH, Math.ceil((r.y + r.height) / GRID));
+      for (let gy = y0; gy < y1; gy++) for (let gx = x0; gx < x1; gx++) occupied[idx(gx, gy)] = 1;
+    }
+
+    // Greedy scan for uncovered rectangles
+    const floorNum = rooms[0]?.floor ?? 0;
+    for (let gy = 0; gy < gH; gy++) {
+      for (let gx = 0; gx < gW; gx++) {
+        if (occupied[idx(gx, gy)]) continue;
+        // Extend right
+        let ex = gx;
+        while (ex + 1 < gW && !occupied[idx(ex + 1, gy)]) ex++;
+        // Extend down
+        let ey = gy;
+        outer: while (ey + 1 < gH) {
+          for (let x = gx; x <= ex; x++) { if (occupied[idx(x, ey + 1)]) break outer; }
+          ey++;
+        }
+        const vW = snap((ex - gx + 1) * GRID), vH = snap((ey - gy + 1) * GRID);
+        if (vW * vH < 2.0) { // mark as occupied even if not filled
+          for (let y2 = gy; y2 <= ey; y2++) for (let x2 = gx; x2 <= ex; x2++) occupied[idx(x2, y2)] = 1;
+          continue;
+        }
+        // Choose fill type
+        const cx2 = gx * GRID + vW / 2, cy2 = gy * GRID + vH / 2;
+        const nearService = cx2 > bW * 0.75;
+        const area = vW * vH;
+        let type: string, nameAr: string, name: string;
+        if (area > 8) { type = "family_living"; nameAr = "غرفة متعددة"; name = "Multipurpose"; }
+        else if (nearService) { type = "storage"; nameAr = "مخزن"; name = "Storage"; }
+        else { type = "corridor"; nameAr = "ممر"; name = "Corridor"; }
+        result.push({ type, nameAr, name, x: gx*GRID, y: gy*GRID, width: vW, height: vH,
+          area: parseFloat((vW*vH).toFixed(1)), floor: floorNum, hasDoor: true, doorWall: "east" });
+        for (let y2 = gy; y2 <= ey; y2++) for (let x2 = gx; x2 <= ex; x2++) occupied[idx(x2, y2)] = 1;
+      }
+    }
   }
+
   return result;
 }
 

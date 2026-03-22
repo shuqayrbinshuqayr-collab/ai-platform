@@ -478,12 +478,17 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   const bw = layout.buildingWidth;
   const bd = layout.buildingDepth;
 
-  const svgW = Math.ceil(bw * SCALE) + MARGIN * 2;
-  const svgH = Math.ceil(bd * SCALE) + MARGIN * 2 + TITLE_H + FOOTER_H;
-
   const firstFloor = layout.floors[0];
   if (!firstFloor) return "";
-  const rooms = firstFloor.rooms;
+  const rooms = firstFloor.rooms as any[];
+
+  // Extra width for outside-building rooms (parking to the right)
+  const extRoomW = rooms
+    .filter(r => r._outsideBuilding)
+    .reduce((s, r) => Math.max(s, (r.x - bw + r.width) * SCALE + MARGIN * 0.5), 0);
+
+  const svgW = Math.ceil(bw * SCALE) + MARGIN * 2 + Math.ceil(extRoomW);
+  const svgH = Math.ceil(bd * SCALE) + MARGIN * 2 + TITLE_H + FOOTER_H;
 
   const ox = MARGIN;           // origin X (left edge of building)
   const oy = MARGIN + TITLE_H; // origin Y (top edge of building)
@@ -554,6 +559,19 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
     const rw = room.width  * SCALE;
     const rh = room.height * SCALE;
     const fill = ROOM_FILL[room.type] ?? "#F8FAFC";
+
+    // ── Outside-building rooms (parking) — dashed grey box ─────────────────
+    if (room._outsideBuilding) {
+      svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="#e8e8e8" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="6,3"/>`;
+      const parkFontSize = Math.min(Math.min(rw, rh) * 0.3, 28);
+      svg += `<text x="${rx+rw/2}" y="${ry+rh/2+parkFontSize*0.35}" text-anchor="middle" fill="#64748B" font-size="${parkFontSize}" font-weight="900" font-family="Arial" opacity="0.35">P</text>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+8}" text-anchor="middle" fill="#475569" font-size="8" font-family="Arial">${room.nameAr ?? "موقف"}</text>`;
+      svg += `<text x="${rx+rw/2}" y="${ry+rh*0.75+18}" text-anchor="middle" fill="#94A3B8" font-size="7" font-family="Arial">${(room.width??0).toFixed(1)}×${(room.height??0).toFixed(1)} م</text>`;
+      // Dashed arrow connecting to building
+      svg += `<line x1="${ox+bw*SCALE}" y1="${ry+rh/2}" x2="${rx}" y2="${ry+rh/2}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,3"/>`;
+      return;
+    }
+
     const onTop    = room.y < 0.3;
     const onLeft   = room.x < 0.3;
     const onRight  = room.x + room.width  > bw - 0.3;
@@ -699,20 +717,26 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
       }
     }
 
-    // ── LAYER 5: Room labels — Arabic bold (11px) + area (9px) + dims (8px) ─
+    // ── LAYER 5: Adaptive room labels — pixel-based font size ─────────────
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
     const labelColor = ROOM_STROKE[room.type] ?? "#1E293B";
-    const minSide = Math.min(rw, rh);
+    const minPx = Math.min(rw, rh);
 
-    if (minSide > 38) {
-      // STEP 1 font hierarchy: 11px bold name, 9px normal area, 8px light dims
+    if (minPx >= 60) {
+      // Full: name 11px bold + area 9px + dims 8px
       svg += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="${labelColor}" font-size="11" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
       svg += `<text x="${cx}" y="${cy + 4}"  text-anchor="middle" fill="#64748B"      font-size="9"  font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
       svg += `<text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="#94A3B8"      font-size="8"  font-weight="300" font-family="Arial, sans-serif">${(room.width ?? 0).toFixed(1)}×${(room.height ?? 0).toFixed(1)} م</text>`;
-    } else if (minSide > 24) {
-      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${labelColor}" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+    } else if (minPx >= 40) {
+      // Medium: name 9px + area 7px only
+      svg += `<text x="${cx}" y="${cy - 3}" text-anchor="middle" fill="${labelColor}" font-size="9" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
+      svg += `<text x="${cx}" y="${cy + 9}" text-anchor="middle" fill="#64748B"      font-size="7" font-family="Arial, sans-serif">${(room.area ?? 0).toFixed(0)} م²</text>`;
+    } else if (minPx >= 25) {
+      // Small: name 7px only
+      svg += `<text x="${cx}" y="${cy + 3}" text-anchor="middle" fill="${labelColor}" font-size="7" font-weight="700" font-family="Arial, sans-serif">${room.nameAr}</text>`;
     }
+    // < 25px: hide all text
   });
 
   // ── Outer building border — exterior wall 12px redraw on top ──────────────
