@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
+import { cpSync, mkdirSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
 const run = (cmd) => {
@@ -11,6 +11,9 @@ const run = (cmd) => {
 // Use absolute path: vite root is "client/", so relative paths resolve inside client/
 const staticOutDir = resolve(process.cwd(), ".vercel/output/static");
 run(`npx vite build --outDir ${staticOutDir}`);
+
+// 1b. Explicitly copy client/public/ → static output (ensures assets like /facades/* are served)
+cpSync(resolve(process.cwd(), "client/public"), staticOutDir, { recursive: true, force: true });
 
 // 2. Create function directory
 mkdirSync(".vercel/output/functions/api/index.func", { recursive: true });
