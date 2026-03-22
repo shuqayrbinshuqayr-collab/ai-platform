@@ -13,11 +13,10 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
-import { generateBSPLayout, generateSVG, CONCEPT_TITLES } from "./bsp";
+import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
-import { buildEnhancedArchPrompt } from "./saudiArchRules";
 import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
-import { generateRAGContext, generateLearnedContext } from "./blueprintRAG";
+import { generateLearnedContext } from "./blueprintRAG";
 import { getLearnedBlueprints, canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -92,59 +91,37 @@ function checkSaudiBuildingCode(project: {
 }
 
 // ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
-function buildConceptPrompt(project: any, conceptIndex: number, corrected: any, learnedContext = "") {
+function buildConceptPrompt(project: any, conceptIndex: number, _corrected: any, learnedContext = "") {
   const conceptStyles = [
-    { en: "Modern Minimalist", ar: "عصري مينيمالي", focus: "open spaces, clean lines, maximum natural light, minimal walls" },
-    { en: "Traditional Saudi Heritage", ar: "تراثي سعودي", focus: "mashrabiya elements, central courtyard, Arabic arches, ornamental details" },
-    { en: "Contemporary Luxury", ar: "معاصر فاخر", focus: "double-height spaces, premium finishes, panoramic views, grand entrance" },
-    { en: "Functional Compact", ar: "وظيفي مدمج", focus: "efficient space utilization, smart storage, practical layout, no wasted space" },
-    { en: "Mediterranean", ar: "متوسطي", focus: "arched windows, terracotta tones, garden integration, outdoor living" },
-    { en: "Smart Home Ready", ar: "جاهز للمنزل الذكي", focus: "integrated tech spaces, home office, flexible multi-purpose rooms" },
+    { en: "Modern Minimalist",         ar: "عصري مينيمالي",          focus: "open spaces, clean lines, maximum natural light" },
+    { en: "Traditional Saudi Heritage",ar: "تراثي سعودي",            focus: "mashrabiya elements, central courtyard, Arabic arches" },
+    { en: "Contemporary Luxury",       ar: "معاصر فاخر",             focus: "double-height spaces, premium finishes, grand entrance" },
+    { en: "Functional Compact",        ar: "وظيفي مدمج",             focus: "efficient space utilization, smart storage, practical layout" },
+    { en: "Mediterranean",             ar: "متوسطي",                 focus: "arched windows, garden integration, outdoor living" },
+    { en: "Smart Home Ready",          ar: "جاهز للمنزل الذكي",      focus: "integrated tech spaces, home office, flexible rooms" },
   ];
   const concept = conceptStyles[conceptIndex - 1] ?? conceptStyles[0];
 
-  // Generate RAG context from similar real blueprints
-  const ragContext = generateRAGContext({
-    landArea: project.landArea ?? 300,
-    landWidth: project.landWidth ?? undefined,
-    landLength: project.landLength ?? undefined,
-    floors: corrected.numberOfFloors,
-    bedrooms: project.bedrooms ?? 4,
-    bathrooms: project.bathrooms ?? 3,
-    hasMajlis: (project.majlis ?? 1) > 0,
-    hasParking: (project.garages ?? 1) > 0,
-  });
+  // GPT-4o generates ONLY description text — room placement is fully deterministic (BSP engine)
+  return `You are a Saudi architectural consultant. Generate ONLY a JSON description for this villa concept.
+DO NOT generate room coordinates or floor plans — those are handled by the deterministic layout engine.
 
-  // Parse facadeStyle from additionalRequirements (e.g. "facadeStyle:arabic|...")
-  const additionalReqs = project.additionalRequirements ?? "";
-  const facadeMatch = additionalReqs.match(/facadeStyle:([^|]+)/);
-  const facadeStyle = facadeMatch?.[1]?.trim();
+Project: ${project.buildingType ?? "villa"}, ${project.landArea ?? 300}m² land, ${(_corrected.numberOfFloors ?? 1) + 1} floors
+Bedrooms: ${project.bedrooms ?? 4}, Style: ${concept.en} — ${concept.focus}
 
-  // Use the enhanced prompt builder with Saudi rules
-  return buildEnhancedArchPrompt({
-    buildingType: project.buildingType === "villa" ? "villa" : "residential",
-    landArea: project.landArea ?? 300,
-    landWidth: project.landWidth ?? undefined,
-    landLength: project.landLength ?? undefined,
-    landShape: project.landShape ?? "rectangular",
-    numberOfFloors: corrected.numberOfFloors,
-    bedrooms: project.bedrooms ?? 4,
-    bathrooms: project.bathrooms ?? 3,
-    majlis: project.majlis ?? 1,
-    maidRooms: project.maidRooms ?? 0,
-    balconies: project.balconies ?? 1,
-    garages: project.garages ?? 1,
-    additionalRequirements: additionalReqs,
-    setbacks: {
-      front: corrected.frontSetback,
-      back: corrected.backSetback,
-      side: corrected.sideSetback,
-    },
-    buildingRatio: corrected.buildingRatio,
-    conceptIndex,
-    conceptStyle: concept,
-    facadeStyle,
-  }) + ragContext + learnedContext;
+Respond with ONLY this JSON (no markdown, no extra text):
+{
+  "title": "Concept ${conceptIndex}: ${concept.en}",
+  "titleAr": "المفهوم ${conceptIndex}: ${concept.ar}",
+  "conceptDescription": "2-paragraph professional description of this architectural concept in English",
+  "conceptDescriptionAr": "وصف مهني من فقرتين لهذا المفهوم المعماري باللغة العربية",
+  "highlights": ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
+  "highlightsAr": ["الميزة 1", "الميزة 2", "الميزة 3", "الميزة 4"],
+  "facadeStyle": "modern|traditional|contemporary|mediterranean",
+  "complianceNotes": ["Saudi Building Code compliant", "Setbacks applied"],
+  "complianceNotesAr": ["متوافق مع الكود السعودي", "تم تطبيق الإرتدادات"]
+}
+${learnedContext}`;
 }
 
 // ─── 3-Phase Floor Plan Generator ────────────────────────────────────────────
@@ -904,58 +881,11 @@ Provide the report in a structured and detailed format.`;
               aiData = {};
             }
 
-            // ── DEBUG LOGGING (temporary) ────────────────────────────────
-            console.error("GPT RAW RESPONSE:", JSON.stringify(content).slice(0, 500));
-            try { fs.writeFileSync("/tmp/gpt-response.json", JSON.stringify({ conceptIndex, rawContent: content, parsed: aiData }, null, 2)); } catch {};
-
-            // Merge BSP layout with AI enrichment
+            // ── Room placement: 100% deterministic BSP engine (no GPT-4o coordinates) ──
             const conceptTitle = CONCEPT_TITLES[i];
 
-            // Try to use AI-generated rooms (higher quality) if available
-            // Fall back to BSP rooms if AI didn't return valid room data
-            let aiGroundRooms: any[] = [];
-            let aiUpperRooms: any[] = [];
-            if (aiData.groundFloor?.rooms && Array.isArray(aiData.groundFloor.rooms) && aiData.groundFloor.rooms.length > 2) {
-              aiGroundRooms = aiData.groundFloor.rooms.map((r: any) => ({
-                name: r.nameEn ?? r.name ?? "Room",
-                nameAr: r.nameAr ?? "غرفة",
-                floor: 0,
-                width: parseFloat((r.width ?? 3.5).toFixed(2)),
-                length: parseFloat((r.length ?? 3.5).toFixed(2)),
-                area: parseFloat((r.area ?? (r.width ?? 3.5) * (r.length ?? 3.5)).toFixed(1)),
-                type: r.type ?? "bedroom",
-                x: (parseFloat((r.x ?? 0).toFixed(2)) / bspLayout.buildingWidth) * 100,
-                y: (parseFloat((r.y ?? 0).toFixed(2)) / bspLayout.buildingDepth) * 100,
-                w: (parseFloat((r.width ?? 3.5).toFixed(2)) / bspLayout.buildingWidth) * 100,
-                h: (parseFloat((r.length ?? 3.5).toFixed(2)) / bspLayout.buildingDepth) * 100,
-                hasWindow: r.hasWindow,
-                doorWall: r.doorWall,
-                notes: r.notes,
-              }));
-            }
-            if (aiData.upperFloors && Array.isArray(aiData.upperFloors)) {
-              aiUpperRooms = aiData.upperFloors.flatMap((floorData: any) =>
-                (floorData.rooms ?? []).map((r: any) => ({
-                  name: r.nameEn ?? r.name ?? "Room",
-                  nameAr: r.nameAr ?? "غرفة",
-                  floor: floorData.floorNumber ?? 1,
-                  width: parseFloat((r.width ?? 3.5).toFixed(2)),
-                  length: parseFloat((r.length ?? 3.5).toFixed(2)),
-                  area: parseFloat((r.area ?? (r.width ?? 3.5) * (r.length ?? 3.5)).toFixed(1)),
-                  type: r.type ?? "bedroom",
-                  x: (parseFloat((r.x ?? 0).toFixed(2)) / bspLayout.buildingWidth) * 100,
-                  y: (parseFloat((r.y ?? 0).toFixed(2)) / bspLayout.buildingDepth) * 100,
-                  w: (parseFloat((r.width ?? 3.5).toFixed(2)) / bspLayout.buildingWidth) * 100,
-                  h: (parseFloat((r.length ?? 3.5).toFixed(2)) / bspLayout.buildingDepth) * 100,
-                  hasWindow: r.hasWindow,
-                  doorWall: r.doorWall,
-                  notes: r.notes,
-                }))
-              );
-            }
-
-            // BSP spaces with percentage coordinates (guaranteed to fill building)
-            const bspSpaces = bspLayout.floors.flatMap(f =>
+            // BSP spaces — deterministic, guaranteed to fill building with no gaps
+            const finalSpaces = bspLayout.floors.flatMap(f =>
               f.rooms.map(r => ({
                 name: r.nameEn,
                 nameAr: r.nameAr,
@@ -964,7 +894,6 @@ Provide the report in a structured and detailed format.`;
                 length: r.height,
                 area: r.area,
                 type: r.type,
-                // Percentage coordinates (0-100) — guaranteed to fill building with no gaps
                 x: (r.x / bspLayout.buildingWidth) * 100,
                 y: (r.y / bspLayout.buildingDepth) * 100,
                 w: (r.width / bspLayout.buildingWidth) * 100,
@@ -972,99 +901,11 @@ Provide the report in a structured and detailed format.`;
               }))
             );
 
-            // Use AI room positions when valid; fall back to BSP silently
-            let hasValidAIRooms = aiGroundRooms.length > 0 &&
-              aiGroundRooms.every((r: any) =>
-                r.x != null && r.y != null &&
-                r.width != null && r.length != null &&
-                !isNaN(r.x) && !isNaN(r.y) &&
-                !isNaN(r.width) && !isNaN(r.length) &&
-                r.width > 0 && r.length > 0
-              );
-
-            // Validate required rooms are present
-            if (hasValidAIRooms) {
-              const returnedTypes = aiGroundRooms.map((r: any) => (r.type ?? "").toLowerCase());
-              const has = (kw: string) => returnedTypes.some(t => t.includes(kw));
-              const requiredTypes = ['kitchen', 'bathroom', 'staircase'];
-              if ((project.bedrooms ?? 0) > 0) requiredTypes.push('bedroom');
-              if ((project.majlis ?? 1) > 0) requiredTypes.push('majlis');
-              const missing = requiredTypes.filter(t => !has(t));
-              if (missing.length > 0) {
-                console.error("MISSING REQUIRED ROOMS:", missing, "— falling back to BSP");
-                hasValidAIRooms = false;
-              }
-              // Cap oversized parking (>18m²) to prevent it dominating the plan
-              if (hasValidAIRooms) {
-                for (const r of aiGroundRooms) {
-                  if ((r.type ?? "").includes("park") || (r.type ?? "").includes("garage")) {
-                    if (r.width * r.length > 20) {
-                      const scale = Math.sqrt(18 / (r.width * r.length));
-                      r.width = parseFloat((r.width * scale).toFixed(2));
-                      r.length = parseFloat((r.length * scale).toFixed(2));
-                      // Recalculate percentage coords
-                      r.w = (r.width / bspLayout.buildingWidth) * 100;
-                      r.h = (r.length / bspLayout.buildingDepth) * 100;
-                    }
-                  }
-                }
-              }
-            }
-
-            const sanitizeRoom = (r: any) => ({
-              ...r,
-              x: parseFloat((r.x ?? 0).toFixed(2)),
-              y: parseFloat((r.y ?? 0).toFixed(2)),
-              width: parseFloat((r.width ?? 3.0).toFixed(2)),
-              length: parseFloat((r.length ?? 3.0).toFixed(2)),
-            });
-
-            console.error("AI ROOMS PARSED:", aiGroundRooms?.length, aiUpperRooms?.length);
-            console.error("HAS VALID AI ROOMS:", hasValidAIRooms);
-            console.error("FIRST ROOM SAMPLE:", JSON.stringify(aiGroundRooms?.[0]));
-            console.error("FINAL SPACES SOURCE:", hasValidAIRooms ? "GPT-4o" : "BSP FALLBACK");
-            try { fs.writeFileSync("/tmp/spaces-source.txt", hasValidAIRooms ? "GPT-4o" : "BSP"); } catch {};
-            // ── END DEBUG ────────────────────────────────────────────────
-
-            const finalSpaces = hasValidAIRooms
-              ? [...aiGroundRooms, ...aiUpperRooms].map(sanitizeRoom)
-              : bspSpaces;
-
-            // Group upper AI rooms by floor for SVG generation
-            const aiUpperByFloor = aiUpperRooms.reduce((acc: Record<number, any[]>, r: any) => {
-              const fl = r.floor ?? 1;
-              if (!acc[fl]) acc[fl] = [];
-              acc[fl].push(r);
-              return acc;
-            }, {});
-
-            // Extract meter dimensions from AI rooms (ignore GPT-4o x/y positions)
-            const withMeters = (rooms: any[]) => rooms.map((r: any) => ({
-              ...r,
-              width:  (r.w / 100) * bspLayout.buildingWidth,
-              height: (r.h / 100) * bspLayout.buildingDepth,
-            }));
-            const aiFloorsForSVG = hasValidAIRooms
-              ? [
-                  // Ground floor: full zone-based placement (ignores GPT-4o x/y)
-                  { rooms: placeRoomsInZones(withMeters(aiGroundRooms), bspLayout.buildingWidth, bspLayout.buildingDepth) },
-                  // Upper floors: simple strip packing
-                  ...Object.values(aiUpperByFloor).map((rooms: any[]) => ({
-                    rooms: snapUpperFloor(withMeters(rooms), bspLayout.buildingWidth, bspLayout.buildingDepth),
-                  })),
-                ]
-              : null;
-
-            const finalSvgData = hasValidAIRooms && aiFloorsForSVG
-              ? generateSVG({ ...bspLayout, floors: aiFloorsForSVG as any }, conceptIndex)
-              : bspLayout.svgData;
-
             const structuredData = {
               ...aiData,
               title: aiData.title ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
               titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
               spaces: finalSpaces,
-              aiRoomsUsed: hasValidAIRooms, // flag to track quality
               summary: {
                 totalFloors: bspLayout.summary.totalFloors,
                 totalRooms: bspLayout.summary.totalRooms,
@@ -1081,21 +922,15 @@ Provide the report in a structured and detailed format.`;
                 buildingFootprint: bspLayout.buildingArea,
                 actualCoverageRatio: Math.round((bspLayout.buildingArea / (project.landArea ?? 300)) * 100),
                 setbacks: bspLayout.setbacks,
-                complianceNotes: ["Saudi Building Code verified", "Setbacks applied"],
-                complianceNotesAr: ["تم التحقق من الكود السعودي", "تم تطبيق الإرتدادات"],
+                complianceNotes: aiData.complianceNotes ?? ["Saudi Building Code verified", "Setbacks applied"],
+                complianceNotesAr: aiData.complianceNotesAr ?? ["تم التحقق من الكود السعودي", "تم تطبيق الإرتدادات"],
               },
-              // SVG floor plan data (AI positions when valid, BSP as fallback)
-              svgData: finalSvgData,
+              svgData: bspLayout.svgData,
               bspLayout: {
                 floors: bspLayout.floors,
                 buildingWidth: bspLayout.buildingWidth,
                 buildingDepth: bspLayout.buildingDepth,
                 setbacks: bspLayout.setbacks,
-              },
-              _debug: {
-                spacesSource: hasValidAIRooms ? "GPT-4o" : "BSP",
-                aiRoomsCount: aiGroundRooms?.length ?? 0,
-                firstRoom: aiGroundRooms?.[0] ?? null,
               },
             };
 

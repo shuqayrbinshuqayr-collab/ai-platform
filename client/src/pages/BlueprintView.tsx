@@ -12,30 +12,6 @@ import { useRef } from "react";
 import React from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-// ─── Room fill colors (very light, architectural) ────────────────────────────
-const ROOM_FILL: Record<string, string> = {
-  bedroom:        "#EEF2FF",
-  master_bedroom: "#FFF7ED",
-  living:         "#F0FDF4",
-  family_living:  "#F0FDF4",
-  majlis:         "#FFFBEB",
-  kitchen:        "#ECFDF5",
-  bathroom:       "#EFF6FF",
-  toilet:         "#EFF6FF",
-  dining:         "#FFF1F2",
-  corridor:       "#F8FAFC",
-  distributor:    "#F8FAFC",
-  entrance:       "#FFFBEB",
-  parking:        "#F1F5F9",
-  storage:        "#F8FAFC",
-  balcony:        "#F0FDF4",
-  laundry:        "#EFF6FF",
-  maid_room:      "#FDF4FF",
-  office:         "#EEF2FF",
-  prayer:         "#FFFBEB",
-  staircase:      "#F1F5F9",
-  other:          "#F8FAFC",
-};
 
 // Rooms that typically have windows
 const HAS_WINDOW = new Set([
@@ -318,7 +294,7 @@ function FloorPlan({
         const { x, y, w, h } = toSVG(space);
         const { wm, hm } = getDims(space);
         const type = space.type ?? "other";
-        const fill = ROOM_FILL[type] ?? ROOM_FILL.other;
+        const fill = type === "staircase" ? "#f0f0f0" : "#ffffff";
         const nameAr = space.nameAr || space.name || "";
         const nameEn = space.name || "";
         const label = lang === "ar" ? nameAr : nameEn;
