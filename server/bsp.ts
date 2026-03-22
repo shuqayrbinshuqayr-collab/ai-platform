@@ -814,7 +814,7 @@ export function generateSVG(layout: BuildingLayout, conceptIndex: number = 0): s
   const footerData = [
     { label: "المشروع", value: "SOAR.AI", cx: svgW*0.125 },
     { label: "المساحة الكلية", value: `${layout.summary.totalArea} م²`, cx: svgW*0.375 },
-    { label: "التكلفة التقديرية", value: layout.summary.estimatedCost, cx: svgW*0.625 },
+    { label: "الأدوار / رقم اللوحة", value: `${layout.summary.totalFloors} دور`, cx: svgW*0.625 },
     { label: "الأدوار", value: `${layout.summary.totalFloors} دور`, cx: svgW*0.875 },
   ];
   footerData.forEach(({ label, value, cx }) => {

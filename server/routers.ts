@@ -908,7 +908,7 @@ Provide the report in a structured and detailed format.`;
               buildingWidth: lW,
               buildingDepth: lD,
               buildingArea:  bAreaT,
-              estimatedCost: `SAR ${Math.round(totalAreaT * 1800).toLocaleString()} – ${Math.round(totalAreaT * 2500).toLocaleString()}`,
+              // estimatedCost: `SAR ${Math.round(totalAreaT * 1800).toLocaleString()} – ${Math.round(totalAreaT * 2500).toLocaleString()}`,
               landWidth:     parseFloat((project.landWidth  ?? (lW + correctedSetbacks.side * 2)).toFixed(2)),
               landDepth:     parseFloat((project.landLength ?? (lD + correctedSetbacks.front + correctedSetbacks.back)).toFixed(2)),
               frontSetback:  correctedSetbacks.front,

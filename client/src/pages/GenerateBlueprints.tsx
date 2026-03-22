@@ -354,12 +354,7 @@ function BlueprintCard({
           </ul>
         )}
 
-        {/* Cost */}
-        {summary.estimatedCost && (
-          <div className="text-xs text-primary font-mono border-t border-border/30 pt-2">
-            {lang === "ar" ? "التكلفة التقديرية: " : "Est. Cost: "}{summary.estimatedCost}
-          </div>
-        )}
+        {/* estimatedCost hidden */}
 
         {/* Floor tabs */}
         {floors > 1 && (

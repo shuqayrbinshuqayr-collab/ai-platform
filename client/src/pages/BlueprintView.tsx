@@ -954,12 +954,12 @@ export default function BlueprintView() {
 
         {/* Summary stats */}
         {Object.keys(summary).length > 0 && (
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { icon: Layers, label: lang === "ar" ? "الطوابق" : "Floors", value: summary.totalFloors ?? "—" },
               { icon: Ruler, label: lang === "ar" ? "المساحة الكلية" : "Total Area", value: summary.totalArea ? `${summary.totalArea} m²` : "—" },
               { icon: Brain, label: lang === "ar" ? "عدد الغرف" : "Rooms", value: summary.totalRooms ?? "—" },
-              { icon: FileText, label: lang === "ar" ? "التكلفة التقديرية" : "Est. Cost", value: summary.estimatedCost ?? "—" },
+              // estimatedCost hidden: { icon: FileText, label: "Est. Cost", value: summary.estimatedCost }
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
