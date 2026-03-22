@@ -16,6 +16,7 @@ import { invokeLLM } from "./_core/llm";
 import { CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
+import { findBestTemplate, scaleTemplate } from "./core/villaTemplates";
 import { canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -89,122 +90,23 @@ function checkSaudiBuildingCode(project: {
   return { warnings, warningsAr, corrected, isCompliant: warnings.length === 0 };
 }
 
-// ─── Deterministic Zone Layout Engine ────────────────────────────────────────
-// Pure math — no AI, no BSP. Fixed 3-row Saudi villa grid.
-function generateZoneLayout(
-  landWidth: number, landDepth: number,
-  setbacks: { front: number; back: number; side: number },
-  opts: { hasMajlis: boolean; hasParking: boolean; hasMaid: boolean; numberOfFloors: number; bedrooms: number; bathrooms: number; landArea: number }
-) {
-  const bW = parseFloat((landWidth - setbacks.side * 2).toFixed(2));
-  const bD = parseFloat((landDepth - setbacks.front - setbacks.back).toFixed(2));
-  const sX = setbacks.side;
-  const sY = setbacks.back;
+// ─── Safe JSON parser (handles "Unexpected token" errors from GPT) ──────────
+const AI_FALLBACK = {
+  title: "مخطط معماري", titleAr: "مخطط معماري",
+  description: "فيلا سكنية سعودية", descriptionAr: "فيلا سكنية سعودية",
+  highlights: [], highlightsAr: [],
+};
 
-  const groundRooms: any[] = [];
-
-  // ── TOP ROW (y=0 → bD×0.35): PUBLIC zone ──────────────────────────────
-  groundRooms.push({ type: "entrance",     nameAr: "بهو المدخل",   nameEn: "Entrance Hall",  x: 0,        y: 0,        w: bW * 0.30, h: bD * 0.35 });
-  if (opts.hasMajlis) {
-    groundRooms.push({ type: "majlis",     nameAr: "مجلس رجال",    nameEn: "Men's Majlis",   x: bW * 0.30, y: 0,       w: bW * 0.45, h: bD * 0.35 });
-    if (opts.hasParking) {
-      groundRooms.push({ type: "parking",  nameAr: "موقف سيارة",   nameEn: "Parking",        x: bW * 0.75, y: 0,       w: bW * 0.25, h: bD * 0.35 });
-    }
-  } else {
-    const rightW = opts.hasParking ? bW * 0.45 : bW * 0.70;
-    groundRooms.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living", x: bW * 0.30, y: 0,      w: rightW,    h: bD * 0.35 });
-    if (opts.hasParking) {
-      groundRooms.push({ type: "parking",  nameAr: "موقف سيارة",   nameEn: "Parking",        x: bW * 0.75, y: 0,       w: bW * 0.25, h: bD * 0.35 });
-    }
+function safeParseJSON(text: string, fallback: Record<string, unknown> = {}) {
+  try {
+    const start = text.indexOf('{');
+    const end   = text.lastIndexOf('}');
+    if (start === -1 || end === -1) return fallback;
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (e) {
+    console.error("JSON parse failed, first 200 chars:", text?.slice(0, 200));
+    return fallback;
   }
-
-  // ── MIDDLE ROW (y=bD×0.35 → bD×0.65): FAMILY zone ────────────────────
-  groundRooms.push({ type: "family_living", nameAr: "صالة عائلية", nameEn: "Family Living",  x: 0,        y: bD * 0.35, w: bW * 0.45, h: bD * 0.30 });
-  groundRooms.push({ type: "corridor",     nameAr: "ممر",          nameEn: "Corridor",        x: bW * 0.45, y: bD * 0.35, w: bW * 0.10, h: bD * 0.30 });
-  groundRooms.push({ type: "staircase",    nameAr: "درج",          nameEn: "Staircase",       x: bW * 0.55, y: bD * 0.35, w: bW * 0.20, h: bD * 0.30 });
-  groundRooms.push({ type: "bathroom",     nameAr: "حمام",         nameEn: "Bathroom",        x: bW * 0.75, y: bD * 0.35, w: bW * 0.25, h: bD * 0.30 });
-
-  // ── BOTTOM ROW (y=bD×0.65 → bD): SERVICE zone ─────────────────────────
-  groundRooms.push({ type: "kitchen",      nameAr: "مطبخ",         nameEn: "Kitchen",         x: 0,         y: bD * 0.65, w: bW * 0.30, h: bD * 0.35 });
-  groundRooms.push({ type: "dining",       nameAr: "غرفة طعام",   nameEn: "Dining Room",     x: bW * 0.30, y: bD * 0.65, w: bW * 0.35, h: bD * 0.35 });
-  if (opts.hasMaid) {
-    groundRooms.push({ type: "maid_room",  nameAr: "غرفة خادمة",  nameEn: "Maid Room",       x: bW * 0.65, y: bD * 0.65, w: bW * 0.20, h: bD * 0.35 });
-    groundRooms.push({ type: "storage",    nameAr: "مخزن",         nameEn: "Storage",         x: bW * 0.85, y: bD * 0.65, w: bW * 0.15, h: bD * 0.35 });
-  } else {
-    groundRooms.push({ type: "storage",    nameAr: "مخزن",         nameEn: "Storage",         x: bW * 0.65, y: bD * 0.65, w: bW * 0.35, h: bD * 0.35 });
-  }
-
-  // Apply setback offset + compute area + add floor=0
-  const toSpace = (r: any, floor: number) => ({
-    ...r,
-    x: parseFloat((r.x + sX).toFixed(2)),
-    y: parseFloat((r.y + sY).toFixed(2)),
-    w: parseFloat(r.w.toFixed(2)),
-    h: parseFloat(r.h.toFixed(2)),
-    area: parseFloat((r.w * r.h).toFixed(1)),
-    floor,
-  });
-
-  const allRooms = groundRooms.map(r => toSpace(r, 0));
-
-  // Fix 2: Column-sum assertions — each row must tile to exactly 100% width
-  // PUBLIC:  30+45+25=100 | FAMILY: 45+10+20+25=100 | SERVICE: 30+35+20+15=100 or 30+35+35=100
-  console.assert(Math.abs(0.30 + 0.45 + 0.25 - 1.0) < 0.001, "PUBLIC cols must sum to 1");
-  console.assert(Math.abs(0.45 + 0.10 + 0.20 + 0.25 - 1.0) < 0.001, "FAMILY cols must sum to 1");
-  console.assert(Math.abs(0.30 + 0.35 + 0.20 + 0.15 - 1.0) < 0.001, "SERVICE cols (with maid) must sum to 1");
-  console.assert(Math.abs(0.30 + 0.35 + 0.35 - 1.0) < 0.001, "SERVICE cols (no maid) must sum to 1");
-  // Row heights: 35+30+35=100
-  console.assert(Math.abs(0.35 + 0.30 + 0.35 - 1.0) < 0.001, "Row heights must sum to 1");
-
-  // ── UPPER FLOORS: gapless 3-row layout ────────────────────────────────
-  // Row 1: corridor full width (0→12%)
-  // Row 2: staircase+master+bathroom all h=35% (12→47%)
-  // Row 3: bedroom strip full width (47→100%, h=53%)
-  // 12+35+53=100 — no gaps
-  const upperFloors = opts.numberOfFloors;
-  const bedsPerFloor = Math.ceil(opts.bedrooms / Math.max(upperFloors, 1));
-  for (let f = 1; f <= upperFloors; f++) {
-    allRooms.push(toSpace({ type: "corridor",        nameAr: "ممر",              nameEn: "Corridor",       x: 0,        y: 0,         w: bW,        h: bD * 0.12 }, f));
-    allRooms.push(toSpace({ type: "staircase",       nameAr: "درج",              nameEn: "Staircase",      x: 0,        y: bD * 0.12, w: bW * 0.20, h: bD * 0.35 }, f));
-    allRooms.push(toSpace({ type: "master_bedroom",  nameAr: "غرفة نوم ماستر",  nameEn: "Master Bedroom", x: bW * 0.20, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
-    allRooms.push(toSpace({ type: "bathroom",        nameAr: "حمام",             nameEn: "Bathroom",       x: bW * 0.60, y: bD * 0.12, w: bW * 0.40, h: bD * 0.35 }, f));
-    const bedCount = Math.min(bedsPerFloor, 3);
-    const bedW = bW / bedCount;
-    for (let b = 0; b < bedCount; b++) {
-      allRooms.push(toSpace({
-        type: "bedroom", nameAr: `غرفة نوم ${b + 1}`, nameEn: `Bedroom ${b + 1}`,
-        x: b * bedW, y: bD * 0.47, w: bedW, h: bD * 0.53,
-      }, f));
-    }
-  }
-
-  const bArea = parseFloat((bW * bD).toFixed(1));
-  const totalArea = parseFloat((bArea * (upperFloors + 1)).toFixed(1));
-
-  // ── DEBUG ──────────────────────────────────────────────────────────────
-  console.error("BUILDING:", bW, "x", bD, "setbacks:", JSON.stringify(setbacks));
-  console.error("ZONE ROOMS:", JSON.stringify(allRooms.map(r =>
-    `${r.nameEn}(f${r.floor}): x=${r.x.toFixed(1)} y=${r.y.toFixed(1)} w=${r.w.toFixed(1)} h=${r.h.toFixed(1)} area=${r.area}`
-  )));
-
-  return {
-    buildingWidth: bW,
-    buildingDepth: bD,
-    buildingArea: bArea,
-    setbacks,
-    rooms: allRooms,
-    summary: {
-      totalFloors: upperFloors + 1,
-      totalRooms: allRooms.length,
-      totalArea,
-      bedrooms: opts.bedrooms,
-      bathrooms: opts.bathrooms,
-      buildingWidth: bW,
-      buildingDepth: bD,
-      buildingArea: bArea,
-      estimatedCost: `SAR ${Math.round(totalArea * 1800).toLocaleString()} – ${Math.round(totalArea * 2500).toLocaleString()}`,
-    },
-  };
 }
 
 // ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
@@ -953,15 +855,37 @@ Provide the report in a structured and detailed format.`;
             console.error(`SETBACK REDUCED: back → 2m, new bD=${lD}`);
           }
 
-          const zoneLayout = generateZoneLayout(lW, lD, correctedSetbacks, {
-            hasMajlis:  (project.majlis ?? 1) > 0,
-            hasParking: (project.garages ?? 1) > 0,
-            hasMaid:    (project.maidRooms ?? 0) > 0,
-            numberOfFloors: codeCheck.corrected.numberOfFloors,
-            bedrooms: project.bedrooms ?? 3,
-            bathrooms: project.bathrooms ?? 2,
-            landArea: project.landArea ?? 300,
-          });
+          // Template-based layout: scale real DXF villa geometry to fit this land
+          const template = findBestTemplate(
+            project.landWidth  ?? lW + correctedSetbacks.side * 2,
+            project.landLength ?? lD + correctedSetbacks.front + correctedSetbacks.back,
+          );
+          const scaledRooms = scaleTemplate(
+            template, lW, lD,
+            correctedSetbacks.side, correctedSetbacks.back,
+            codeCheck.corrected.numberOfFloors + 1,
+          );
+          const bAreaT  = parseFloat((lW * lD).toFixed(1));
+          const totalAreaT = parseFloat((bAreaT * (codeCheck.corrected.numberOfFloors + 1)).toFixed(1));
+          const zoneLayout = {
+            buildingWidth: lW,
+            buildingDepth: lD,
+            buildingArea:  bAreaT,
+            setbacks: correctedSetbacks,
+            rooms: scaledRooms,
+            summary: {
+              totalFloors:   codeCheck.corrected.numberOfFloors + 1,
+              totalRooms:    scaledRooms.length,
+              totalArea:     totalAreaT,
+              bedrooms:      project.bedrooms  ?? 3,
+              bathrooms:     project.bathrooms ?? 2,
+              buildingWidth: lW,
+              buildingDepth: lD,
+              buildingArea:  bAreaT,
+              estimatedCost: `SAR ${Math.round(totalAreaT * 1800).toLocaleString()} – ${Math.round(totalAreaT * 2500).toLocaleString()}`,
+            },
+          };
+          console.error("TEMPLATE:", template.id, "bW=", lW, "bD=", lD, "rooms=", scaledRooms.length);
 
           // 4b: AI enrichment (titles, descriptions, highlights) — slim prompt, 300 tokens max
           const prompt = buildConceptPrompt(project, conceptIndex);
@@ -987,21 +911,11 @@ Provide the report in a structured and detailed format.`;
             }
             const rawContent = response.choices[0]?.message?.content;
             const content = typeof rawContent === "string" ? rawContent : "{}";
-            let aiData: any = {};
-            try {
-              const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
-              const parsed = JSON.parse(cleaned);
-              if (parsed && parsed.error) {
-                aiData = {};
-              } else {
-                aiData = parsed;
-                // Map slim response keys to expected keys
-                if (aiData.description && !aiData.conceptDescription) aiData.conceptDescription = aiData.description;
-                if (aiData.descriptionAr && !aiData.conceptDescriptionAr) aiData.conceptDescriptionAr = aiData.descriptionAr;
-              }
-            } catch (e) {
-              aiData = {};
-            }
+            const parsed = safeParseJSON(content, AI_FALLBACK);
+            let aiData: any = (parsed && !parsed.error) ? parsed : { ...AI_FALLBACK };
+            // Map slim response keys to expected keys
+            if (aiData.description && !aiData.conceptDescription) aiData.conceptDescription = aiData.description;
+            if (aiData.descriptionAr && !aiData.conceptDescriptionAr) aiData.conceptDescriptionAr = aiData.descriptionAr;
 
             // ── Room placement: 100% deterministic zone engine ──────────────
             const conceptTitle = CONCEPT_TITLES[i];
@@ -1103,13 +1017,7 @@ Provide the report in a structured and detailed format.`;
         });
         const rawContent = response.choices[0]?.message?.content;
         const content = typeof rawContent === "string" ? rawContent : "{}";
-        let structuredData: any = {};
-        try {
-          const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
-          structuredData = JSON.parse(cleaned);
-        } catch {
-          structuredData = { error: "Failed to parse AI response", raw: content };
-        }
+        let structuredData: any = safeParseJSON(content, { error: "Failed to parse AI response" });
         const generationTime = Date.now() - startTime;
         const blueprintId = await createBlueprint({
           projectId: input.projectId,
@@ -1210,11 +1118,7 @@ Text: "${input.text}"`,
         });
         const rawContent2 = response.choices[0]?.message?.content;
         const content2 = typeof rawContent2 === "string" ? rawContent2 : "{}";
-        try {
-          return JSON.parse(content2);
-        } catch {
-          return {};
-        }
+        return safeParseJSON(content2, {});
       }),
   }),
 
@@ -1293,13 +1197,7 @@ Return ONLY valid JSON, no extra text.`,
         });
         const rawContent = response.choices[0]?.message?.content;
         const content = typeof rawContent === "string" ? rawContent : "{}";
-        let extracted: any = {};
-        try {
-          const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
-          extracted = JSON.parse(cleaned);
-        } catch {
-          extracted = { error: "Could not parse deed", raw: content.slice(0, 300) };
-        }
+        let extracted: any = safeParseJSON(content, { error: "Could not parse deed" });
         // Auto-update project if provided
         if (input.projectId && !extracted.error) {
           await updateProject(input.projectId, ctx.user.id, {
@@ -1378,13 +1276,7 @@ Return ONLY valid JSON, no extra text.`,
         });
         const rawContent = response.choices[0]?.message?.content;
         const content = typeof rawContent === "string" ? rawContent : "{}";
-        let extracted: any = {};
-        try {
-          const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
-          extracted = JSON.parse(cleaned);
-        } catch {
-          extracted = { error: "Could not parse building code", raw: content.slice(0, 300) };
-        }
+        let extracted: any = safeParseJSON(content, { error: "Could not parse building code" });
         // Auto-update project if provided
         if (input.projectId && !extracted.error) {
           await updateProject(input.projectId, ctx.user.id, {
