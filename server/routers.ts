@@ -16,8 +16,7 @@ import { invokeLLM } from "./_core/llm";
 import { generateBSPLayout, CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
-import { generateLearnedContext } from "./blueprintRAG";
-import { getLearnedBlueprints, canGenerateBlueprint, canCreateProject } from "./db";
+import { canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import {
@@ -91,37 +90,28 @@ function checkSaudiBuildingCode(project: {
 }
 
 // ─── Build Enhanced AI prompt using Saudi Arch Rules + RAG ─────────────────
-function buildConceptPrompt(project: any, conceptIndex: number, _corrected: any, learnedContext = "") {
-  const conceptStyles = [
-    { en: "Modern Minimalist",         ar: "عصري مينيمالي",          focus: "open spaces, clean lines, maximum natural light" },
-    { en: "Traditional Saudi Heritage",ar: "تراثي سعودي",            focus: "mashrabiya elements, central courtyard, Arabic arches" },
-    { en: "Contemporary Luxury",       ar: "معاصر فاخر",             focus: "double-height spaces, premium finishes, grand entrance" },
-    { en: "Functional Compact",        ar: "وظيفي مدمج",             focus: "efficient space utilization, smart storage, practical layout" },
-    { en: "Mediterranean",             ar: "متوسطي",                 focus: "arched windows, garden integration, outdoor living" },
-    { en: "Smart Home Ready",          ar: "جاهز للمنزل الذكي",      focus: "integrated tech spaces, home office, flexible rooms" },
+function buildConceptPrompt(project: any, conceptIndex: number) {
+  const styles = [
+    { en: "Modern Minimalist",          ar: "عصري مينيمالي" },
+    { en: "Traditional Saudi Heritage", ar: "تراثي سعودي" },
+    { en: "Contemporary Luxury",        ar: "معاصر فاخر" },
+    { en: "Functional Compact",         ar: "وظيفي مدمج" },
+    { en: "Mediterranean",              ar: "متوسطي" },
+    { en: "Smart Home Ready",           ar: "جاهز للمنزل الذكي" },
   ];
-  const concept = conceptStyles[conceptIndex - 1] ?? conceptStyles[0];
-
-  // GPT-4o generates ONLY description text — room placement is fully deterministic (BSP engine)
-  return `You are a Saudi architectural consultant. Generate ONLY a JSON description for this villa concept.
-DO NOT generate room coordinates or floor plans — those are handled by the deterministic layout engine.
-
-Project: ${project.buildingType ?? "villa"}, ${project.landArea ?? 300}m² land, ${(_corrected.numberOfFloors ?? 1) + 1} floors
-Bedrooms: ${project.bedrooms ?? 4}, Style: ${concept.en} — ${concept.focus}
-
-Respond with ONLY this JSON (no markdown, no extra text):
+  const style = styles[conceptIndex - 1] ?? styles[0];
+  const buildingType = project.buildingType ?? "villa";
+  return `You are a Saudi architect. Generate concept ${conceptIndex} for a ${buildingType}.
+Style: ${style.en}
+Respond in JSON only:
 {
-  "title": "Concept ${conceptIndex}: ${concept.en}",
-  "titleAr": "المفهوم ${conceptIndex}: ${concept.ar}",
-  "conceptDescription": "2-paragraph professional description of this architectural concept in English",
-  "conceptDescriptionAr": "وصف مهني من فقرتين لهذا المفهوم المعماري باللغة العربية",
-  "highlights": ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
-  "highlightsAr": ["الميزة 1", "الميزة 2", "الميزة 3", "الميزة 4"],
-  "facadeStyle": "modern|traditional|contemporary|mediterranean",
-  "complianceNotes": ["Saudi Building Code compliant", "Setbacks applied"],
-  "complianceNotesAr": ["متوافق مع الكود السعودي", "تم تطبيق الإرتدادات"]
-}
-${learnedContext}`;
+  "title": "short title in English",
+  "titleAr": "عنوان قصير بالعربي",
+  "description": "2 sentence description in English",
+  "descriptionAr": "وصف جملتين بالعربي",
+  "highlights": ["point 1", "point 2", "point 3"],
+  "highlightsAr": ["نقطة 1", "نقطة 2", "نقطة 3"]
+}`;
 }
 
 // ─── 3-Phase Floor Plan Generator ────────────────────────────────────────────
@@ -813,9 +803,6 @@ Provide the report in a structured and detailed format.`;
         // Step 3: Generate batch ID
         const batchId = `batch_${Date.now()}_${ctx.user.id}`;
         const startTime = Date.now();
-        // Step 3b: Load learned blueprints from engineer edits
-        const learnedBps = await getLearnedBlueprints();
-        const learnedContext = generateLearnedContext(learnedBps);
         // Step 4: Generate 6 concepts in parallel (BSP + AI)
         const conceptPromises = Array.from({ length: 6 }, (_, i) => {
           const conceptIndex = i + 1;
@@ -852,32 +839,43 @@ Provide the report in a structured and detailed format.`;
             buildingDepth: userBuildingDepth,
           });
 
-          // 4b: AI enrichment (titles, descriptions, highlights)
-          const prompt = buildConceptPrompt(project, conceptIndex, codeCheck.corrected, learnedContext);
-          return invokeLLM({
+          // 4b: AI enrichment (titles, descriptions, highlights) — slim prompt, 300 tokens max
+          const prompt = buildConceptPrompt(project, conceptIndex);
+          const callLLM = () => invokeLLM({
             messages: [
-              {
-                role: "system",
-                content: "You are an expert Saudi architectural AI. Generate precise floor plan data. Always respond with valid JSON only, no markdown.",
-              },
+              { role: "system", content: "Respond with valid JSON only." },
               { role: "user", content: prompt },
             ],
-          }).then(async (response) => {
+            maxTokens: 300,
+          });
+          return (async () => {
+            let response;
+            try {
+              response = await callLLM();
+            } catch (err: any) {
+              // Retry once on 429 rate-limit error
+              if (err?.message?.includes("429") || err?.code === "rate_limit_exceeded") {
+                await new Promise(r => setTimeout(r, 2500));
+                response = await callLLM();
+              } else {
+                throw err;
+              }
+            }
             const rawContent = response.choices[0]?.message?.content;
             const content = typeof rawContent === "string" ? rawContent : "{}";
             let aiData: any = {};
             try {
               const cleaned = content.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
               const parsed = JSON.parse(cleaned);
-              // If GPT returned an error object, treat as no AI rooms
               if (parsed && parsed.error) {
-                console.error("GPT returned error:", parsed.error);
                 aiData = {};
               } else {
                 aiData = parsed;
+                // Map slim response keys to expected keys
+                if (aiData.description && !aiData.conceptDescription) aiData.conceptDescription = aiData.description;
+                if (aiData.descriptionAr && !aiData.conceptDescriptionAr) aiData.conceptDescriptionAr = aiData.descriptionAr;
               }
             } catch (e) {
-              console.error("GPT JSON parse failed:", content.slice(0, 200));
               aiData = {};
             }
 
@@ -949,7 +947,7 @@ Provide the report in a structured and detailed format.`;
               generationTime: Date.now() - startTime,
             });
             return { blueprintId, conceptIndex, structuredData };
-          });
+          })();
         });
 
         const results = await Promise.all(conceptPromises);
@@ -986,7 +984,7 @@ Provide the report in a structured and detailed format.`;
         await updateProject(input.projectId, ctx.user.id, { status: "processing" });
         const startTime = Date.now();
         const codeCheck = checkSaudiBuildingCode(project);
-        const prompt = buildConceptPrompt(project, 1, codeCheck.corrected);
+        const prompt = buildConceptPrompt(project, 1);
         const response = await invokeLLM({
           messages: [
             { role: "system", content: "You are an expert Saudi architectural AI. Always respond with valid JSON only, no markdown." },
