@@ -75,12 +75,12 @@ const defaultForm: FormData = {
 };
 
 const facades = [
-  { id: "modern", label: { ar: "عصري", en: "Modern" } },
-  { id: "classic", label: { ar: "كلاسيكي", en: "Classic" } },
-  { id: "contemporary", label: { ar: "معاصر", en: "Contemporary" } },
-  { id: "arabic", label: { ar: "نجدي", en: "Arabic Heritage" } },
-  { id: "minimalist", label: { ar: "بسيط مينيمالي", en: "Minimalist" } },
-  { id: "mediterranean", label: { ar: "متوسطي", en: "Mediterranean" } },
+  { id: "modern",        img: "modern.webp",       label: { ar: "عصري",           en: "Modern" } },
+  { id: "classic",       img: "classic.jpg",        label: { ar: "كلاسيكي",        en: "Classic" } },
+  { id: "contemporary",  img: "contemporary.jpg",   label: { ar: "معاصر",           en: "Contemporary" } },
+  { id: "arabic",        img: "najdi.jpg",          label: { ar: "نجدي",            en: "Arabic Heritage" } },
+  { id: "minimalist",    img: "minimal.jpg",        label: { ar: "بسيط مينيمالي",  en: "Minimalist" } },
+  { id: "mediterranean", img: "mediterranean.jpg",  label: { ar: "متوسطي",          en: "Mediterranean" } },
 ];
 
 function Counter({ value, onChange, min = 0, max = 20 }: { value: number; onChange: (v: number) => void; min?: number; max?: number }) {
@@ -676,22 +676,29 @@ export default function NewProject() {
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {facades.map(({ id, label }) => (
+                {facades.map(({ id, img, label }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => set("facadeStyle", id)}
-                    className={`p-4 rounded-xl border-2 transition-all text-center ${
+                    className={`rounded-xl border-2 transition-all text-center overflow-hidden ${
                       form.facadeStyle === id
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-border/50 hover:border-primary/40"
                     }`}
                   >
-                    {/* Facade icon placeholder */}
-                    <div className="w-full h-16 rounded-lg mb-2 border border-current/20 flex items-center justify-center bg-current/5">
-                      <HomeIcon className="w-8 h-8 opacity-40" />
+                    <img
+                      src={`/facades/${img}`}
+                      className="w-full h-36 object-cover"
+                      alt={label.ar}
+                    />
+                    <div className={`py-2 px-2 text-xs font-semibold ${
+                      form.facadeStyle === id
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground"
+                    }`}>
+                      {lang === "ar" ? label.ar : label.en}
                     </div>
-                    <span className="text-xs font-semibold">{lang === "ar" ? label.ar : label.en}</span>
                   </button>
                 ))}
               </div>
