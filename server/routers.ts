@@ -17,6 +17,7 @@ import { CONCEPT_TITLES } from "./bsp";
 import { generateDXF } from "./dxfGenerator";
 import { SBC_SETBACKS, SBC_COVERAGE, SBC_HEIGHT } from "./core/saudiCode";
 import { findBestTemplate, scaleTemplate } from "./core/villaTemplates";
+import { applyVariation, VARIATION_META } from "./core/templateEngine";
 import { canGenerateBlueprint, canCreateProject } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -855,13 +856,17 @@ Provide the report in a structured and detailed format.`;
             console.error(`SETBACK REDUCED: back → 2m, new bD=${lD}`);
           }
 
-          // Template-based layout: scale real DXF villa geometry to fit this land
+          // Template-based layout: select model (C for wide, A for deep),
+          // apply per-concept variation, then scale to fit this land
           const template = findBestTemplate(
             project.landWidth  ?? lW + correctedSetbacks.side * 2,
             project.landLength ?? lD + correctedSetbacks.front + correctedSetbacks.back,
           );
+          const variationIndex = i; // 0-5: Standard, Mirror, Grand Majlis, Open Plan, Prayer Room, Extended Living
+          const variedRooms = applyVariation(template.rooms, variationIndex);
+          const variedTemplate = { ...template, rooms: variedRooms };
           let scaledRooms = scaleTemplate(
-            template, lW, lD,
+            variedTemplate, lW, lD,
             correctedSetbacks.side, correctedSetbacks.back,
             codeCheck.corrected.numberOfFloors + 1,
           );
@@ -916,7 +921,7 @@ Provide the report in a structured and detailed format.`;
               sideSetback:   correctedSetbacks.side,
             },
           };
-          console.error("TEMPLATE:", template.id, "bW=", lW, "bD=", lD, "rooms=", scaledRooms.length);
+          console.error("TEMPLATE:", template.id, "VAR:", variation.nameEn, "bW=", lW, "bD=", lD, "rooms=", scaledRooms.length);
 
           // 4b: AI enrichment (titles, descriptions, highlights) — slim prompt, 300 tokens max
           const prompt = buildConceptPrompt(project, conceptIndex);
@@ -950,6 +955,7 @@ Provide the report in a structured and detailed format.`;
 
             // ── Room placement: 100% deterministic zone engine ──────────────
             const conceptTitle = CONCEPT_TITLES[i];
+            const variation = VARIATION_META[variationIndex] ?? VARIATION_META[0];
             const { buildingWidth: bW, buildingDepth: bD } = zoneLayout;
 
             // Convert absolute meter coords → percentage (0-100) for client renderer
@@ -972,8 +978,8 @@ Provide the report in a structured and detailed format.`;
 
             const structuredData = {
               ...aiData,
-              title:   aiData.title   ?? `Concept ${conceptIndex}: ${conceptTitle.en}`,
-              titleAr: aiData.titleAr ?? `المفهوم ${conceptIndex}: ${conceptTitle.ar}`,
+              title:   aiData.title   ?? `${variation.nameEn} — ${conceptTitle.en}`,
+              titleAr: aiData.titleAr ?? `${variation.nameAr} — ${conceptTitle.ar}`,
               spaces: finalSpaces,
               summary: zoneLayout.summary,
               regulatoryCompliance: {

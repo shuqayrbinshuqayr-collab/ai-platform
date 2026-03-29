@@ -1,123 +1,179 @@
-// Auto-generated from Saudi villa DXF files
-// Source: C:\Users\shuqa\Downloads\مخططات\فلة 1 & فلة 2
-// Generated: 2026-03-22T18:26:17.953Z
-// Land: 12.5m × 36m | 3 floors | Coverage: 52.5%
+// Saudi Villa Templates — extracted from real architectural plans
+// Model C (273 m²): Wide plot, 2 bedrooms + master, large صالون
+// Model A (310 m²): Deep plot, 3 bedrooms + master, جلسة خارجية, first-floor living
 
 export interface RoomTemplate {
   nameAr: string;
   nameEn: string;
   type: string;
   x: number;   // meters from building left edge
-  y: number;   // meters from building front
+  y: number;   // meters from building front edge
   w: number;   // width in meters
   h: number;   // depth in meters
   area: number;
-  floor: number; // 0=ground, 1=first, 2=second
+  floor: number; // 0=ground, 1=first, 2=roof
 }
 
 export interface VillaTemplate {
   id: string;
   nameAr: string;
   nameEn: string;
+  totalArea: number;
+  plotShape: "wide" | "deep";
+  bedroomCount: number; // not counting master
   landWidth: number;
   landDepth: number;
-  buildingWidth: number;  // land − setbacks
+  buildingWidth: number;
   buildingDepth: number;
   rooms: RoomTemplate[];
 }
 
-export const VILLA_TEMPLATES: VillaTemplate[] = [
-  {
-    id: "villa_1",
-    nameAr: "فيلا 1 — 12.5م × 36م",
-    nameEn: "Villa Type 1 — 12.5m × 36m",
-    landWidth: 12.5,
-    landDepth: 36,
-    buildingWidth: 11.12,
-    buildingDepth: 35.18,
-    rooms: [
-      { nameAr: "مخزن", nameEn: "storage", type: "storage", x: 4.52, y: 6.82, w: 2, h: 2.85, area: 5.7, floor: 1 },
-      { nameAr: "بهو المدخل", nameEn: "entrance", type: "entrance", x: 4.72, y: 6.82, w: 6.4, h: 5.2, area: 33.3, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.52, y: 12.82, w: 6.6, h: 3.2, area: 21.1, floor: 1 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 16.82, w: 6.4, h: 1.1, area: 7, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.72, y: 18.72, w: 6.4, h: 3.2, area: 20.5, floor: 1 },
-      { nameAr: "غرفة نوم", nameEn: "bedroom", type: "bedroom", x: 4.72, y: 22.72, w: 6.4, h: 3.1, area: 19.8, floor: 1 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 7.92, y: 26.62, w: 3.2, h: 1.1, area: 3.5, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.67, y: 26.62, w: 6.45, h: 5.8, area: 37.4, floor: 1 },
-      { nameAr: "غسيل", nameEn: "W/D", type: "laundry", x: 2.62, y: 33.22, w: 8.5, h: 1.4, area: 11.9, floor: 1 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 4.52, y: 23.42, w: 1.9, h: 2.25, area: 4.3, floor: 2 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 7.92, y: 26.62, w: 3.2, h: 1.1, area: 3.5, floor: 2 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 2.62, y: 7.38, w: 0.95, h: 11, area: 10.4, floor: 0 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 4.52, y: 7.38, w: 1.7, h: 2.9, area: 4.9, floor: 0 },
-      { nameAr: "دورة مياه", nameEn: "toilet", type: "toilet", x: 9.52, y: 7.38, w: 1.6, h: 1.3, area: 2.1, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 11.18, w: 6.4, h: 1.5, area: 9.6, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 13.28, w: 6.4, h: 1.8, area: 11.5, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 17.38, w: 6.4, h: 1.2, area: 7.7, floor: 0 },
-      { nameAr: "صالة عائلية", nameEn: "Living room", type: "family_living", x: 4.72, y: 19.18, w: 6.4, h: 6.1, area: 39, floor: 0 },
-      { nameAr: "موقف سيارة", nameEn: "parking", type: "parking", x: 2.62, y: 19.33, w: 7.2, h: 15.85, area: 114.1, floor: 0 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.72, y: 25.98, w: 6.4, h: 7, area: 44.8, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.52, y: 33.78, w: 6.6, h: 1.4, area: 9.2, floor: 0 },
-    ],
-  },
-  {
-    id: "villa_2",
-    nameAr: "فيلا 2 — 12.5م × 36م",
-    nameEn: "Villa Type 2 — 12.5m × 36m",
-    landWidth: 12.5,
-    landDepth: 36,
-    buildingWidth: 11.12,
-    buildingDepth: 35.18,
-    rooms: [
-      { nameAr: "مخزن", nameEn: "storage", type: "storage", x: 4.52, y: 6.82, w: 2, h: 2.85, area: 5.7, floor: 1 },
-      { nameAr: "بهو المدخل", nameEn: "entrance", type: "entrance", x: 4.72, y: 6.82, w: 6.4, h: 5.2, area: 33.3, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.52, y: 12.82, w: 6.6, h: 3.2, area: 21.1, floor: 1 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 16.82, w: 6.4, h: 1.1, area: 7, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.72, y: 18.72, w: 6.4, h: 3.2, area: 20.5, floor: 1 },
-      { nameAr: "غرفة نوم", nameEn: "bedroom", type: "bedroom", x: 4.72, y: 22.72, w: 6.4, h: 3.1, area: 19.8, floor: 1 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 7.92, y: 26.62, w: 3.2, h: 1.1, area: 3.5, floor: 1 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.67, y: 26.62, w: 6.45, h: 5.8, area: 37.4, floor: 1 },
-      { nameAr: "غسيل", nameEn: "W/D", type: "laundry", x: 2.62, y: 33.22, w: 8.5, h: 1.4, area: 11.9, floor: 1 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 4.52, y: 23.42, w: 1.9, h: 2.25, area: 4.3, floor: 2 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 7.92, y: 26.62, w: 3.2, h: 1.1, area: 3.5, floor: 2 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 2.62, y: 7.38, w: 0.95, h: 11, area: 10.4, floor: 0 },
-      { nameAr: "حمام", nameEn: "bathroom", type: "bathroom", x: 4.52, y: 7.38, w: 1.7, h: 2.9, area: 4.9, floor: 0 },
-      { nameAr: "دورة مياه", nameEn: "toilet", type: "toilet", x: 9.52, y: 7.38, w: 1.6, h: 1.3, area: 2.1, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 11.18, w: 6.4, h: 1.5, area: 9.6, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 13.28, w: 6.4, h: 1.8, area: 11.5, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.72, y: 17.38, w: 6.4, h: 1.2, area: 7.7, floor: 0 },
-      { nameAr: "صالة عائلية", nameEn: "Living room", type: "family_living", x: 4.72, y: 19.18, w: 6.4, h: 6.1, area: 39, floor: 0 },
-      { nameAr: "موقف سيارة", nameEn: "parking", type: "parking", x: 2.62, y: 19.33, w: 7.2, h: 15.85, area: 114.1, floor: 0 },
-      { nameAr: "صالة عائلية", nameEn: "family_living", type: "family_living", x: 4.72, y: 25.98, w: 6.4, h: 7, area: 44.8, floor: 0 },
-      { nameAr: "ممر", nameEn: "corridor", type: "corridor", x: 4.52, y: 33.78, w: 6.6, h: 1.4, area: 9.2, floor: 0 },
-    ],
-  },
-];
+// ─── Model C — Wide Plot Villa (273 m²) ──────────────────────────────────────
+// Ground floor: entrance, salon, dining, living (full-width), kitchen, guest bath, laundry
+// First floor: master suite (bedroom + bath + closet), 2 bedrooms, shared bath, terrace
+// Roof: staircase access
+//
+// Ground floor layout (building ref 9.6m × 13.3m):
+//   ┌──────────┬──────┬───────────┐
+//   │ Entrance │ GBath│  Salon    │
+//   │ 2.7×3.15 │2×1.55│  4.5×6   │
+//   ├──────────┤──────┤           │
+//   │ LivBath  │Lndry │           │
+//   │ 2.9×1.05 │2×1.6 │           │
+//   ├──────────┴──────┤           │
+//   │   Dining        ├───────────┤
+//   │   4.9×4.5       │  Kitchen  │
+//   │                 │  4.5×3.2  │
+//   ├─────────────────┴───────────┤
+//   │       Living Room           │
+//   │       9.6 × 4.1             │
+//   └─────────────────────────────┘
+
+const MODEL_C: VillaTemplate = {
+  id: "model_c",
+  nameAr: "نموذج C — فيلا عريضة ٢٧٣م²",
+  nameEn: "Model C — Wide Villa 273m²",
+  totalArea: 273,
+  plotShape: "wide",
+  bedroomCount: 2,
+  landWidth: 12.5,
+  landDepth: 25,
+  buildingWidth: 9.6,
+  buildingDepth: 13.3,
+  rooms: [
+    // ── Ground Floor (0) ──────────────────────────────────────────────────────
+    { nameAr: "المدخل",       nameEn: "Entrance",     type: "entrance",       x: 0,    y: 0,    w: 2.7,  h: 3.15, area: 8.51,  floor: 0 },
+    { nameAr: "حمام ضيوف",    nameEn: "Guest Bath",   type: "bathroom",       x: 2.7,  y: 0,    w: 2.0,  h: 1.55, area: 3.1,   floor: 0 },
+    { nameAr: "مغسلة",        nameEn: "Laundry",      type: "laundry",        x: 2.7,  y: 1.55, w: 2.0,  h: 1.6,  area: 2.8,   floor: 0 },
+    { nameAr: "الصالون",      nameEn: "Salon",        type: "majlis",         x: 5.1,  y: 0,    w: 4.5,  h: 6.0,  area: 27.0,  floor: 0 },
+    { nameAr: "حمام المعيشة", nameEn: "Living Bath",  type: "bathroom",       x: 0,    y: 3.15, w: 2.9,  h: 1.05, area: 3.05,  floor: 0 },
+    { nameAr: "صالة الطعام",  nameEn: "Dining Hall",  type: "dining",         x: 0,    y: 4.2,  w: 4.9,  h: 4.5,  area: 22.05, floor: 0 },
+    { nameAr: "مطبخ",         nameEn: "Kitchen",      type: "kitchen",        x: 5.1,  y: 6.0,  w: 4.5,  h: 3.2,  area: 14.4,  floor: 0 },
+    { nameAr: "صالة المعيشة", nameEn: "Living Room",  type: "family_living",  x: 0,    y: 9.2,  w: 9.6,  h: 4.1,  area: 39.36, floor: 0 },
+
+    // ── First Floor (1) ───────────────────────────────────────────────────────
+    { nameAr: "السلم",                nameEn: "Staircase",       type: "staircase",      x: 0,    y: 0,    w: 4.9,  h: 4.1,  area: 20.09, floor: 1 },
+    { nameAr: "تراس",                 nameEn: "Terrace",         type: "balcony",        x: 4.9,  y: 0,    w: 4.6,  h: 3.2,  area: 14.72, floor: 1 },
+    { nameAr: "حمام رئيسي",           nameEn: "Master Bath",     type: "bathroom",       x: 4.9,  y: 3.2,  w: 3.0,  h: 1.7,  area: 5.1,   floor: 1 },
+    { nameAr: "موزع السلم",           nameEn: "Stair Hall",      type: "distributor",    x: 0,    y: 4.1,  w: 3.35, h: 1.7,  area: 5.7,   floor: 1 },
+    { nameAr: "موزع داخلي",           nameEn: "Master Hall",     type: "corridor",       x: 3.35, y: 4.1,  w: 1.7,  h: 2.15, area: 3.66,  floor: 1 },
+    { nameAr: "غرفة ملابس",           nameEn: "Walk-in Closet",  type: "storage",        x: 5.05, y: 4.9,  w: 3.0,  h: 1.75, area: 5.25,  floor: 1 },
+    { nameAr: "غرفة النوم الرئيسية",  nameEn: "Master Bedroom",  type: "master_bedroom", x: 0,    y: 5.8,  w: 4.9,  h: 4.0,  area: 19.6,  floor: 1 },
+    { nameAr: "حمام مشترك",           nameEn: "Shared Bath",     type: "bathroom",       x: 5.05, y: 6.65, w: 4.0,  h: 3.15, area: 12.6,  floor: 1 },
+    { nameAr: "غرفة نوم ١",           nameEn: "Bedroom 1",       type: "bedroom",        x: 0,    y: 9.8,  w: 4.5,  h: 3.9,  area: 17.55, floor: 1 },
+    { nameAr: "غرفة نوم ٢",           nameEn: "Bedroom 2",       type: "bedroom",        x: 4.6,  y: 9.8,  w: 4.5,  h: 3.9,  area: 17.55, floor: 1 },
+
+    // ── Roof (2) ──────────────────────────────────────────────────────────────
+    { nameAr: "السلم",  nameEn: "Staircase", type: "staircase", x: 0, y: 0, w: 4.9, h: 4.1, area: 20.09, floor: 2 },
+    { nameAr: "غرفة غسيل", nameEn: "Utility", type: "laundry", x: 4.9, y: 0, w: 3.0, h: 2.5, area: 7.5, floor: 2 },
+  ],
+};
+
+// ─── Model A — Deep Plot Villa (310 m²) ──────────────────────────────────────
+// Ground floor: entrance + distributor, salon, dining, kitchen, outdoor seating,
+//               living (full-width), guest bath, laundry
+// First floor: stairs, first-floor living, master suite, 3 bedrooms,
+//              bedroom terraces, bedroom 3 bath, shared bath
+// Roof: staircase access
+//
+// Ground floor layout (building ref 7.6m × 19.45m):
+//   ┌──────┬──────┬──────┬──────┐
+//   │Entr  │Dist  │GBath │Lndry │
+//   │2.3×1.8│1.6×1.8│1.9×1.8│1.8×1.6│
+//   ├──────┴──────┼──────┴──────┤
+//   │  Dining     │   Salon     │
+//   │  3.7×4.5    │   3.7×6.3   │
+//   │             │             │
+//   ├─────────────┤             │
+//   │  Kitchen    ├─────────────┤
+//   │  3.7×5.4    │ Outdoor Sit │
+//   │             │  3.7×2.8    │
+//   ├─────────────┴─────────────┤
+//   │  LivBath 2.33×1.45        │
+//   ├───────────────────────────┤
+//   │      Living Room          │
+//   │      7.6 × 6.3            │
+//   └───────────────────────────┘
+
+const MODEL_A: VillaTemplate = {
+  id: "model_a",
+  nameAr: "نموذج A — فيلا عميقة ٣١٠م²",
+  nameEn: "Model A — Deep Villa 310m²",
+  totalArea: 310,
+  plotShape: "deep",
+  bedroomCount: 3,
+  landWidth: 10,
+  landDepth: 30,
+  buildingWidth: 7.6,
+  buildingDepth: 19.45,
+  rooms: [
+    // ── Ground Floor (0) ──────────────────────────────────────────────────────
+    { nameAr: "المدخل",        nameEn: "Entrance",         type: "entrance",      x: 0,    y: 0,    w: 2.3,  h: 1.8,  area: 4.14,  floor: 0 },
+    { nameAr: "موزع المدخل",   nameEn: "Entry Hall",       type: "distributor",   x: 2.3,  y: 0,    w: 1.6,  h: 1.8,  area: 2.88,  floor: 0 },
+    { nameAr: "حمام ضيوف",     nameEn: "Guest Bath",       type: "bathroom",      x: 3.9,  y: 0,    w: 1.9,  h: 1.8,  area: 3.42,  floor: 0 },
+    { nameAr: "مغسلة",         nameEn: "Laundry",          type: "laundry",       x: 5.8,  y: 0,    w: 1.8,  h: 1.6,  area: 3.04,  floor: 0 },
+    { nameAr: "صالة الطعام",   nameEn: "Dining Hall",      type: "dining",        x: 0,    y: 1.8,  w: 3.7,  h: 4.5,  area: 16.65, floor: 0 },
+    { nameAr: "الصالون",       nameEn: "Salon",            type: "majlis",        x: 3.9,  y: 1.8,  w: 3.7,  h: 6.3,  area: 23.31, floor: 0 },
+    { nameAr: "مطبخ",          nameEn: "Kitchen",          type: "kitchen",       x: 0,    y: 6.3,  w: 3.7,  h: 5.4,  area: 19.98, floor: 0 },
+    { nameAr: "جلسة خارجية",   nameEn: "Outdoor Seating",  type: "balcony",       x: 3.9,  y: 8.1,  w: 3.7,  h: 2.8,  area: 10.36, floor: 0 },
+    { nameAr: "حمام المعيشة",  nameEn: "Living Bath",      type: "bathroom",      x: 0,    y: 11.7, w: 2.33, h: 1.45, area: 3.38,  floor: 0 },
+    { nameAr: "صالة المعيشة",  nameEn: "Living Room",      type: "family_living", x: 0,    y: 13.15,w: 7.6,  h: 6.3,  area: 47.88, floor: 0 },
+
+    // ── First Floor (1) ───────────────────────────────────────────────────────
+    { nameAr: "السلم",                nameEn: "Staircase",        type: "staircase",      x: 0,    y: 0,     w: 3.7,  h: 4.73, area: 17.5,  floor: 1 },
+    { nameAr: "صالة المعيشة",         nameEn: "Living Room",      type: "family_living",  x: 3.9,  y: 0,     w: 3.7,  h: 4.35, area: 16.10, floor: 1 },
+    { nameAr: "غرفة النوم الرئيسية",  nameEn: "Master Bedroom",   type: "master_bedroom", x: 0,    y: 4.73,  w: 3.7,  h: 4.1,  area: 15.17, floor: 1 },
+    { nameAr: "تراس المعيشة",         nameEn: "Living Terrace",   type: "balcony",        x: 3.9,  y: 4.35,  w: 2.9,  h: 2.4,  area: 6.96,  floor: 1 },
+    { nameAr: "حمام رئيسي",           nameEn: "Master Bath",      type: "bathroom",       x: 3.9,  y: 6.75,  w: 2.05, h: 2.5,  area: 5.13,  floor: 1 },
+    { nameAr: "غرفة نوم ١",           nameEn: "Bedroom 1",        type: "bedroom",        x: 0,    y: 8.83,  w: 3.7,  h: 3.9,  area: 14.43, floor: 1 },
+    { nameAr: "تراس غرفة نوم",        nameEn: "Bedroom Terrace",  type: "balcony",        x: 3.9,  y: 9.25,  w: 3.7,  h: 2.2,  area: 8.14,  floor: 1 },
+    { nameAr: "غرفة نوم ٢",           nameEn: "Bedroom 2",        type: "bedroom",        x: 0,    y: 12.73, w: 3.7,  h: 3.9,  area: 14.43, floor: 1 },
+    { nameAr: "غرفة نوم ٣",           nameEn: "Bedroom 3",        type: "bedroom",        x: 3.9,  y: 11.45, w: 3.7,  h: 4.05, area: 14.99, floor: 1 },
+    { nameAr: "حمام غرفة نوم ٣",      nameEn: "Bedroom 3 Bath",   type: "bathroom",       x: 3.9,  y: 15.5,  w: 2.3,  h: 2.1,  area: 4.83,  floor: 1 },
+    { nameAr: "حمام مشترك",           nameEn: "Shared Bath",      type: "bathroom",       x: 0,    y: 16.63, w: 2.3,  h: 1.7,  area: 3.91,  floor: 1 },
+
+    // ── Roof (2) ──────────────────────────────────────────────────────────────
+    { nameAr: "السلم",      nameEn: "Staircase", type: "staircase", x: 0,   y: 0, w: 3.7, h: 4.73, area: 17.5, floor: 2 },
+    { nameAr: "غرفة غسيل",  nameEn: "Utility",   type: "laundry",   x: 3.9, y: 0, w: 2.5, h: 2.5,  area: 6.25, floor: 2 },
+  ],
+};
+
+export const VILLA_TEMPLATES: VillaTemplate[] = [MODEL_C, MODEL_A];
 
 /**
- * Find the best-matching template for the given land dimensions.
- * Returns the template whose land area is closest to the request.
+ * Select the best template based on plot aspect ratio.
+ * Wide plots (W/D >= 0.42) → Model C (wider building, 2 bedrooms)
+ * Deep plots (W/D < 0.42) → Model A (narrower/deeper building, 3 bedrooms)
  */
 export function findBestTemplate(landWidth: number, landDepth: number): VillaTemplate {
-  const target = landWidth * landDepth;
-  let best = VILLA_TEMPLATES[0];
-  let bestDiff = Infinity;
-  for (const t of VILLA_TEMPLATES) {
-    const diff = Math.abs(t.landWidth * t.landDepth - target);
-    if (diff < bestDiff) { bestDiff = diff; best = t; }
-  }
-  return best;
+  const ratio = landWidth / Math.max(landDepth, 1);
+  return ratio >= 0.42 ? MODEL_C : MODEL_A;
 }
 
 /**
- * Scale a template's rooms to fit a target building footprint,
- * adding setback offsets so room coords are land-absolute (matching generateZoneLayout output).
- *
- * @param template  - source VillaTemplate
- * @param targetBW  - target building width in meters (land − side setbacks)
- * @param targetBD  - target building depth in meters (land − front/back setbacks)
- * @param sX        - side setback offset (added to room x)
- * @param sY        - back setback offset (added to room y)
- * @param maxFloors - only include rooms on floors 0..maxFloors-1
+ * Scale a template's rooms to fit a target building footprint.
+ * Per-floor normalization: each floor's bounding box is shifted to (0,0)
+ * then scaled to fill (targetBW × targetBD), with setback offsets applied.
  */
 export function scaleTemplate(
   template: VillaTemplate,
@@ -130,9 +186,6 @@ export function scaleTemplate(
   const eligible = template.rooms.filter(r => r.floor < maxFloors);
   if (!eligible.length) return [];
 
-  // Normalize per-floor: each floor's rooms are shifted so their bounding box
-  // starts at (0,0), then scaled to fill the target building footprint exactly.
-  // This removes the "front setback gap" baked into the DXF coordinates.
   const floors = Array.from(new Set(eligible.map(r => r.floor))).sort((a, b) => a - b);
   const result: RoomTemplate[] = [];
 
@@ -150,7 +203,7 @@ export function scaleTemplate(
     const sx = targetBW / normW;
     const sy = targetBD / normH;
 
-    // Remove rooms whose bbox area is > 60% of floor area (parking carport overlay)
+    // Remove rooms whose area is > 60% of floor area (parking overlay artifact)
     const floorArea = normW * normH;
     const filtered = fRooms.filter(r => (r.w * r.h) / floorArea < 0.6);
 
